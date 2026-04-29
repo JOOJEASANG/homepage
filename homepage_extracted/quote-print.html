@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>디지털 칼라인쇄 견적 | 그린오피스</title>
+  <link rel="icon" href="favicon.ico" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
+    <script>
+// 10원 단위 절삭
+function cut10(v){ v = Number(v)||0; return Math.round(v/100)*100; }
+
+
+// ✅ 관리자 표시 강제(요청: 책/인쇄 모두 '관리자'로 표시)
+function __isAdminEditMode() {
+  try {
+    const p = new URLSearchParams(location.search || "");
+    if (p.get("adminEdit") === "1") return true;
+    if (p.get("edit") === "1" && p.get("adminEdit") === "1") return true;
+  } catch(e) {}
+  // role cache
+  try {
+    const r = (localStorage.getItem("userRole") || sessionStorage.getItem("userRole") || "").trim();
+    if (r === "admin") return true;
+  } catch(e) {}
+  return false;
+}
+function __displayNameForHeader(currentUser) {
+  if (__isAdminEditMode()) return "관리자";
+  const name = (currentUser && (currentUser.name || currentUser.displayName)) || "";
+  const email = (currentUser && currentUser.email) || "";
+  const v = (name || email || "").trim();
+  return v || "회원";
+}
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Pretendard', 'sans-serif']
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f2fcf5',
+                            100: '#e1fce9',
+                            200: '#c3f9d4',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d'
+                        },
+                        office: {
+                            bg: '#f8fafc',
+                            paper: '#ffffff',
+                            line: '#e2e8f0',
+                            text: '#334155'
+                        }
+                    },
+                    boxShadow: {
+                        paper: '0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06)',
+                        float: '0 10px 30px -5px rgba(0,0,0,0.05)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background: #f8fafc;
+            color: #334155;
+            overflow-x: hidden
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8
+        }
+
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: .75rem;
+            padding: .65rem .9rem;
+            font-size: .9rem;
+            transition: .2s
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: #16a34a;
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, .12)
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .06)
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            border-radius: .75rem;
+            padding: .65rem 1rem;
+            transition: .2s
+        }
+
+        .btn-primary {
+            background: #16a34a;
+            color: #fff
+        }
+
+        .btn-primary:hover {
+            background: #15803d
+        }
+
+        .btn-secondary {
+            background: #fff;
+            color: #334155;
+            border: 1px solid #e2e8f0
+        }
+
+        .btn-secondary:hover {
+            background: #f8fafc
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            padding: .25rem .55rem;
+            border-radius: 999px;
+            font-size: .72rem;
+            font-weight: 800
+        }
+
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background: #f8fafc;
+            color: #334155;
+            overflow-x: hidden
+        }
+
+        .nav-item {
+            transition: all .2s ease
+        }
+
+        .nav-item:hover {
+            background: #f1f5f9;
+            color: #15803d
+        }
+
+        .nav-item.active {
+            background: #f2fcf5;
+            color: #16a34a;
+            font-weight: 800
+        }
+
+        .modal-bg {
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px)
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0
+            }
+
+            to {
+                opacity: 1
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn .5s ease-out forwards
+        }
+
+        .animate-slide-up {
+            animation: slideUp .6s cubic-bezier(0.16, 1, 0.3, 1) forwards
+        }
+    
+    /* 뷰어 스타일 (가이드안내 에디터와 동일) */
+    .ql-view-content h1 { font-size: 1.6em; font-weight: 800; color: #1e293b; margin: 0.8em 0 0.5em; line-height: 1.3; }
+    .ql-view-content h2 { font-size: 1.3em; font-weight: 700; color: #334155; margin: 1em 0 0.5em; border-left: 4px solid #16a34a; padding-left: 10px; }
+    .ql-view-content p { margin-bottom: 0.8em; line-height: 1.7; color: #475569; word-break: keep-all; }
+    .ql-view-content ul, .ql-view-content ol { padding-left: 1.4em; margin-bottom: 1em; color: #475569; }
+    .ql-view-content ul { list-style-type: disc; }
+    .ql-view-content ol { list-style-type: decimal; }
+    .ql-view-content img { border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 100%; margin: 1rem 0; }
+    .ql-view-content blockquote { border-left: 3px solid #cbd5e1; background: #f8fafc; padding: 0.8rem; margin: 1rem 0; color: #64748b; font-size: 0.95em; }
+    .ql-view-content strong { color: #0f172a; font-weight: 700; }
+
+    /* 에디터 placeholder */
+    #wg-content-editor:empty:before { content: attr(data-placeholder); color: #cbd5e1; }
+    #wg-content-editor ul { list-style: disc; padding-left: 1.25rem; }
+    #wg-content-editor ol { list-style: decimal; padding-left: 1.25rem; }
+    #wg-content-editor img { max-width: 100%; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin: 0.75rem 0; }
+
+</style>
+    <script type="text/javascript" src="//wcs.pstatic.net/wcslog.js"></script>
+    <script type="text/javascript">
+    if(!wcs_add) var wcs_add = {};
+    wcs_add["wa"] = "93643ac58d5";
+    if(window.wcs) {
+    wcs_do();
+    }
+    </script>
+</head>
+
+    <div id="toast-container" class="fixed top-20 right-6 z-[9999] flex flex-col gap-3"></div>
+
+    <!-- 헤더스타일 -->
+    <div id="site-header"></div>
+
+    <!-- Mobile Navigation Modal -->
+    <div id="mobileNavModal" class="fixed inset-0 modal-bg hidden items-end justify-center p-0 z-[9998] animate-fade-in">
+        <div class="w-full bg-white rounded-t-3xl shadow-2xl overflow-hidden animate-slide-up" onclick="event.stopPropagation()">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h2 class="font-bold text-slate-800">메뉴</h2>
+                <button id="closeMobileNavBtn" class="text-slate-400 hover:text-slate-600 transition-colors" type="button"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-4">
+                <div class="grid grid-cols-1 gap-2">
+                    <a href="index.html" class="w-full py-3 px-4 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 flex items-center gap-3">
+                        <i class="fas fa-house text-slate-400"></i> 홈
+                    </a>
+                    <a href="quote-book.html" class="w-full py-3 px-4 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 flex items-center gap-3">
+                        <i class="fas fa-book text-slate-400"></i> 책자/제본
+                    </a>
+                    <a href="quote-print.html" class="w-full py-3 px-4 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 flex items-center gap-3">
+                        <i class="fas fa-copy text-slate-400"></i> 디지털 인쇄
+                    </a>
+                    <a href="qna.html" class="w-full py-3 px-4 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 flex items-center gap-3">
+                        <i class="fas fa-headset text-slate-400"></i> 고객센터
+                    </a>
+                </div>
+                <div class="mt-3 grid grid-cols-2 gap-2">
+                  <button id="mobile-mypage-btn" type="button" class="w-full py-3 px-4 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 flex items-center justify-center gap-2">
+                    <i class="fas fa-user-circle text-slate-400"></i> 마이페이지
+                  </button>
+                  <button id="mobile-auth-btn" type="button" class="w-full py-3 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold flex items-center justify-center gap-2 shadow-sm">
+                    로그인
+                  </button>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-4 px-1">아래 버튼으로 마이페이지 이동/로그인·로그아웃을 바로 할 수 있어요.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Menu Modal (Popup) -->
+    
+
+    <!-- 비회원 주문 조회 모달 -->
+    
+
+    <!-- 메인 컨텐츠 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20">
+        <div class="mb-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+            <div class="lg:col-span-8">
+                <div class="flex items-center gap-2">
+  <h1 class="text-3xl font-bold text-slate-800 tracking-tight">디지털 칼라인쇄 견적</h1>
+  <button id="helpBtnPrint" type="button" class="w-8 h-8 inline-flex items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:text-slate-700 hover:border-slate-300 shadow-sm" aria-label="도움말">
+    <i class="fa-solid fa-circle-question"></i>
+  </button>
+</div>
+                <p class="text-slate-500 mt-2 text-sm">
+                    초대장, 안내장, 포스터, 전단지 등(양면 1장 이하만 견적됩니다.) 양면 2장 이상시 출력/제본페이지로 이동해 주세요~
+                    <br> 종이는 <b>스노우지</b> / <b>아르떼</b>만 사용합니다. 단면/양면 선택 및 사이즈 자동 견적(면적 비례) 지원.
+                </p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <span class="pill bg-brand-50 text-brand-700 border border-brand-100"><i class="fas fa-ruler-combined"></i>A4 기준 면적비례</span>
+                    <span class="pill bg-slate-50 text-slate-700 border border-slate-200"><i class="fas fa-layer-group"></i>출력단가(1면) 기반</span>
+                    <span class="pill bg-slate-50 text-slate-700 border border-slate-200"><i class="fas fa-pen-ruler"></i>오시(1줄/2줄) 옵션</span>
+                </div>
+            </div>
+            <div class="lg:col-span-4 w-full">
+                <div class="bg-brand-50 border border-brand-100 text-brand-700 px-4 py-3 rounded-xl flex items-start gap-3 text-xs w-full shadow-sm">
+                    <i class="fas fa-circle-info mt-0.5 text-brand-500"></i>
+                    <div>
+                        <span class="font-extrabold block mb-1">접수 안내</span>
+                        접수 후 관리자 확인 → 상담/확정 금액 안내로 진행됩니다. 회원은 마이페이지에서 진행상태를 확인할 수 있어요.
+                    </div>
+                </div>
+            </div>
+        </div>
+        <form class="grid grid-cols-1 lg:grid-cols-12 gap-6" id="quoteForm">
+            <section class="lg:col-span-8 space-y-6">
+                <div class="card p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-extrabold text-slate-800"><i class="fas fa-sliders-h mr-2 text-brand-600"></i>사양 설정</h2>
+                        <span class="pill bg-slate-50 text-slate-600 border border-slate-200" id="loginBadge">로그인 확인 중</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-500 mb-1">품명</label>
+                            <input class="form-input w-full font-semibold" id="orderName" placeholder="예: A4 홍보물 1,000매" required="" type="text" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-500 mb-1">수량(매)</label>
+                            <input class="form-input w-full font-semibold" id="quantity" min="1" required="" step="1" type="number" value="100" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-500 mb-1">인쇄면</label>
+                            <select class="form-select w-full font-semibold" id="printSides">
+                                <option value="1">단면(1면)</option>
+                                <option value="2">양면(2면)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-500 mb-1">사이즈</label>
+                            <select class="form-select w-full font-semibold" id="paperSize">
+                                <option selected="" value="A4">A4 (210×297)</option>
+                                <option value="A3">A3 (297×420)</option>
+                                <option value="A5">A5 (148×210)</option>
+                                <option value="B5">B5 (176×250)</option>
+                                <option value="B4">B4 (257×364)</option>
+                                <option value="IN12x18">12×18in (457×305)</option>
+                                <option value="IN13x19">13×19in (482×330)</option>
+                                <option value="CUSTOM">직접입력</option>
+                            </select>
+                            <div class="grid grid-cols-2 gap-2 mt-2 hidden" id="customSizeWrap">
+                                <input class="form-input w-full" id="customW" min="10" placeholder="가로(mm)" type="number" />
+                                <input class="form-input w-full" id="customH" min="10" placeholder="세로(mm)" type="number" />
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-500 mb-1">용지</label>
+                            <select class="form-select w-full font-semibold" id="paperType">
+                                <option value="snow">스노우지</option>
+                                <option value="arte">아르떼</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-500 mb-1">두께(g)</label>
+                            <select class="form-select w-full font-semibold" id="paperWeight"></select>
+                            <p class="text-[11px] text-slate-400 mt-1">* 단가관리에서 두께별 출력단가(1면, A4 기준)를 설정하세요.</p>
+                        </div>
+                    </div>
+                    <div class="mt-5 border-t border-slate-200 pt-5">
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center gap-2 cursor-pointer select-none">
+                                <input class="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" id="oshiEnabled" type="checkbox" />
+                                <span class="font-extrabold text-slate-700">오시(접는 선) 추가</span>
+                            </label>
+                            <span class="text-xs text-slate-400">리플렛/접지용 옵션</span>
+                        </div>
+                        <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 hidden" id="oshiOptions">
+                            <label class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 cursor-pointer">
+                                <input checked="" class="text-brand-600" name="oshiLines" type="radio" value="1" />
+                                <div class="flex-1">
+                                    <div class="font-bold text-slate-700">1줄 오시</div>
+                                    <div class="text-[11px] text-slate-400">단가관리에서 1줄 오시 단가 입력</div>
+                                </div>
+                            </label>
+                            <label class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 cursor-pointer">
+                                <input class="text-brand-600" name="oshiLines" type="radio" value="2" />
+                                <div class="flex-1">
+                                    <div class="font-bold text-slate-700">2줄 오시</div>
+                                    <div class="text-[11px] text-slate-400">단가관리에서 2줄 오시 단가 입력</div>
+                                </div>
+                            </label>
+                            <label class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 cursor-pointer">
+                                <input class="text-brand-600" name="oshiLines" type="radio" value="3" />
+                                <div class="flex-1">
+                                    <div class="font-bold text-slate-700">3줄 오시</div>
+                                    <div class="text-[11px] text-slate-400">단가관리에서 3줄 오시 단가 입력</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-6">
+                    <button type="button"
+                        class="w-full flex items-center justify-between text-left"
+                        onclick="(function(){var c=document.getElementById('guide-content');var ic=document.getElementById('guide-chevron');c.classList.toggle('hidden');ic.style.transform=c.classList.contains('hidden')?'':'rotate(180deg)'})()">
+                        <h2 class="text-lg font-extrabold text-slate-800">
+                            <i class="fas fa-circle-info mr-2 text-brand-600"></i>디지털 인쇄 안내
+                        </h2>
+                        <i id="guide-chevron" class="fas fa-chevron-down text-slate-400 md:hidden transition-transform duration-200"></i>
+                    </button>
+                    <div id="guide-content" class="hidden md:block mt-3">
+                        <div id="guideText" class="text-sm text-slate-700 leading-relaxed whitespace-pre-line ql-view-content">
+                            안내문을 불러오는 중입니다...
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-3">
+                            * 안내문은 '디지털인쇄 단가관리' 페이지에서 관리자만 작성/수정할 수 있습니다.
+                        </p>
+                    </div>
+                </div>
+            </section>
+            <aside class="lg:col-span-4">
+                <div class="sticky top-24 space-y-6">
+                    <div class="card p-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-extrabold text-slate-800"><i class="fas fa-calculator mr-2 text-brand-600"></i>금액 산출</h3>
+                            <div class="flex items-center gap-2">
+                                <div class="text-xs text-red-500 font-extrabold hidden" id="minQtyHint">최소 수량 미달</div>
+                                <button class="btn btn-secondary text-xs py-2 px-3" id="refreshBtn" type="button"><i class="fas fa-rotate mr-1"></i>재계산</button>
+                            </div>
+                        </div>
+                        <div class="text-sm text-slate-700 space-y-2" id="breakdown">
+                            <div class="text-slate-400 text-sm">사양을 선택하면 자동으로 계산됩니다.</div>
+                        </div>
+                    <div class="mt-3 text-[11px] text-slate-400 leading-relaxed">
+                            * 사이즈는 A4 기준 면적비례로 계산합니다(커스텀 포함). 실제 작업/후가공/수량에 따라 변동될 수 있습니다.
+                        </div>
+                    </div>
+                    <!-- 예상금액 영역 제거: supplyPrice, vatPrice, totalPrice, minQtyHint는 금액산출 카드로 이동 -->
+                    <span id="supplyPrice" class="hidden">0원</span>
+                    <span id="vatPrice" class="hidden">0원</span>
+                    <span id="totalPrice" class="hidden">0원</span>
+
+                    <div class="card p-6">
+                        <h2 class="text-lg font-extrabold text-slate-800 mb-4">
+                            <i class="fas fa-paperclip mr-2 text-brand-600"></i>첨부파일
+                        </h2>
+                        <label class="block text-xs font-extrabold text-slate-500 mb-2">첨부파일(선택)</label>
+                        <input class="form-input w-full text-sm" id="attachments" multiple type="file" />
+                        <p class="text-[11px] text-slate-400 mt-2">
+                            * 시안/원고 파일이 있으면 업로드해주세요.
+                        </p>
+                    </div>
+
+                    <div class="card p-6">
+                        <button class="btn btn-primary w-full text-base" id="submitBtn" type="submit">
+                            <i class="fas fa-paper-plane mr-2"></i>견적 접수하기
+                        </button>
+                        <p class="text-[11px] text-slate-400 mt-3 leading-relaxed">
+                            * 접수 후 관리자 확인 → 상담/확정 금액 안내로 진행됩니다.
+                        </p>
+                    </div>
+                </div>
+            </aside>
+        </form>
+    </main>
+    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 hidden z-50" id="toast"></div>
+    <!-- 접수 정보 입력 모달 (책자/제본과 동일 UI) -->
+    <div class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-[60]" id="signupModal">
+        <div class="bg-white shadow-2xl w-full max-w-md flex flex-col rounded-2xl overflow-hidden animate-slide-up">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h2 class="text-lg font-bold text-slate-800"><i class="fas fa-user-circle text-base mr-2"></i>주문자 정보 입력</h2>
+                <button class="text-slate-400 hover:text-slate-600 transition-colors" id="closeSignupModalBtn" type="button"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-[80vh]">
+                <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-5 text-xs text-blue-800">
+                    <p class="font-bold mb-1">📌 접수 안내</p>
+                    입력하신 정보(이름/연락처)로 나중에 주문을 조회할 수 있습니다.<br>
+                    비밀번호는 연락처 끝 4자리로 자동 설정됩니다.
+                </div>
+                <form class="space-y-4" id="signup-form">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">이름 <span class="text-red-400">*</span></label>
+                        <input class="form-input w-full" id="signup-name" placeholder="주문자명" required="" type="text" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">연락처 <span class="text-red-400">*</span></label>
+                        <input class="form-input w-full" id="signup-contact" placeholder="010-1234-5678" required="" type="tel" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">비밀번호 (연락처 뒤 4자리 자동)</label>
+                        <input class="form-input w-full" id="signup-password" placeholder="연락처 뒤 4자리로 자동 설정됩니다" readonly="" type="password" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">이메일 <span class="text-slate-300 font-normal">(선택)</span></label>
+                        <input class="form-input w-full" id="signup-email" placeholder="example@email.com" type="email" />
+                    </div>
+                    <div class="pt-2">
+                        <button class="btn btn-primary w-full" type="submit">
+                            <span class="btn-text">동의하고 접수하기</span>
+                            <i class="fas fa-spinner fa-spin ml-2 hidden"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+
+
+    
+
+
+<script>
+/** 권한/보안 흐름 고정 v5 (수정5차)
+ * - admin은 기본적으로 admin.html로 강제 유도
+ * - 단, 견적 수정 목적의 adminEdit/admin_edit 플래그가 있으면 quote-book/quote-print 접근 허용
+ * - mypage는 회원/비회원 세션만 허용, admin은 admin으로
+ * - 헤더/모바일 UX 통일 + 완전 로그아웃(비회원 조회키 포함)
+ */
+(function(){
+  const CLEAR_KEYS = ['guestLookupKey', 'guestLookupKeyLegacy', 'guestName', 'guestContact', 'guestContactHyphen', 'guestContactRaw', 'guestPwLast4', 'userRole', 'quoteToReload', 'quoteDraft', 'lastQuoteDraft', 'postLoginRedirect', 'temp_quote_print', 'autoSubmitBook', 'notice_popup_hide', 'userName'];
+
+  function currentFile() {
+    try {
+      const p = (location.pathname||"").split("/").pop();
+      return p || "index.html";
+    } catch(e) { return "index.html"; }
+  }
+
+  function getGuestKey() {
+    return sessionStorage.getItem("guestLookupKey")
+        || localStorage.getItem("guestLookupKey")
+        || sessionStorage.getItem("guestLookupKeyLegacy")
+        || localStorage.getItem("guestLookupKeyLegacy")
+        || "";
+  }
+
+  function getRole() {
+    try { return (localStorage.getItem("userRole")||"").toLowerCase(); }
+    catch(e) { return ""; }
+  }
+
+  function setRole(role) {
+    try {
+      if (!role) return;
+      localStorage.setItem("userRole", String(role).toLowerCase());
+    } catch(e) {}
+  }
+
+  function setPostLoginRedirect(file) {
+    try { localStorage.setItem("postLoginRedirect", file); } catch(e) {}
+  }
+
+  function clearClientState() {
+    try { sessionStorage.clear(); } catch(e) {}
+    try {
+      CLEAR_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+    } catch(e) {}
+  }
+
+  async function firebaseSignOutSafe() {
+    try {
+      // Modular SDK exposure
+      if (window.auth && window.signOut) {
+        await window.signOut(window.auth);
+        return;
+      }
+      // If auth is available but signOut wasn't exposed for some reason
+      if (window.auth && typeof window.auth.signOut === "function") {
+        await window.auth.signOut();
+        return;
+      }
+      // Compat SDK
+      if (window.firebase && window.firebase.auth && typeof window.firebase.auth === "function") {
+        await window.firebase.auth().signOut();
+        return;
+      }
+      // Legacy hook
+      if (window.__firebaseAuth && typeof window.__firebaseAuth.signOut === "function") {
+        await window.__firebaseAuth.signOut();
+        return;
+      }
+    } catch (e) {}
+  }
+
+  async function hardLogout(redirectUrl = 'index.html') {
+  // Clear UI/session state
+  try { sessionStorage.clear(); } catch (e) {}
+  try {
+    // Role / user
+    localStorage.removeItem('userRole');
+    sessionStorage.removeItem('userRole');
+    localStorage.removeItem('userName');
+    sessionStorage.removeItem('userName');
+
+    // Quote draft / routing
+    localStorage.removeItem('quoteToReload');
+    localStorage.removeItem('quoteDraft');
+    localStorage.removeItem('lastQuoteDraft');
+    localStorage.removeItem('postLoginRedirect');
+
+    // Guest lookup keys
+    localStorage.removeItem('guestLookupKey');
+    localStorage.removeItem('guestLookupKeyLegacy');
+    localStorage.removeItem('guestName');
+    localStorage.removeItem('guestContact');
+    localStorage.removeItem('guestContactRaw');
+    localStorage.removeItem('guestContactHyphen');
+    localStorage.removeItem('guestPwLast4');
+  } catch (e) {}
+
+  // Optional: clear last quote cache keys when present
+  try {
+    if (typeof __LAST_QUOTE_CACHE_KEY_BOOK !== 'undefined') {
+      try { sessionStorage.removeItem(__LAST_QUOTE_CACHE_KEY_BOOK); } catch (e) {}
+      try { localStorage.removeItem(__LAST_QUOTE_CACHE_KEY_BOOK); } catch (e) {}
+    }
+    if (typeof __LAST_QUOTE_CACHE_KEY_PRINT !== 'undefined') {
+      try { sessionStorage.removeItem(__LAST_QUOTE_CACHE_KEY_PRINT); } catch (e) {}
+      try { localStorage.removeItem(__LAST_QUOTE_CACHE_KEY_PRINT); } catch (e) {}
+    }
+  } catch (e) {}
+
+  // Optional: unsubscribe snapshot listeners if present (mypage 등)
+  try { if (typeof unsubscribeQuotesSnapshot === 'function') unsubscribeQuotesSnapshot(); } catch (e) {}
+  try { if (typeof unsubscribeQuotesSnapshot !== 'undefined') unsubscribeQuotesSnapshot = null; } catch (e) {}
+
+  // Admin safety: 관리자에서 로그아웃한 직후 메인에서 1회 익명로그인 억제
+  try {
+    const p = (location && location.pathname ? location.pathname : '').toLowerCase();
+    if (p.endsWith('/admin.html') || p.endsWith('admin.html')) {
+      sessionStorage.setItem('suppressAnonOnce', '1');
+    }
+  } catch (e) {}
+
+  // Firebase sign out (module auth or window.auth)
+  try {
+    if (typeof auth !== 'undefined' && auth && typeof signOut === 'function') {
+      await signOut(auth);
+    } else if (window.auth && typeof window.auth.signOut === 'function') {
+      await window.auth.signOut();
+    }
+  } catch (e) {
+    console.warn('signOut failed:', e);
+  }
+
+  location.replace(redirectUrl || 'index.html');
+}
+
+// expose logout for menu buttons
+try { window.hardLogout = hardLogout; } catch (e) {}
+
+  window.__hardLogout = () => hardLogout("index.html");
+
+  function getSessionState() {
+    // Guest key cleanup
+    let guestKey = getGuestKey();
+    try {
+      const gn = (sessionStorage.getItem("guestName") || localStorage.getItem("guestName") || "").trim();
+      const gc = (sessionStorage.getItem("guestContact") || localStorage.getItem("guestContact") || "").trim();
+      if (guestKey && !gn && !gc) {
+        ["guestLookupKey","guestLookupKeyLegacy","guestName","guestContact","guestContactRaw","guestContactHyphen","guestPwLast4"].forEach(k=>{
+          try{ sessionStorage.removeItem(k);}catch(e){}
+          try{ localStorage.removeItem(k);}catch(e){}
+        });
+        guestKey = "";
+      }
+    } catch(e) {}
+
+    const u = (window.__currentUser || (window.auth && window.auth.currentUser) || null);
+    const isAnon = !!(u && u.isAnonymous);
+    const isLoggedIn = !!(u && u.uid && !u.isAnonymous);
+    const hasSession = !!guestKey || isAnon || isLoggedIn;
+    return { guestKey, isAnon, isLoggedIn, hasSession, user: u };
+  }
+
+  // ✅ 통합 인증 라벨/아이콘 업데이트 함수
+  window.updateAuthLabels = function() {
+    const st = getSessionState();
+    const btn = document.getElementById("auth-action-btn");
+    const mb = document.getElementById("mobile-auth-btn");
+    const w = document.getElementById("welcome-message");
+    const role = getRole();
+
+    // 1. 아이콘 버튼 (로그인/로그아웃)
+    if (btn) {
+        const showLogout = st.isLoggedIn || !!st.guestKey;
+        if (showLogout) {
+            btn.innerHTML = '<i class="fas fa-sign-out-alt"></i>';
+            btn.title = "로그아웃";
+            btn.onclick = (e) => { e.preventDefault(); hardLogout("index.html"); };
+        } else {
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i>';
+            btn.title = "로그인";
+            btn.onclick = (e) => { e.preventDefault(); authAction(); };
+        }
+    }
+    
+    // 2. 모바일 텍스트 버튼
+    if (mb) {
+        const showLogout = st.isLoggedIn || !!st.guestKey;
+        mb.textContent = showLogout ? "로그아웃" : "로그인";
+    }
+
+    // 3. 헤더 환영 메시지
+    if (w) {
+      if (role === "admin") {
+          w.textContent = "관리자";
+          w.classList.remove("hidden");
+      }
+      else if (st.isLoggedIn) {
+          const storedName = sessionStorage.getItem('userName');
+          const dispName = storedName || (st.user && st.user.displayName) || "회원";
+          w.textContent = dispName + "님";
+          w.classList.remove("hidden");
+      }
+      else if (st.guestKey) {
+          const guestName = sessionStorage.getItem("guestName") || "비회원";
+          w.textContent = guestName + "님";
+          w.classList.remove("hidden");
+      }
+      else {
+          w.textContent = "";
+          w.classList.add("hidden");
+      }
+    }
+  }
+
+  function goMypageOrLogin() {
+    const st = getSessionState();
+    if (st.guestKey) location.href = "mypage.html?guest=1";
+    else if (st.isLoggedIn) location.href = "mypage.html";
+    else {
+      setPostLoginRedirect("mypage.html");
+      location.href = "login.html";
+    }
+  }
+
+  async function authAction() {
+    const st = getSessionState();
+    if (st.isLoggedIn || st.guestKey) await hardLogout("index.html");
+    else {
+      setPostLoginRedirect(currentFile());
+      location.href = "login.html";
+    }
+  }
+
+  function bindClickOverride(id, handler) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("click", (e) => {
+      try {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+      } catch(_) {}
+      handler();
+    }, true);
+  }
+
+  function allowAdminEditHere() {
+    const file = currentFile();
+    const params = new URLSearchParams(location.search || "");
+    const flag = (params.get("adminEdit")==="1") || (params.get("admin_edit")==="1");
+    if (!flag) return false;
+    return (file === "quote-book.html" || file === "quote-print.html");
+  }
+
+  function applyRoleGuards() {
+    const file = currentFile();
+    const role = getRole();
+    const st = getSessionState();
+
+    if (role === "admin" && file !== "admin.html" && file !== "login.html") {
+      if (!allowAdminEditHere()) {
+        location.replace("admin.html");
+        return;
+      }
+    }
+
+    if (file === "admin.html") {
+      if (role !== "admin") {
+        location.replace("index.html");
+        return;
+      }
+    }
+
+    if (file === "mypage.html") {
+      if (role === "admin") {
+        location.replace("admin.html");
+        return;
+      }
+      if (!st.isLoggedIn && !st.guestKey) {
+        location.replace("index.html");
+        return;
+      }
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    
+    const m1 = document.getElementById("mobile-mypage-btn");
+    if (m1) m1.addEventListener("click", (e)=>{ try{e.preventDefault();}catch(_){} goMypageOrLogin(); });
+    const m2 = document.getElementById("mobile-auth-btn");
+    if (m2) m2.addEventListener("click", (e)=>{ try{e.preventDefault();}catch(_){} authAction(); });
+
+    updateAuthLabels();
+    applyRoleGuards();
+  });
+
+  window.__setAuthState = function(user, role) {
+    window.__currentUser = user || null;
+    if (role) setRole(role);
+    updateAuthLabels();
+    applyRoleGuards();
+  };
+
+  setTimeout(() => {
+    try {
+      if (window.onAuthStateChanged && window.auth) {
+        window.onAuthStateChanged(window.auth, (u) => {
+          window.__currentUser = u || null;
+          updateAuthLabels();
+          applyRoleGuards();
+        });
+      } else {
+        updateAuthLabels();
+        applyRoleGuards();
+      }
+    } catch(e) {
+      updateAuthLabels();
+      applyRoleGuards();
+    }
+  }, 0);
+})();
+</script>
+
+
+<script>
+// SET_ACTIVE_NAV
+(function() {
+  try {
+    const path = (location.pathname || "").split("/").pop() || "index.html";
+    document.querySelectorAll('#main-header a.nav-item').forEach(a => {
+      const href = (a.getAttribute('href') || "").split("/").pop();
+      if (href && href === path) a.classList.add('active');
+      else a.classList.remove('active');
+    });
+  } catch (e) {}
+})();
+</script>
+<div id="workGuideContainer"></div>
+<script>
+    (function() {
+        // 1. work-guide.html 파일 로드
+        fetch('work-guide.html')
+            .then(response => {
+                if (!response.ok) throw new Error('파일을 찾을 수 없습니다 (404)');
+                return response.text();
+            })
+            .then(html => {
+                // 2. HTML을 현재 페이지에 심기
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const modal = doc.getElementById('workGuideModal');
+                
+                if (modal) {
+                    document.body.appendChild(modal);
+                    
+                    // 3. 스크립트 실행 (중요: 모듈 스크립트를 다시 활성화)
+                    const oldScript = doc.querySelector('script[type="module"]');
+                    if (oldScript) {
+                        const newScript = document.createElement('script');
+                        newScript.type = "module";
+                        newScript.textContent = oldScript.textContent;
+                        document.body.appendChild(newScript);
+                    }
+                    console.log('작업 가이드 로드 완료');
+                }
+            })
+            .catch(err => {
+                console.error('작업 가이드 로드 실패:', err);
+                // 오류 발생 시 경고창 (테스트용)
+                if (window.location.protocol === 'file:') {
+                    alert('주의: 이 기능은 "Live Server"로 실행해야 작동합니다.\nHTML 파일을 직접 더블클릭해서 열면 보안 문제로 창이 뜨지 않습니다.');
+                }
+            });
+    })();
+</script>
+
+<script type="module" src="assets/js/pages/quote-print.js"></script>
+<!-- 도움말 모달 -->
+<div id="helpModalPrint" class="fixed inset-0 z-[9999] hidden" aria-hidden="true">
+  <div class="absolute inset-0 bg-black/40" data-help-backdrop="1"></div>
+  <div class="relative mx-auto mt-20 w-[92%] max-w-2xl">
+    <div class="rounded-2xl bg-white shadow-float border border-slate-200 overflow-hidden">
+      <div class="flex items-start justify-between gap-4 px-5 py-4 border-b border-slate-100">
+        <div>
+          <h2 class="text-lg font-bold text-slate-800">디지털 인쇄 견적 안내</h2>
+          <p class="text-xs text-slate-500 mt-1">물음표 버튼을 눌러 언제든 다시 확인할 수 있어요.</p>
+        </div>
+        <button type="button" class="w-9 h-9 inline-flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-500" data-help-close="1" aria-label="닫기">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="px-5 py-5">
+<ul class="list-disc pl-5 space-y-2 text-sm text-slate-600">
+  <li><b>접수 절차</b>: 사양 선택 → 견적 확인 → 주문 접수 → 파일 업로드 → 검토 후 제작 진행</li>
+  <li><b>사이즈</b>: 규격 또는 완성 재단 사이즈(mm) 기준으로 입력해 주세요.</li>
+  <li><b>인쇄면</b>: 단면/양면 선택 시 데이터가 정확히 구분되어야 합니다.</li>
+  <li><b>용지 선택</b>: 평량이 높을수록 두꺼워집니다. 200g 이상은 오시 권장.</li>
+  <li><b>파일 기준</b>: 300dpi, CMYK, 재단선 기준 작업 권장.</li>
+</ul>
+<div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+  사용 목적과 희망 납기를 함께 기재해 주시면 보다 정확한 안내가 가능합니다.
+</div>
+</div>
+      <div class="px-5 py-4 border-t border-slate-100 flex justify-end">
+        <button type="button" class="px-4 py-2 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600" data-help-close="1">확인</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const btn = document.getElementById("helpBtnPrint");
+  const modal = document.getElementById("helpModalPrint");
+  if (!btn || !modal) return;
+
+  const open = () => {
+    modal.classList.remove("hidden");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  };
+  const close = () => {
+    modal.classList.add("hidden");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  };
+
+  btn.addEventListener("click", open);
+
+  modal.addEventListener("click", (e) => {
+    const t = e.target;
+    if (t && (t.getAttribute("data-help-backdrop") === "1" || t.getAttribute("data-help-close") === "1")) {
+      close();
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modal.classList.contains("hidden")) close();
+  });
+})();
+</script>
+
+</body>
+</html>

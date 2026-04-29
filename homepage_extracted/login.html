@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 | 그린오피스</title>
+  <link rel="icon" href="favicon.ico" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Pretendard', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f2fcf5',  
+                            100: '#e1fce9', 
+                            200: '#c3f9d4', 
+                            300: '#86efac', 
+                            400: '#4ade80', 
+                            500: '#22c55e', 
+                            600: '#16a34a', 
+                            700: '#15803d', 
+                            800: '#166534',
+                            900: '#14532d', 
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { 
+            font-family: 'Pretendard', sans-serif; 
+            background-color: #f8fafc; /* Slate-50 */
+            color: #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .form-container {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+            width: 100%;
+            max-width: 420px;
+        }
+
+        /* 탭 스타일 리디자인 */
+        .tab-container {
+            display: flex;
+            gap: 0.25rem;
+            padding: 0.25rem;
+            background: #f1f5f9;
+            border-radius: 0.75rem;
+            margin-bottom: 2rem;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 0.75rem 0;
+            text-align: center;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #64748b;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .tab-btn:hover { color: #334155; background-color: #e2e8f0; }
+
+        .tab-btn.active {
+            background-color: #ffffff;
+            color: #15803d; /* brand-700 */
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        
+        /* 인풋 스타일 */
+        .input-group { margin-bottom: 1.25rem; }
+        .input-label { display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .input-field {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.5rem;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            outline: none;
+            background-color: #ffffff;
+        }
+        .input-field:focus {
+            border-color: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+        }
+        .input-field::placeholder { color: #94a3b8; }
+
+        /* 버튼 스타일 */
+        .btn-primary {
+            width: 100%;
+            padding: 0.875rem;
+            background-color: #16a34a; /* brand-600 */
+            color: white;
+            font-weight: 700;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 1rem;
+            margin-top: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.2);
+        }
+        .btn-primary:hover { background-color: #15803d; transform: translateY(-1px); }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-primary:disabled { background-color: #cbd5e1; cursor: not-allowed; box-shadow: none; transform: none; }
+
+        .hidden { display: none; }
+        
+        .error-msg { 
+            background-color: #fef2f2; 
+            color: #ef4444; 
+            font-size: 0.8rem; 
+            padding: 0.75rem; 
+            border-radius: 0.5rem; 
+            margin-top: 0.5rem; 
+            display: none; 
+            border: 1px solid #fecaca;
+            font-weight: 500;
+        }
+    </style>
+    <script type="text/javascript" src="//wcs.pstatic.net/wcslog.js"></script>
+    <script type="text/javascript">
+    if(!wcs_add) var wcs_add = {};
+    wcs_add["wa"] = "93643ac58d5";
+    if(window.wcs) {
+    wcs_do();
+    }
+    </script>
+</head>
+<body class="animate-fade-in">
+
+    <div class="form-container animate-slide-up">
+        <div class="text-center mb-8">
+            <div class="flex items-center justify-center mb-2 cursor-pointer group" onclick="location.href='index.html'">
+                <div class="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center text-white shadow-md transition-colors group-hover:bg-brand-700 mr-3">
+                    <i class="fas fa-print text-lg"></i>
+                </div>
+                <div class="text-left">
+                    <span class="block text-xl font-extrabold text-slate-800 tracking-tight leading-none">그린오피스</span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Professional Printing</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-container">
+            <div class="tab-btn active" onclick="switchView('guest-container')">주문 조회</div>
+            <div class="tab-btn" onclick="switchView('login-container')">관리자 로그인</div>
+        </div>
+
+        <!-- 1. 주문 조회 화면 -->
+        <div id="guest-container" class="view-section">
+            <div class="bg-brand-50 border border-brand-100 p-4 rounded-lg mb-6 text-xs text-brand-800 leading-relaxed">
+                <i class="fas fa-circle-info mr-1 text-brand-600"></i>
+                <b>주문 시 입력했던 정보</b>와 정확히 일치해야 조회가 가능합니다.<br>
+                비밀번호를 분실하신 경우 조회가 불가능합니다.
+            </div>
+            <form id="guest-lookup-form">
+                <div class="input-group">
+                    <label class="input-label">주문자 이름</label>
+                    <input type="text" id="guest-name" class="input-field" placeholder="이름" required>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">연락처</label>
+                    <input type="tel" id="guest-contact" class="input-field" placeholder="010-0000-0000" required>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">비밀번호</label>
+                    <input type="password" id="guest-pw" class="input-field" placeholder="연락처 끝 4자리" required>
+                </div>
+                <div class="error-msg" id="guest-error"></div>
+                <button type="submit" class="btn-primary">내역 조회하기</button>
+            </form>
+        </div>
+
+        <!-- 2. 관리자 로그인 화면 -->
+        <div id="login-container" class="view-section hidden">
+            <form id="login-form">
+                <div class="input-group">
+                    <label class="input-label">이메일</label>
+                    <input type="email" id="login-email" class="input-field" placeholder="example@email.com" required>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">비밀번호</label>
+                    <input type="password" id="login-pw" class="input-field" placeholder="비밀번호 입력" required>
+                </div>
+                <div class="flex items-center justify-between mb-6">
+                    <label class="flex items-center cursor-pointer group">
+                        <input type="checkbox" id="keep-login" class="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer">
+                        <span class="ml-2 text-sm text-slate-500 group-hover:text-slate-700 transition-colors">로그인 유지</span>
+                    </label>
+                    <button type="button" onclick="switchView('reset-password-container')" class="text-sm text-slate-400 font-medium hover:text-brand-600 transition-colors">비밀번호 찾기</button>
+                </div>
+                <div class="error-msg" id="login-error"></div>
+                <button type="submit" class="btn-primary">
+                    로그인 <i class="fas fa-arrow-right ml-2 text-sm opacity-80"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- 3. 비밀번호 재설정 화면 -->
+        <div id="reset-password-container" class="view-section hidden">
+            <div class="text-center mb-8">
+                <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-500">
+                    <i class="fas fa-lock-open text-xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">비밀번호 재설정</h3>
+                <p class="text-sm text-slate-500 mt-2">가입한 이메일로 재설정 링크를 보내드립니다.</p>
+            </div>
+            <form id="reset-password-form">
+                <div class="input-group">
+                    <label class="input-label">가입 이메일</label>
+                    <input type="email" id="reset-email" class="input-field" placeholder="example@email.com" required>
+                </div>
+                <button type="submit" class="btn-primary">재설정 메일 보내기</button>
+                <button type="button" onclick="switchView('login-container')" class="w-full mt-4 text-sm text-slate-500 hover:text-slate-800 font-bold py-2 transition-colors">
+                    <i class="fas fa-arrow-left mr-1"></i> 로그인으로 돌아가기
+                </button>
+            </form>
+        </div>
+
+    </div>
+
+    
+
+<script>
+async function hardLogout(redirectUrl = 'index.html') {
+  // Clear UI/session state
+  try { sessionStorage.clear(); } catch (e) {}
+  try {
+    // Role / user
+    localStorage.removeItem('userRole');
+    sessionStorage.removeItem('userRole');
+    localStorage.removeItem('userName');
+    sessionStorage.removeItem('userName');
+
+    // Quote draft / routing
+    localStorage.removeItem('quoteToReload');
+    localStorage.removeItem('quoteDraft');
+    localStorage.removeItem('lastQuoteDraft');
+    localStorage.removeItem('postLoginRedirect');
+
+    // Guest lookup keys
+    localStorage.removeItem('guestLookupKey');
+    localStorage.removeItem('guestLookupKeyLegacy');
+    localStorage.removeItem('guestName');
+    localStorage.removeItem('guestContact');
+    localStorage.removeItem('guestContactRaw');
+    localStorage.removeItem('guestContactHyphen');
+    localStorage.removeItem('guestPwLast4');
+  } catch (e) {}
+
+  // Optional: clear last quote cache keys when present
+  try {
+    if (typeof __LAST_QUOTE_CACHE_KEY_BOOK !== 'undefined') {
+      try { sessionStorage.removeItem(__LAST_QUOTE_CACHE_KEY_BOOK); } catch (e) {}
+      try { localStorage.removeItem(__LAST_QUOTE_CACHE_KEY_BOOK); } catch (e) {}
+    }
+    if (typeof __LAST_QUOTE_CACHE_KEY_PRINT !== 'undefined') {
+      try { sessionStorage.removeItem(__LAST_QUOTE_CACHE_KEY_PRINT); } catch (e) {}
+      try { localStorage.removeItem(__LAST_QUOTE_CACHE_KEY_PRINT); } catch (e) {}
+    }
+  } catch (e) {}
+
+  // Optional: unsubscribe snapshot listeners if present (mypage 등)
+  try { if (typeof unsubscribeQuotesSnapshot === 'function') unsubscribeQuotesSnapshot(); } catch (e) {}
+  try { if (typeof unsubscribeQuotesSnapshot !== 'undefined') unsubscribeQuotesSnapshot = null; } catch (e) {}
+
+  // Admin safety: 관리자에서 로그아웃한 직후 메인에서 1회 익명로그인 억제
+  try {
+    const p = (location && location.pathname ? location.pathname : '').toLowerCase();
+    if (p.endsWith('/admin.html') || p.endsWith('admin.html')) {
+      sessionStorage.setItem('suppressAnonOnce', '1');
+    }
+  } catch (e) {}
+
+  // Firebase sign out (module auth or window.auth)
+  try {
+    if (typeof auth !== 'undefined' && auth && typeof signOut === 'function') {
+      await signOut(auth);
+    } else if (window.auth && typeof window.auth.signOut === 'function') {
+      await window.auth.signOut();
+    }
+  } catch (e) {
+    console.warn('signOut failed:', e);
+  }
+
+  location.replace(redirectUrl || 'index.html');
+}
+</script>
+
+
+<script type="module" src="assets/js/pages/login.js"></script>
+</body>
+</html>

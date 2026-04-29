@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고객센터 | 그린오피스</title>
+  <link rel="icon" href="favicon.ico" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Pretendard', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f2fcf5',  
+                            100: '#e1fce9', 
+                            200: '#c3f9d4', 
+                            300: '#86efac', 
+                            400: '#4ade80', 
+                            500: '#22c55e', 
+                            600: '#16a34a', 
+                            700: '#15803d', 
+                            800: '#166534',
+                            900: '#14532d', 
+                        },
+                        office: {
+                            bg: '#f8fafc',
+                            paper: '#ffffff',
+                            line: '#e2e8f0',
+                            text: '#334155',
+                        }
+                    },
+                    boxShadow: {
+                        'paper': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                        'float': '0 10px 30px -5px rgba(0, 0, 0, 0.05)',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { 
+            font-family: 'Pretendard', sans-serif; 
+            background-color: #f8fafc;
+            color: #334155;
+            overflow-x: hidden;
+        }
+        
+        /* 커스텀 스크롤바 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .nav-item { transition: all 0.2s ease; }
+        .nav-item:hover { background-color: #f1f5f9; color: #15803d; }
+        .nav-item.active { background-color: #f2fcf5; color: #16a34a; font-weight: 700; }
+
+        /* Form Elements Style Override */
+        .form-input, .form-select, .form-textarea { 
+            background-color: #ffffff; 
+            border: 1px solid #cbd5e1; 
+            color: #334155; 
+            transition: all 0.2s ease-in-out; 
+            border-radius: 0.5rem; 
+            padding: 0.7rem 1rem; 
+            width: 100%;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus { 
+            outline: none; 
+            border-color: #22c55e; 
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1); 
+        }
+        
+        .btn { display: inline-flex; align-items: center; justify-content: center; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 0.5rem; transition: all 0.2s ease-in-out; cursor: pointer; border: 1px solid transparent; }
+        .btn:disabled { cursor: not-allowed; opacity: 0.7; }
+        .btn:hover:not(:disabled) { transform: translateY(-1px); }
+        
+        .btn-primary { background-color: #16a34a; color: #ffffff; box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2); }
+        .btn-primary:hover:not(:disabled) { background-color: #15803d; box-shadow: 0 4px 6px rgba(22, 163, 74, 0.3); }
+        
+        .btn-secondary { background-color: #ffffff; color: #475569; border-color: #cbd5e1; }
+        .btn-secondary:hover:not(:disabled) { background-color: #f8fafc; border-color: #94a3b8; color: #1e293b; }
+        
+        .modal-bg { background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
+        
+        /* 탭 스타일 리디자인 */
+        .tab-btn {
+            padding: 1rem 0;
+            color: #64748b;
+            border-bottom: 2px solid transparent;
+            font-weight: 600;
+            transition: all 0.2s;
+            width: 50%;
+            text-align: center;
+            font-size: 1rem;
+            background-color: #f8fafc;
+        }
+        .tab-btn:hover { color: #16a34a; background-color: #f1f5f9; }
+        .tab-btn.active {
+            color: #15803d;
+            border-bottom-color: #16a34a;
+            background-color: #ffffff;
+        }
+
+        /* 아코디언 애니메이션 */
+        .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .faq-answer.open { max-height: 500px; transition: max-height 0.3s ease-in; }
+    </style>
+    <script type="text/javascript" src="//wcs.pstatic.net/wcslog.js"></script>
+    <script type="text/javascript">
+    if(!wcs_add) var wcs_add = {};
+    wcs_add["wa"] = "93643ac58d5";
+    if(window.wcs) {
+    wcs_do();
+    }
+    </script>
+</head>
+<body class="antialiased selection:bg-brand-100 selection:text-brand-900">
+
+    <div id="toast-container" class="fixed top-20 right-6 z-[9999] flex flex-col gap-3"></div>
+
+    <!-- 헤더스타일 -->
+    <div id="site-header"></div>
+
+    <!-- Mobile Navigation Modal -->
+    <div id="mobileNavModal" class="fixed inset-0 modal-bg hidden items-end justify-center p-0 z-[9998] animate-fade-in">
+        <div class="w-full bg-white rounded-t-3xl shadow-2xl overflow-hidden animate-slide-up" onclick="event.stopPropagation()">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h2 class="font-bold text-slate-800">메뉴</h2>
+                <button id="closeMobileNavBtn" class="text-slate-400 hover:text-slate-600 transition-colors" type="button"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-4">
+                <div class="grid grid-cols-1 gap-2">
+                    <a href="index.html" class="w-full py-3 px-4 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 flex items-center gap-3">
+                        <i class="fas fa-house text-slate-400"></i> 홈
+                    </a>
+                    <a href="quote-book.html" class="w-full py-3 px-4 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 flex items-center gap-3">
+                        <i class="fas fa-book text-slate-400"></i> 책자/제본
+                    </a>
+                    <a href="quote-print.html" class="w-full py-3 px-4 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 flex items-center gap-3">
+                        <i class="fas fa-copy text-slate-400"></i> 디지털 인쇄
+                    </a>
+                    <a href="qna.html" class="w-full py-3 px-4 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 flex items-center gap-3">
+                        <i class="fas fa-headset text-slate-400"></i> 고객센터
+                    </a>
+                </div>
+                <div class="mt-3 grid grid-cols-2 gap-2">
+                  <button id="mobile-mypage-btn" type="button" class="w-full py-3 px-4 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 flex items-center justify-center gap-2">
+                    <i class="fas fa-user-circle text-slate-400"></i> 마이페이지
+                  </button>
+                  <button id="mobile-auth-btn" type="button" class="w-full py-3 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold flex items-center justify-center gap-2 shadow-sm">
+                    로그인
+                  </button>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-4 px-1">아래 버튼으로 마이페이지 이동/로그인·로그아웃을 바로 할 수 있어요.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Menu Modal (Popup) -->
+    
+
+    <!-- 비회원 주문 조회 모달 -->
+    
+
+    <!-- 메인 컨텐츠 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20">
+        
+        <!-- 타이틀 섹션 -->
+        <div class="text-center mb-10">
+            <div class="inline-flex items-center justify-center w-12 h-12 bg-brand-100 text-brand-600 rounded-full mb-4">
+                <i class="fas fa-headset text-xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-slate-800 tracking-tight">고객센터</h1>
+            <p class="text-slate-500 mt-2 text-lg">궁금한 점을 확인하거나 1:1 문의를 남겨주세요.</p>
+        </div>
+
+        <div class="bg-white rounded-t-xl border border-slate-200 flex mb-8 sticky top-20 z-40 shadow-paper overflow-hidden">
+            <button id="tab-inquiry" class="tab-btn active" onclick="switchTab('inquiry')">
+                <i class="far fa-envelope mr-2"></i>1:1 문의하기
+            </button>
+            <button id="tab-faq" class="tab-btn" onclick="switchTab('faq')">
+                <i class="far fa-question-circle mr-2"></i>자주 묻는 질문
+            </button>
+        </div>
+
+        <div id="content-inquiry" class="space-y-12 animate-fade-in">
+            
+            <section class="bg-white p-6 md:p-8 rounded-xl shadow-paper border border-slate-200">
+                <h3 class="text-lg font-bold mb-6 text-slate-800 border-b border-slate-100 pb-4 flex items-center">
+                    <i class="fas fa-pen-fancy text-brand-600 mr-2"></i>문의 내용 작성
+                </h3>
+                
+                <div class="space-y-6">
+                    <div class="bg-brand-50 border border-brand-100 text-brand-800 px-4 py-3 rounded-lg text-sm mb-4 flex items-start">
+                        <i class="fas fa-info-circle mt-0.5 mr-2 text-brand-600"></i>
+                        <span>작성하신 문의 내용은 <strong>작성자 본인(이름+비밀번호)</strong>과 관리자만 확인할 수 있습니다.</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-xs font-bold mb-1 text-slate-500">이름</label>
+                            <input type="text" id="qnaName" class="form-input" placeholder="이름 입력">
+                        </div>
+                        <div id="qnaPwWrap">
+                            <label class="block text-xs font-bold mb-1 text-slate-500">비밀번호 <span class="text-[10px] font-normal text-slate-400 ml-1">(조회/삭제용)</span></label>
+                            <input type="password" id="qnaPw" class="form-input" placeholder="4자리 이상">
+                        </div>
+                    </div>
+
+                    <div class="mt-2 flex flex-col md:flex-row md:items-center md:gap-6 gap-2">
+                        <div class="flex items-center gap-4">
+                            <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+                                <input type="radio" name="qnaVisibility" id="qnaPublic" value="public" class="accent-brand-600">
+                                공개
+                            </label>
+                            <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+                                <input type="radio" name="qnaVisibility" id="qnaSecret" value="secret" class="accent-brand-600" checked>
+                                비공개
+                            </label>
+                        </div>
+                        <p class="text-xs text-slate-400">비공개는 작성자만 확인 가능하며, 공개 선택 시 비밀번호 입력은 생략됩니다.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold mb-1 text-slate-500">제목</label>
+                        <input type="text" id="qnaTitle" class="form-input" placeholder="문의 제목을 입력하세요">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold mb-1 text-slate-500">내용</label>
+                        <textarea id="qnaBody" class="form-textarea h-48 resize-y text-base" placeholder="문의 내용을 자세히 적어주세요."></textarea>
+                        <div class="text-right text-xs text-slate-400 mt-2">
+                            <span id="charCount">0</span> / 5000자
+                        </div>
+                    </div>
+
+                    <div class="pt-2">
+                        <button id="submitBtn" class="w-full btn btn-primary shadow-lg shadow-brand-500/20 py-3 text-base">
+                            문의 등록하기
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="bg-white rounded-2xl p-8 shadow-lg border border-slate-200 mb-10">
+                <h3 class="text-lg font-bold mb-6 text-slate-800 border-b border-slate-100 pb-4 flex items-center">
+                    <i class="fas fa-bullhorn text-slate-400 mr-2"></i>공개 문의
+                </h3>
+                <div id="public-qna-list" class="space-y-3">
+                    <div class="text-center py-10 text-slate-400 text-sm">공개 문의를 불러오는 중...</div>
+                </div>
+                <p class="mt-4 text-[11px] text-slate-400">※ 비공개 문의는 공개 목록에 표시되지 않습니다.</p>
+            </section>
+
+
+            <section class="bg-white p-6 md:p-8 rounded-xl shadow-paper border border-slate-200">
+                
+<h3 class="text-lg font-bold mb-6 text-slate-800 border-b border-slate-100 pb-4 flex items-center">
+                    <i class="fas fa-search text-slate-400 mr-2"></i>내 문의 답변 확인
+                </h3>
+                
+                <div class="max-w-2xl mx-auto">
+                    <div class="flex flex-col md:flex-row gap-3 items-end">
+                        <div class="w-full">
+                            <label class="block text-xs font-bold mb-1 text-slate-500">작성자 이름</label>
+                            <input type="text" id="searchName" class="form-input" placeholder="작성시 입력한 이름">
+                        </div>
+                        <div class="w-full">
+                            <label class="block text-xs font-bold mb-1 text-slate-500">비밀번호</label>
+                            <input type="password" id="searchPw" class="form-input" placeholder="작성시 입력한 비밀번호">
+                        </div>
+                        <button id="searchBtn" class="btn btn-secondary w-full md:w-auto whitespace-nowrap h-[46px] mb-[1px]">
+                            조회하기
+                        </button>
+                    </div>
+                </div>
+
+                <div id="search-result-area" class="mt-8 hidden animate-slide-up">
+                    <h4 class="font-bold text-sm mb-4 text-slate-700 bg-slate-50 p-2 rounded px-4 border border-slate-100 inline-block">조회 결과</h4>
+                    <div id="my-qna-list" class="space-y-4">
+                        </div>
+                </div>
+            </section>
+        </div>
+
+        <div id="content-faq" class="hidden animate-fade-in">
+            <div class="bg-white rounded-xl shadow-paper border border-slate-200 overflow-hidden min-h-[500px]">
+                <div class="p-8 border-b border-slate-100 bg-brand-50 text-center">
+                    <h2 class="text-xl font-bold text-brand-900 mb-2">
+                        FAQ
+                    </h2>
+                    <p class="text-brand-600 text-sm">고객님들이 자주 묻는 질문들을 모았습니다.</p>
+                </div>
+                <div id="faq-list" class="divide-y divide-slate-100">
+                    <div class="p-12 text-center text-slate-400">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>데이터를 불러오는 중...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    
+
+<script>
+/** 권한/보안 흐름 고정 v5 (수정5차)
+ * - admin은 기본적으로 admin.html로 강제 유도
+ * - 단, 견적 수정 목적의 adminEdit/admin_edit 플래그가 있으면 quote-book/quote-print 접근 허용
+ * - mypage는 회원/비회원 세션만 허용, admin은 admin으로
+ * - 헤더/모바일 UX 통일 + 완전 로그아웃(비회원 조회키 포함)
+ */
+(function(){
+  const CLEAR_KEYS = ['guestLookupKey', 'guestLookupKeyLegacy', 'guestName', 'guestContact', 'guestContactHyphen', 'guestContactRaw', 'guestPwLast4', 'userRole', 'quoteToReload', 'quoteDraft', 'lastQuoteDraft', 'postLoginRedirect', 'temp_quote_print', 'autoSubmitBook', 'notice_popup_hide', 'userName'];
+
+  function currentFile() {
+    try {
+      const p = (location.pathname||"").split("/").pop();
+      return p || "index.html";
+    } catch(e) { return "index.html"; }
+  }
+
+  function getGuestKey() {
+    return sessionStorage.getItem("guestLookupKey")
+        || localStorage.getItem("guestLookupKey")
+        || sessionStorage.getItem("guestLookupKeyLegacy")
+        || localStorage.getItem("guestLookupKeyLegacy")
+        || "";
+  }
+
+  function getRole() {
+    try { return (localStorage.getItem("userRole")||"").toLowerCase(); }
+    catch(e) { return ""; }
+  }
+
+  function setRole(role) {
+    try {
+      if (!role) return;
+      localStorage.setItem("userRole", String(role).toLowerCase());
+    } catch(e) {}
+  }
+
+  function setPostLoginRedirect(file) {
+    try { localStorage.setItem("postLoginRedirect", file); } catch(e) {}
+  }
+
+  function clearClientState() {
+    try { sessionStorage.clear(); } catch(e) {}
+    try {
+      CLEAR_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+    } catch(e) {}
+  }
+
+  async function firebaseSignOutSafe() {
+    try {
+      // Modular SDK exposure
+      if (window.auth && window.signOut) {
+        await window.signOut(window.auth);
+        return;
+      }
+      // If auth is available but signOut wasn't exposed for some reason
+      if (window.auth && typeof window.auth.signOut === "function") {
+        await window.auth.signOut();
+        return;
+      }
+      // Compat SDK
+      if (window.firebase && window.firebase.auth && typeof window.firebase.auth === "function") {
+        await window.firebase.auth().signOut();
+        return;
+      }
+      // Legacy hook
+      if (window.__firebaseAuth && typeof window.__firebaseAuth.signOut === "function") {
+        await window.__firebaseAuth.signOut();
+        return;
+      }
+    } catch (e) {}
+  }
+
+  async function hardLogout(target) {
+    clearClientState();
+    await firebaseSignOutSafe();
+    try {
+      location.replace(target || "index.html");
+      location.reload();
+    } catch(e) {
+      location.href = target || "index.html";
+    }
+  }
+  window.__hardLogout = () => hardLogout("index.html");
+
+  function getSessionState() {
+    // Guest key cleanup
+    let guestKey = getGuestKey();
+    try {
+      const gn = (sessionStorage.getItem("guestName") || localStorage.getItem("guestName") || "").trim();
+      const gc = (sessionStorage.getItem("guestContact") || localStorage.getItem("guestContact") || "").trim();
+      if (guestKey && !gn && !gc) {
+        ["guestLookupKey","guestLookupKeyLegacy","guestName","guestContact","guestContactRaw","guestContactHyphen","guestPwLast4"].forEach(k=>{
+          try{ sessionStorage.removeItem(k);}catch(e){}
+          try{ localStorage.removeItem(k);}catch(e){}
+        });
+        guestKey = "";
+      }
+    } catch(e) {}
+
+    const u = (window.__currentUser || (window.auth && window.auth.currentUser) || null);
+    const isAnon = !!(u && u.isAnonymous);
+    const isLoggedIn = !!(u && u.uid && !u.isAnonymous);
+    const hasSession = !!guestKey || isAnon || isLoggedIn;
+    return { guestKey, isAnon, isLoggedIn, hasSession, user: u };
+  }
+
+  // ✅ 통합 인증 라벨/아이콘 업데이트 함수
+  window.updateAuthLabels = function() {
+    const st = getSessionState();
+    const btn = document.getElementById("auth-action-btn");
+    const mb = document.getElementById("mobile-auth-btn");
+    const w = document.getElementById("welcome-message");
+    const role = getRole();
+
+    // 1. 아이콘 버튼 (로그인/로그아웃)
+    if (btn) {
+        const showLogout = st.isLoggedIn || !!st.guestKey;
+        if (showLogout) {
+            btn.innerHTML = '<i class="fas fa-sign-out-alt"></i>';
+            btn.title = "로그아웃";
+            btn.onclick = (e) => { e.preventDefault(); hardLogout("index.html"); };
+        } else {
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i>';
+            btn.title = "로그인";
+            btn.onclick = (e) => { e.preventDefault(); authAction(); };
+        }
+    }
+    
+    // 2. 모바일 텍스트 버튼
+    if (mb) {
+        const showLogout = st.isLoggedIn || !!st.guestKey;
+        mb.textContent = showLogout ? "로그아웃" : "로그인";
+    }
+
+    // 3. 헤더 환영 메시지
+    if (w) {
+      if (role === "admin") {
+          w.textContent = "관리자";
+          w.classList.remove("hidden");
+      }
+      else if (st.isLoggedIn) {
+          const storedName = sessionStorage.getItem('userName');
+          const dispName = storedName || (st.user && st.user.displayName) || "회원";
+          w.textContent = dispName + "님";
+          w.classList.remove("hidden");
+      }
+      else if (st.guestKey) {
+          const guestName = sessionStorage.getItem("guestName") || "비회원";
+          w.textContent = guestName + "님 (비회원)";
+          w.classList.remove("hidden");
+      }
+      else {
+          w.textContent = "";
+          w.classList.add("hidden");
+      }
+    }
+  }
+
+  function goMypageOrLogin() {
+    const st = getSessionState();
+    if (st.guestKey) location.href = "mypage.html?guest=1";
+    else if (st.isLoggedIn) location.href = "mypage.html";
+    else {
+      setPostLoginRedirect("mypage.html");
+      location.href = "login.html";
+    }
+  }
+
+  async function authAction() {
+    const st = getSessionState();
+    if (st.isLoggedIn || st.guestKey) await hardLogout("index.html");
+    else {
+      setPostLoginRedirect(currentFile());
+      location.href = "login.html";
+    }
+  }
+
+  function bindClickOverride(id, handler) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("click", (e) => {
+      try {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+      } catch(_) {}
+      handler();
+    }, true);
+  }
+
+  function allowAdminEditHere() {
+    const file = currentFile();
+    const params = new URLSearchParams(location.search || "");
+    const flag = (params.get("adminEdit")==="1") || (params.get("admin_edit")==="1");
+    if (!flag) return false;
+    return (file === "quote-book.html" || file === "quote-print.html");
+  }
+
+  function applyRoleGuards() {
+    const file = currentFile();
+    const role = getRole();
+    const st = getSessionState();
+
+    if (role === "admin" && file !== "admin.html" && file !== "login.html") {
+      if (!allowAdminEditHere()) {
+        location.replace("admin.html");
+        return;
+      }
+    }
+
+    if (file === "admin.html") {
+      if (role !== "admin") {
+        location.replace("index.html");
+        return;
+      }
+    }
+
+    if (file === "mypage.html") {
+      if (role === "admin") {
+        location.replace("admin.html");
+        return;
+      }
+      if (!st.isLoggedIn && !st.guestKey) {
+        location.replace("index.html");
+        return;
+      }
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    
+    const m1 = document.getElementById("mobile-mypage-btn");
+    if (m1) m1.addEventListener("click", (e)=>{ try{e.preventDefault();}catch(_){} goMypageOrLogin(); });
+    const m2 = document.getElementById("mobile-auth-btn");
+    if (m2) m2.addEventListener("click", (e)=>{ try{e.preventDefault();}catch(_){} authAction(); });
+
+    updateAuthLabels();
+    applyRoleGuards();
+  });
+
+  window.__setAuthState = function(user, role) {
+    window.__currentUser = user || null;
+    if (role) setRole(role);
+    updateAuthLabels();
+    applyRoleGuards();
+  };
+
+  setTimeout(() => {
+    try {
+      if (window.onAuthStateChanged && window.auth) {
+        window.onAuthStateChanged(window.auth, (u) => {
+          window.__currentUser = u || null;
+          updateAuthLabels();
+          applyRoleGuards();
+        });
+      } else {
+        updateAuthLabels();
+        applyRoleGuards();
+      }
+    } catch(e) {
+      updateAuthLabels();
+      applyRoleGuards();
+    }
+  }, 0);
+})();
+</script>
+
+
+<script>
+// SET_ACTIVE_NAV
+(function() {
+  try {
+    const path = (location.pathname || "").split("/").pop() || "index.html";
+    document.querySelectorAll('#main-header a.nav-item').forEach(a => {
+      const href = (a.getAttribute('href') || "").split("/").pop();
+      if (href && href === path) a.classList.add('active');
+      else a.classList.remove('active');
+    });
+  } catch (e) {}
+})();
+</script>
+
+
+<!-- AUTH_SYNC_V2 -->
+<script>
+(function(){
+  try {
+    const hasFirebaseUser = !!(window.__currentFirebaseUser && !window.__currentFirebaseUser.isAnonymous);
+    const guestKey = localStorage.getItem('guestLookupKey') || localStorage.getItem('guestLookupKeyLegacy');
+    const guestName = localStorage.getItem('guestName') || '비회원';
+    const isGuestSession = !!guestKey;
+
+    const userMenuStatus = document.getElementById('userMenuStatus');
+    const btnMyPage = document.getElementById('userMenuGoMyPageBtn');
+    const btnLogin = document.getElementById('userMenuGoLoginBtn');
+    const btnLogout = document.getElementById('userMenuLogoutBtn');
+    const btnGuestLookup = document.getElementById('guest-lookup-open');
+    const welcomeMsg = document.getElementById('welcome-message');
+
+    function safeShow(el){ if(el) el.style.display = 'block'; }
+    function safeHide(el){ if(el) el.style.display = 'none'; }
+
+    if (isGuestSession && !hasFirebaseUser) {
+      if (userMenuStatus) {
+        userMenuStatus.innerHTML =
+          '<span class="font-bold text-slate-800">' + escapeHtml(guestName) + '</span>님<br>' +
+          '<span class="text-xs text-slate-400">비회원 조회 세션이 유지 중입니다.</span>';
+      }
+      safeHide(btnLogin);
+      safeHide(btnGuestLookup);
+      safeShow(btnMyPage);
+      safeShow(btnLogout);
+
+      if (btnMyPage) btnMyPage.onclick = () => { const _k = localStorage.getItem('guestLookupKey') || sessionStorage.getItem('guestLookupKey') || localStorage.getItem('guestLookupKeyLegacy') || ''; location.href = _k ? 'mypage.html?guest=1' : 'mypage.html'; };
+
+      if (btnLogout) {
+        btnLogout.onclick = async () => {
+          if (typeof window.hardLogout === 'function') {
+            await window.hardLogout(location.pathname.split('/').pop() || 'index.html');
+          } else {
+            try{
+              localStorage.removeItem('guestLookupKey');
+              localStorage.removeItem('guestLookupKeyLegacy');
+              localStorage.removeItem('guestName');
+              localStorage.removeItem('guestContact');
+              localStorage.removeItem('guestPwLast4');
+            }catch(e){}
+            location.replace('index.html');
+          }
+        };
+      }
+
+      if (welcomeMsg) {
+        welcomeMsg.innerHTML = '<span class="font-semibold">' + escapeHtml(guestName) + '</span>님, 환영합니다!';
+      }
+
+      if (typeof window.updateAuthLabels === 'function') window.updateAuthLabels();
+    }
+  } catch(e) {
+    console.warn('AUTH_SYNC_V2 failed:', e);
+  }
+
+  function escapeHtml(str){
+    return String(str || '')
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'","&#039;");
+  }
+})();
+</script>
+
+<div id="workGuideContainer"></div>
+<script>
+    (function() {
+        // 캐시 방지를 위해 시간값 추가
+        const timestamp = new Date().getTime();
+        const filePath = 'work-guide.html?v=' + timestamp;
+
+        fetch(filePath)
+            .then(response => {
+                if (!response.ok) throw new Error('파일 로드 실패 (404)');
+                return response.text();
+            })
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const modal = doc.getElementById('workGuideModal');
+                
+                if (modal) {
+                    document.body.appendChild(modal);
+                    
+                    // 모듈 스크립트 재실행
+                    const oldScript = doc.querySelector('script[type="module"]');
+                    if (oldScript) {
+                        const newScript = document.createElement('script');
+                        newScript.type = "module";
+                        newScript.textContent = oldScript.textContent;
+                        document.body.appendChild(newScript);
+                    }
+                }
+            })
+            .catch(err => console.error('가이드 로드 중 오류:', err));
+    })();
+</script>
+
+<script type="module" src="assets/js/pages/qna.js"></script>
+</body>
+</html>

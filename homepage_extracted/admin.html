@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="favicon.ico" />
+    <script>
+      // Global logger (must exist before any code uses it)
+      window.DEBUG = window.DEBUG ?? false;
+      window.logger = window.logger ?? {
+        log: (...args) => { if (window.DEBUG) console.log("[admin]", ...args); },
+        warn: (...args) => { if (window.DEBUG) console.warn("[admin]", ...args); },
+        error: (...args) => { if (window.DEBUG) console.error("[admin]", ...args); },
+      };
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>그린오피스 | 관리자 시스템</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Pretendard', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f2fcf5',  
+                            100: '#e1fce9', 
+                            200: '#c3f9d4', 
+                            300: '#86efac', 
+                            400: '#4ade80', 
+                            500: '#22c55e', 
+                            600: '#16a34a', // 메인
+                            700: '#15803d', 
+                            800: '#166534',
+                            900: '#14532d', 
+                        },
+                        office: {
+                            bg: '#f8fafc',
+                            paper: '#ffffff',
+                            line: '#e2e8f0',
+                            text: '#334155',
+                        }
+                    },
+                    boxShadow: {
+                        'paper': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                        'float': '0 10px 30px -5px rgba(0, 0, 0, 0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+
+ <style>
+    :root {
+        --bg: #f0f2f5;
+        --surface: #ffffff;
+        --border: #e5e9ef;
+        --border-light: #f0f3f6;
+        --text-primary: #1a2332;
+        --text-secondary: #4a5a6a;
+        --text-muted: #8898a8;
+        --green: #16a34a;
+        --green-dark: #15803d;
+        --green-light: #f0fdf4;
+        --green-mid: #dcfce7;
+        --header-h: 56px;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+        --shadow-md: 0 4px 16px rgba(0,0,0,0.07), 0 2px 6px rgba(0,0,0,0.04);
+        --radius: 12px;
+        --radius-sm: 8px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--bg);
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #ccd4dc; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #a8b5c0; }
+
+    /* ── 폼 요소 ── */
+    .form-input, .form-select, .form-textarea {
+        background: var(--surface);
+        border: 1.5px solid var(--border);
+        color: var(--text-primary);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 0.75rem;
+        width: 100%;
+        font-size: 0.8125rem;
+        font-family: inherit;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        outline: none;
+        border-color: var(--green);
+        box-shadow: 0 0 0 3px rgba(22,163,74,0.10);
+    }
+
+    /* ── 버튼 ── */
+    .btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+        font-weight: 600; padding: 0.45rem 0.875rem;
+        border-radius: var(--radius-sm); transition: all 0.15s;
+        cursor: pointer; border: 1.5px solid transparent;
+        font-size: 0.8rem; font-family: inherit; white-space: nowrap;
+    }
+    .btn:disabled { cursor: not-allowed; opacity: 0.5; }
+    .btn-primary   { background: var(--green); color: #fff; border-color: var(--green); }
+    .btn-primary:hover:not(:disabled)   { background: var(--green-dark); box-shadow: 0 4px 12px rgba(22,163,74,0.25); }
+    .btn-secondary { background: var(--surface); color: var(--text-secondary); border-color: var(--border); }
+    .btn-secondary:hover:not(:disabled) { background: #f4f7fa; border-color: #b8c4d0; }
+    .btn-danger    { background: #fee2e2; color: #dc2626; border-color: #fecaca; }
+    .btn-danger:hover:not(:disabled)    { background: #fecaca; }
+    .btn-sm        { padding: 0.3rem 0.625rem; font-size: 0.75rem; border-radius: 6px; }
+
+    /* ── 관리자 헤더 ── */
+    .glass-header {
+        background: #1a2332;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+        height: var(--header-h);
+    }
+
+    /* ── 상단 네비게이션 ── */
+    .nav-btn {
+        display: inline-flex; align-items: center;
+        padding: 0.4rem 0.875rem; border-radius: var(--radius-sm);
+        font-size: 0.8125rem; font-weight: 600; color: rgba(255,255,255,0.6);
+        transition: all 0.15s; cursor: pointer; border: none; background: transparent;
+        white-space: nowrap; height: 36px;
+    }
+    .nav-btn:hover, .nav-btn.nav-item:hover { color: #fff; background: rgba(255,255,255,0.08); }
+    .nav-btn.nav-item.active { color: #fff; background: rgba(22,163,74,0.25); }
+
+    .nav-divider-vertical { width: 1px; height: 20px; background: rgba(255,255,255,0.1); margin: 0 4px; }
+
+    .nav-group { position: relative; display: inline-flex; align-items: center; }
+    .nav-group:hover .nav-dropdown-menu { opacity: 1; visibility: visible; transform: translateY(0); }
+    .nav-dropdown-menu {
+        position: absolute; top: calc(100% + 6px); left: 0;
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); box-shadow: var(--shadow-md);
+        min-width: 180px; z-index: 100; padding: 6px;
+        opacity: 0; visibility: hidden; transform: translateY(-4px);
+        transition: all 0.15s;
+    }
+    .dropdown-item {
+        display: flex; align-items: center; gap: 8px;
+        padding: 8px 10px; border-radius: 6px;
+        font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary);
+        cursor: pointer; transition: all 0.1s; border: none; background: transparent;
+        width: 100%; text-align: left; text-decoration: none;
+    }
+    .dropdown-item:hover { background: var(--bg); color: var(--text-primary); }
+
+    /* ── 모달 ── */
+    .modal-bg { background: rgba(10,18,30,0.65); backdrop-filter: blur(6px); }
+
+    /* ── 카드 ── */
+    .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+    }
+
+    /* ── 메인 탭 콘텐츠 ── */
+    .main-tab-content { display: none; }
+    .main-tab-content.active { display: block; }
+
+    /* ── 접수 목록 테이블 ── */
+    .order-table { border-collapse: collapse; width: 100%; }
+    .order-table thead th {
+        background: #f6f8fb;
+        font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
+        text-transform: uppercase; color: var(--text-muted);
+        padding: 10px 14px; border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+    }
+    .order-table tbody tr { transition: background 0.1s; cursor: pointer; }
+    .order-table tbody tr:hover { background: #f9fbfc; }
+    .order-table tbody td {
+        padding: 10px 14px; font-size: 0.8rem;
+        border-bottom: 1px solid var(--border-light); vertical-align: middle;
+    }
+    .order-table tbody tr:last-child td { border-bottom: none; }
+
+    /* ── 상태 배지 ── */
+    .status-badge {
+        display: inline-flex; align-items: center; gap: 3px;
+        font-size: 10.5px; font-weight: 700;
+        padding: 2.5px 8px; border-radius: 20px; white-space: nowrap;
+    }
+    .badge-waiting  { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+    .badge-process  { background: var(--green-light); color: #15803d; border: 1px solid var(--green-mid); }
+    .badge-done     { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .badge-paid     { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .badge-working  { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
+    .badge-cancel   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .badge-estimate { background: #fefce8; color: #854d0e; border: 1px solid #fef08a; }
+
+    /* ── 탭 버튼 (상세모달 내) ── */
+    .tab-btn {
+        padding: 0.5rem 0.875rem; border-bottom: 2px solid transparent;
+        font-weight: 600; font-size: 0.8rem; color: var(--text-muted);
+        cursor: pointer; transition: all 0.15s; white-space: nowrap;
+        background: transparent; border: none; border-bottom: 2px solid transparent;
+    }
+    .tab-btn:hover { color: var(--green); }
+    .tab-btn.active { color: var(--green); border-bottom-color: var(--green); }
+    .tab-content { display: none; }
+    .tab-content.active { display: flex; flex-direction: column; }
+
+    /* ── 홈페이지 콘텐츠 서브 탭 ── */
+    #homepage-sub-tab-nav { overflow-x: auto; scrollbar-width: thin; }
+    #homepage-sub-tab-nav .tab-btn { flex: 0 0 auto; }
+    .homepage-sub-tab-content { display: none; min-height: 0; }
+    .homepage-sub-tab-content.active { display: block; }
+    .homepage-sub-tab-content .custom-scrollbar { scrollbar-gutter: stable; }
+
+    @media (max-width: 1024px) {
+        .homepage-management-shell { max-height: min(92vh, 980px); }
+        .homepage-floating-save { position: sticky; bottom: 0; right: auto; display: flex; justify-content: flex-end; padding-top: 1rem; background: linear-gradient(to top, rgba(248,250,252,0.98), rgba(248,250,252,0.9) 70%, rgba(248,250,252,0)); }
+    }
+
+    @media (min-width: 1025px) {
+        .homepage-floating-save { position: sticky; bottom: 0; right: auto; display: flex; justify-content: flex-end; padding-top: 1rem; background: linear-gradient(to top, rgba(248,250,252,0.98), rgba(248,250,252,0.9) 70%, rgba(248,250,252,0)); }
+    }
+
+    /* ── 채팅 ── */
+    .chat-bubble { max-width: 80%; padding: 0.65rem 0.9rem; border-radius: 1rem; white-space: pre-wrap; word-break: break-word; font-size: 0.8125rem; line-height: 1.6; }
+    .chat-bubble-customer { background: var(--green); color: #fff; border-bottom-right-radius: 3px; }
+    .chat-bubble-admin    { background: #f1f5f9; color: var(--text-primary); border-bottom-left-radius: 3px; border: 1px solid var(--border-light); }
+
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #d0d8e0; border-radius: 3px; }
+
+    /* ── 토스트 ── */
+    #toast-container .toast {
+        background: #1a2332; color: #fff; border-radius: 10px;
+        padding: 0.7rem 1rem; font-size: 0.8rem; font-weight: 500;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+        min-width: 220px; display: flex; align-items: center; gap: 8px;
+    }
+    #toast-container .toast.success { border-left: 3px solid #22c55e; }
+    #toast-container .toast.error   { border-left: 3px solid #ef4444; }
+    #toast-container .toast.info    { border-left: 3px solid #60a5fa; }
+
+    /* ── 애니메이션 ── */
+    @keyframes fadeIn  { from { opacity:0; transform: translateY(5px); } to { opacity:1; transform: translateY(0); } }
+    @keyframes slideUp { from { opacity:0; transform: translateY(14px); } to { opacity:1; transform: translateY(0); } }
+    .animate-fade-in  { animation: fadeIn  0.25s ease-out; }
+    .animate-slide-up { animation: slideUp 0.3s  cubic-bezier(0.16,1,0.3,1); }
+
+    /* ── 모바일 메뉴 ── */
+    .mobile-menu-sheet {
+        position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+        background: var(--surface);
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -8px 40px rgba(0,0,0,0.12);
+        transform: translateY(100%);
+        transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+        max-height: 80vh; overflow-y: auto;
+    }
+    .mobile-menu-sheet.open { transform: translateY(0); }
+    #mobileMenuOverlay {
+        position: fixed; inset: 0; z-index: 199;
+        background: rgba(10,18,30,0.5); backdrop-filter: blur(3px);
+    }
+    .mobile-menu-handle-area { padding: 12px 16px 6px; }
+    .mobile-menu-handle { width: 36px; height: 4px; background: #d1d9e0; border-radius: 2px; margin: 0 auto 12px; }
+    .mobile-menu-content { padding: 0 12px 24px; }
+    .mobile-menu-section { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+    .mobile-menu-title { font-size: 10.5px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase; padding: 10px 10px 4px; }
+    .mobile-menu-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 11px 12px; border-radius: 10px;
+        font-size: 0.875rem; font-weight: 600; color: var(--text-secondary);
+        cursor: pointer; transition: all 0.1s; border: none; background: transparent;
+        width: 100%; text-align: left; text-decoration: none;
+    }
+    .mobile-menu-item:hover, .mobile-menu-item.active { background: var(--bg); color: var(--text-primary); }
+    .mobile-menu-divider { height: 1px; background: var(--border-light); margin: 8px 0; }
+
+    /* ── 반응형 ── */
+    @media (max-width: 1279px) { #top-nav-bar { display: none !important; } }
+
+    /* 알림 점 */
+    .unread-dot { width: 7px; height: 7px; background: #ef4444; border-radius: 50%; display: inline-block; }
+    @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+    .animate-pulse { animation: pulse-dot 1.5s infinite; }
+</style>
+
+
+<!-- ===== 모바일 상세모달: 상세영역 하단 공백 제거 + 스크롤 유지 FIX ===== -->
+<style>
+@media (max-width: 768px){
+  /* 모달 본문은 flex 구조 유지(스크롤/버튼 유지) */
+  #detailsModal .flex-grow.flex.flex-col{
+    min-height: 0 !important;
+    height: 100% !important;
+  }
+
+  /* 이전 56/44 고정 분할 제거: 상세영역은 남는 공간 전부 사용 */
+  #detailsModal #modalContent{
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    overflow: auto !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* 상세영역 마지막 요소의 불필요한 여백 제거 */
+  #detailsModal #modalContent > *:last-child{
+    margin-bottom: 0 !important;
+  }
+}
+</style>
+
+
+<style>
+  /* ===== Mobile Admin Menu Bottom Sheet ===== */
+  #mobileMenuOverlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 9998;
+  }
+  #mobileMenuOverlay.show{ display:block !important; }
+
+  .mobile-menu-sheet{
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 9999;
+    background: #fff;
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -18px 50px rgba(15, 23, 42, 0.18);
+    transform: translateY(105%);
+    transition: transform .22s cubic-bezier(.22,.61,.36,1);
+    overflow: hidden;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+  .mobile-menu-sheet.show{ transform: translateY(0); }
+
+  .mobile-menu-handle-area{ padding-top: 10px; }
+  .mobile-menu-handle{
+    width: 44px; height: 5px;
+    border-radius: 9999px;
+    background: #e2e8f0;
+    margin: 0 auto 10px auto;
+  }
+
+  .mobile-menu-content{
+    overflow: auto;
+    padding: 0 12px 12px 12px;
+  }
+  .mobile-menu-section{
+    background: #fff;
+    border: 1px solid #eef2f7;
+    border-radius: 14px;
+    padding: 8px;
+  }
+  .mobile-menu-title{
+    font-size: 12px;
+    font-weight: 800;
+    color: #334155;
+    padding: 8px 10px 6px 10px;
+    display:flex;
+    align-items:center;
+  }
+  .mobile-menu-item, .mobile-menu-link{
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 10px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 800;
+    color: #0f172a;
+    background: #fff;
+    border: 1px solid transparent;
+    text-decoration: none;
+  }
+  .mobile-menu-item:hover, .mobile-menu-link:hover{
+    background: #f8fafc;
+  }
+  .mobile-menu-divider{
+    height: 10px;
+  }
+  .mobile-menu-item-danger{
+    color: #ef4444;
+    background: #fff;
+    border-color: rgba(239,68,68,0.18);
+  }
+</style>
+
+
+<!-- ===== FIX: 모바일 바텀시트 상담 입력란/스크롤 표시 보정 ===== -->
+<style>
+@media (max-width: 768px){
+
+  /* 상담 버튼이 가려지지 않게 강제 표시 */
+  #openSheetBtn{ display: inline-flex !important; }
+
+  /* 바텀시트: 기본은 숨김, sheet-open 클래스일 때만 올라옴 */
+  #modalSide{
+    position: fixed !important;
+    left: 0; right: 0; bottom: 0;
+    z-index: 55;
+    background: #fff;
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
+    display: flex !important;
+    flex-direction: column !important;
+    height: min(80vh, calc(100dvh - 56px)) !important;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+  }
+  #modalSide.sheet-open{
+    transform: translateY(0) !important;
+  }
+
+  /* 채팅 영역 */
+  #modalSide #chat-tab{ flex:1 1 auto !important; min-height:0 !important; }
+  #modalSide #chat-messages{
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    overflow-y:auto !important;
+    padding-bottom: 8px !important;
+  }
+
+  /* 입력바는 항상 보이게 */
+  #chatInputBar{
+    flex:0 0 auto !important;
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 5 !important;
+    background: #fff !important;
+    padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+  }
+
+  #modalSide{ -webkit-overflow-scrolling: touch; }
+}
+</style>
+
+    <script type="text/javascript" src="//wcs.pstatic.net/wcslog.js"></script>
+    <script type="text/javascript">
+    if(!wcs_add) var wcs_add = {};
+    wcs_add["wa"] = "93643ac58d5";
+    if(window.wcs) {
+    wcs_do();
+    }
+    </script>
+</head>
+<body class="antialiased selection:bg-brand-100 selection:text-brand-900">
+    <!-- ── 알림음 토글 (화면 우측 하단 고정) ─────────────────────────
+         admin.js 의 window.__toggleAdminNotifs() 로 ON/OFF 제어
+         ON: 초록 트랙 + 🔔 / OFF: 회색 트랙 + 🔕
+    -->
+    <div id="notif-controls" style="position:fixed; right:16px; bottom:16px; z-index:2147483647; display:flex; flex-direction:column; gap:6px; align-items:flex-end; pointer-events:auto;">
+        <!-- 상태 텍스트 (작게) -->
+        <span id="notif-status" style="font-size:10px; font-weight:600; padding:4px 8px; border-radius:999px; background:rgba(17,24,39,0.8); color:rgba(255,255,255,0.7); backdrop-filter:blur(4px); white-space:nowrap;">알림 확인중…</span>
+        <!-- 토글 버튼 -->
+        <button id="enable-notifs-btn" onclick="(window.__toggleAdminNotifs && window.__toggleAdminNotifs()); return false;" type="button"
+            style="display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:40px; border:none; cursor:pointer;
+                   background:#1a2332; color:#fff; font-size:12px; font-weight:700; font-family:inherit;
+                   box-shadow:0 4px 20px rgba(0,0,0,0.25); transition:all 0.2s;">
+            <span id="notif-icon" style="font-size:14px;">🔔</span>
+            <span id="notif-label">알림 켜기</span>
+            <!-- 토글 트랙 -->
+            <span id="notif-track" style="display:inline-flex; width:36px; height:20px; border-radius:10px; background:#374151; position:relative; transition:background 0.2s;">
+                <span id="notif-thumb" style="width:16px; height:16px; border-radius:50%; background:#fff; position:absolute; top:2px; left:2px; transition:left 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.3);"></span>
+            </span>
+        </button>
+    </div>
+
+
+    <div id="toast-container" class="fixed top-6 right-6 z-[9999] flex flex-col gap-3"></div>
+    <audio id="notification-sound" src="./mp3/new.mp3" preload="none"></audio>
+    <audio id="message-sound" src="./mp3/message.mp3" preload="none"></audio>
+    <audio id="file-sound" src="./mp3/file.mp3" preload="none"></audio>
+    <audio id="inquiry-sound" src="./mp3/inquiry.mp3" preload="none"></audio>
+    <audio id="edit-sound" src="./mp3/edit.mp3" preload="none"></audio>
+    
+    <div id="auth-check-overlay" class="fixed inset-0 bg-slate-50 flex items-center justify-center p-4 z-[100]">
+        <div id="auth-loading" class="text-center">
+             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mx-auto mb-4"></div>
+             <p class="text-lg text-slate-500 font-medium">관리자 권한 확인 중...</p>
+        </div>
+        <div id="auth-denied" class="hidden text-center max-w-md bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+                <i class="fas fa-lock text-2xl"></i>
+            </div>
+            <h1 class="text-xl font-bold text-slate-800">접근 권한이 없습니다</h1>
+            <p class="text-slate-500 mt-2 text-sm">관리자 계정으로 로그인해주세요.</p>
+            <a href="login.html" class="mt-6 w-full btn btn-primary">로그인 페이지로 이동</a>
+        </div>
+    </div>
+
+    <div id="main-content" class="min-h-screen pb-20 hidden">
+        
+        <header class="glass-header sticky top-0 z-40">
+    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 h-full flex justify-between items-center">
+        <div class="flex items-center gap-3 min-w-max">
+            <div class="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center text-white shadow-md">
+                <i class="fas fa-print text-sm"></i>
+            </div>
+            <div class="leading-none">
+                <h1 class="text-base font-extrabold text-white tracking-tight">그린오피스</h1>
+                <p class="text-[9px] text-white/40 font-bold uppercase tracking-widest mt-0.5">Admin</p>
+            </div>
+        </div>
+        
+        <nav id="top-nav-bar" class="hidden xl:flex items-center gap-0.5 mx-4">
+            <button class="nav-btn nav-item active" data-tab="reception-management">
+                <i class="fas fa-clipboard-list mr-1.5"></i>접수관리
+            </button>
+            <button class="nav-btn nav-item relative" data-tab="inquiry-management">
+                <i class="fas fa-headset mr-1.5"></i>1:1 문의
+                <span id="notification-indicator" class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-400 hidden animate-pulse"></span>
+            </button>
+            
+            <div class="nav-divider-vertical mx-1"></div>
+            
+            <div class="nav-group">
+                <button class="nav-btn">
+                    <i class="fas fa-coins mr-1.5"></i>단가 관리
+                    <i class="fas fa-chevron-down ml-1 text-[9px] opacity-40"></i>
+                </button>
+                <div class="nav-dropdown-menu">
+                    <button id="book-price-management-btn" class="dropdown-item">
+                        <i class="fas fa-book text-slate-400"></i> 책자 단가 설정
+                    </button>
+                    <button id="price-management-btn" class="dropdown-item">
+                        <i class="fas fa-print text-slate-400"></i> 인쇄 단가 설정
+                    </button>
+                </div>
+            </div>
+
+            <div class="nav-group">
+                <button class="nav-btn">
+                    <i class="fas fa-sliders-h mr-1.5"></i>운영 설정
+                    <i class="fas fa-chevron-down ml-1 text-[9px] opacity-40"></i>
+                </button>
+                <div class="nav-dropdown-menu">
+                    <button onclick="window.openWorkGuideModal()" class="dropdown-item">
+                        <i class="fas fa-book-open text-slate-400"></i> 작업 가이드
+                    </button>
+                    <div class="h-px bg-slate-100 my-1"></div>
+                    <button id="company-info-btn" class="dropdown-item">
+                        <i class="fas fa-building text-slate-400"></i> 공급자 정보
+                    </button>
+                    <button id="image-management-btn" class="dropdown-item">
+                        <i class="fas fa-images text-slate-400"></i> 미리보기 이미지
+                    </button>
+                    <button id="homepage-management-btn" class="dropdown-item">
+                        <i class="fas fa-desktop text-slate-400"></i> 홈페이지 콘텐츠
+                    </button>
+                </div>
+            </div>
+
+            <div class="nav-group">
+                <button class="nav-btn">
+                    <i class="fas fa-th-large mr-1.5"></i>프로그램
+                    <i class="fas fa-chevron-down ml-1 text-[9px] opacity-40"></i>
+                </button>
+                <div class="nav-dropdown-menu">
+                    <a href="/program/book_admin.html" target="_blank" class="dropdown-item">
+                        <i class="fas fa-calculator text-indigo-400"></i> 교재 관리
+                    </a>
+                    <a href="/program/payment.html" target="_blank" class="dropdown-item">
+                        <i class="fas fa-credit-card text-indigo-400"></i> 선결제관리
+                    </a>
+                    <a href="/program/work_list.html" target="_blank" class="dropdown-item">
+                        <i class="fas fa-list-alt text-indigo-400"></i> 매출/작업
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="flex items-center gap-2 min-w-max">
+            <button id="logout-btn" class="text-xs font-bold text-white/40 hover:text-red-400 transition px-2 py-1.5 flex items-center gap-1.5 rounded-lg hover:bg-white/10">
+                <i class="fas fa-sign-out-alt text-[11px]"></i> 로그아웃
+            </button>
+        </div>
+    </div>
+</header>
+
+        
+<div class="xl:hidden sticky top-14 z-30 bg-white border-b border-slate-200 shadow-sm">
+  <div class="max-w-[1400px] mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
+    <button id="mobileLogoutBtn" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-500 font-bold text-sm hover:text-red-500 hover:bg-red-50 transition-colors flex items-center gap-1.5">
+      <i class="fas fa-sign-out-alt text-xs"></i><span>로그아웃</span>
+    </button>
+
+    <div id="mobileCurrentSection" class="flex-1 text-center text-sm font-bold text-slate-800 truncate">
+      관리자
+    </div>
+
+    <button id="mobileMenuOpenBtn" class="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 font-semibold text-sm">
+      <i class="fas fa-bars text-slate-500"></i><span>메뉴</span>
+    </button>
+  </div>
+</div>
+
+<!-- Mobile Menu Bottom Sheet -->
+<div id="mobileMenuOverlay" class="hidden"></div>
+<div id="mobileMenuSheet" class="mobile-menu-sheet" aria-hidden="true">
+  <div class="mobile-menu-handle-area" id="mobileMenuHandle">
+    <div class="mobile-menu-handle"></div>
+    <div class="flex items-center justify-between px-4 pb-2">
+      <div class="text-base font-extrabold text-slate-800">관리자 메뉴</div>
+      <button id="mobileMenuCloseBtn" class="w-9 h-9 rounded-xl hover:bg-slate-100 text-slate-500">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="mobile-menu-content">
+    <div class="mobile-menu-section">
+      <button class="mobile-menu-item" data-tab="reception-management">
+        <i class="fas fa-clipboard-list text-slate-400"></i> 접수관리
+      </button>
+      <button class="mobile-menu-item" data-tab="inquiry-management">
+        <i class="fas fa-headset text-slate-400"></i> 1:1 문의
+      </button>
+    </div>
+
+    <div class="mobile-menu-divider"></div>
+
+    <div class="mobile-menu-section">
+      <div class="mobile-menu-title"><i class="fas fa-coins mr-2 text-slate-400"></i>단가 관리</div>
+      <button class="mobile-menu-item" data-click="#book-price-management-btn">
+        <i class="fas fa-book text-slate-400"></i> 책자 단가 설정
+      </button>
+      <button class="mobile-menu-item" data-click="#price-management-btn">
+        <i class="fas fa-print text-slate-400"></i> 인쇄 단가 설정
+      </button>
+    </div>
+
+    <div class="mobile-menu-divider"></div>
+
+    <div class="mobile-menu-section">
+      <div class="mobile-menu-title"><i class="fas fa-sliders-h mr-2 text-slate-400"></i>운영 설정</div>
+      <button class="mobile-menu-item" data-call="openWorkGuideModal">
+        <i class="fas fa-book-open text-slate-400"></i> 작업 가이드
+      </button>
+      <button class="mobile-menu-item" data-click="#company-info-btn">
+        <i class="fas fa-building text-slate-400"></i> 공급자 정보
+      </button>
+      <button class="mobile-menu-item" data-click="#image-management-btn">
+        <i class="fas fa-images text-slate-400"></i> 미리보기 이미지
+      </button>
+      <button class="mobile-menu-item" data-click="#homepage-management-btn">
+        <i class="fas fa-desktop text-slate-400"></i> 홈페이지 콘텐츠
+      </button>
+    </div>
+
+    <div class="mobile-menu-divider"></div>
+
+    <div class="mobile-menu-section">
+      <div class="mobile-menu-title"><i class="fas fa-th-large mr-2 text-slate-400"></i>프로그램</div>
+      <a href="/program/book_admin.html" target="_blank" class="mobile-menu-link">
+        <i class="fas fa-calculator text-indigo-400"></i> 교재 관리
+      </a>
+      <a href="/program/payment.html" target="_blank" class="mobile-menu-link">
+        <i class="fas fa-credit-card text-indigo-400"></i> 선결제관리
+      </a>
+      <a href="/program/work_list.html" target="_blank" class="mobile-menu-link">
+        <i class="fas fa-list-alt text-indigo-400"></i> 매출/작업
+      </a>
+    </div>
+
+    <div class="mobile-menu-divider"></div>
+
+    <div class="mobile-menu-section">
+      <button class="mobile-menu-item mobile-menu-item-danger" id="mobileMenuLogoutBtn">
+        <i class="fas fa-sign-out-alt"></i> 로그아웃
+      </button>
+    </div>
+
+    <div class="h-6"></div>
+  </div>
+</div>
+
+
+        <main class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div id="reception-management-content" class="main-tab-content active">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
+    <div class="group relative bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_2px_10px_-4px_rgba(59,130,246,0.1)] hover:shadow-[0_8px_20px_-6px_rgba(59,130,246,0.2)] hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
+        
+        <div class="relative flex justify-between items-start z-10">
+            <div class="flex flex-col">
+                <span class="text-sm font-bold text-slate-400 mb-1">오늘 신규 접수</span>
+                <span id="stat-today-new" class="text-3xl font-extrabold text-slate-800 tracking-tight">0</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300 shadow-sm">
+                <i class="fas fa-calendar-plus text-lg"></i>
+            </div>
+        </div>
+        <div class="relative mt-4 flex items-center gap-1 text-xs font-medium text-blue-600 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-2 group-hover:translate-y-0">
+            <span>Check New Orders</span> <i class="fas fa-arrow-right text-[10px]"></i>
+        </div>
+    </div>
+
+    <div class="group relative bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_2px_10px_-4px_rgba(249,115,22,0.1)] hover:shadow-[0_8px_20px_-6px_rgba(249,115,22,0.2)] hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-orange-50 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
+        
+        <div class="relative flex justify-between items-start z-10">
+            <div class="flex flex-col">
+                <span class="text-sm font-bold text-slate-400 mb-1">작업 진행 중</span>
+                <span id="stat-in-progress" class="text-3xl font-extrabold text-slate-800 tracking-tight">0</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-orange-50 text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors duration-300 shadow-sm">
+                <i class="fas fa-hammer text-lg"></i>
+            </div>
+        </div>
+        <div class="relative mt-4 flex items-center gap-1 text-xs font-medium text-orange-600 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-2 group-hover:translate-y-0">
+            <span>Working Now</span> <i class="fas fa-arrow-right text-[10px]"></i>
+        </div>
+    </div>
+
+    <div class="group relative bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_2px_10px_-4px_rgba(239,68,68,0.1)] hover:shadow-[0_8px_20px_-6px_rgba(239,68,68,0.2)] hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-red-50 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
+        
+        <div class="relative flex justify-between items-start z-10">
+            <div class="flex flex-col">
+                <span class="text-sm font-bold text-slate-400 mb-1">미확인 메시지</span>
+                <span id="stat-unread-chats" class="text-3xl font-extrabold text-slate-800 tracking-tight">0</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-red-50 text-red-500 group-hover:bg-red-500 group-hover:text-white transition-colors duration-300 shadow-sm">
+                <i class="fas fa-comment-dots text-lg"></i>
+            </div>
+        </div>
+        <div class="relative mt-4 flex items-center gap-1 text-xs font-medium text-red-500 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-2 group-hover:translate-y-0">
+            <span>Reply Needed</span> <i class="fas fa-arrow-right text-[10px]"></i>
+        </div>
+    </div>
+
+    <div class="group relative bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_2px_10px_-4px_rgba(22,163,74,0.1)] hover:shadow-[0_8px_20px_-6px_rgba(22,163,74,0.2)] hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-green-50 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
+        
+        <div class="relative flex justify-between items-start z-10">
+            <div class="flex flex-col">
+                <span class="text-sm font-bold text-slate-400 mb-1">작업/결제 완료</span>
+                <span id="stat-awaiting-payment" class="text-3xl font-extrabold text-slate-800 tracking-tight">0</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-green-50 text-green-600 group-hover:bg-green-600 group-hover:text-white transition-colors duration-300 shadow-sm">
+                <i class="fas fa-check-circle text-lg"></i>
+            </div>
+        </div>
+        <div class="relative mt-4 flex items-center gap-1 text-xs font-medium text-green-600 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-2 group-hover:translate-y-0">
+            <span>Completed</span> <i class="fas fa-arrow-right text-[10px]"></i>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-slate-200 mb-6 overflow-hidden animate-fade-in">
+    <div id="revenue-stats-header" class="p-3 md:p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center cursor-pointer hover:bg-slate-100 transition-colors select-none">
+        <h2 class="text-base md:text-lg font-bold text-slate-700 flex items-center">
+            <i class="fas fa-chart-line mr-2 text-brand-500"></i>
+            <span class="truncate">월별 매출 현황 (최근 6개월)</span>
+            <i id="revenue-chevron" class="fas fa-chevron-down ml-2 md:ml-3 text-slate-400 text-xs md:text-sm transition-transform duration-300"></i>
+        </h2>
+        <span class="hidden md:inline-block text-xs text-slate-400 bg-white px-2 py-1 rounded border border-slate-200 shadow-sm">
+            <i class="fas fa-info-circle mr-1"></i>클릭하여 펼치기
+        </span>
+    </div>
+    
+    <div id="revenue-stats-content" class="hidden bg-white border-t border-slate-100 transition-all">
+        <div class="p-0 md:p-6">
+            <div class="overflow-x-auto">
+                <table class="order-table whitespace-nowrap">
+                    <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200 font-bold">
+                        <tr>
+                            <th class="px-4 py-3 text-center w-24">기간</th>
+                            <th class="px-4 py-3 text-center w-20">건수</th>
+                            <th class="px-4 py-3 text-right">총 접수 금액 (예상)</th>
+                            <th class="px-4 py-3 text-right text-brand-700">확정 매출액 (결제/작업완료)</th>
+                            <th class="px-4 py-3 min-w-[150px] w-1/3">확정 비율</th>
+                        </tr>
+                    </thead>
+                    <tbody id="revenue-stats-body" class="divide-y divide-slate-100">
+                        <tr><td colspan="5" class="text-center py-8 text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i>데이터 분석 중...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-3 bg-slate-50/50 items-center">
+        <h2 class="text-lg font-bold text-slate-700 whitespace-nowrap mr-2"><i class="fas fa-list-ul mr-2 text-brand-500"></i>접수 목록</h2>
+        <div class="relative flex-grow w-full">
+            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+            <input type="text" id="searchInput" class="form-input w-full pl-10" placeholder="접수번호, 품명, 고객명, 연락처 검색...">
+        </div>
+        <select id="statusFilter" class="form-select w-full md:w-48">
+            <option value="all">전체 상태 보기</option>
+            <option value="취소요청">취소요청</option>
+            <option value="주문취소">주문취소</option>
+            <option value="취소거절">취소거절</option>
+            <option value="접수완료">접수완료</option>
+            <option value="작업중">작업중</option>
+            <option value="작업완료">작업완료</option>
+            <option value="결제완료">결제완료</option>
+        </select>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="order-table">
+            <thead class="text-xs uppercase bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                <tr>
+                    <th scope="col" class="px-6 py-4">접수일</th>
+                    <th scope="col" class="px-6 py-4">접수번호</th>
+<th scope="col" class="px-6 py-4">주문 정보</th>
+                    <th scope="col" class="px-6 py-4">고객 정보</th>
+                    <th scope="col" class="px-6 py-4 text-right">금액</th>
+                    <th scope="col" class="px-6 py-4 text-center">상태</th>
+                    <th scope="col" class="px-6 py-4 text-center">관리</th>
+                </tr>
+            </thead>
+            <tbody id="quote-list-body" class="divide-y divide-slate-100">
+                <tr id="loading-indicator">
+                    <td colspan="7" class="text-center py-16">
+                        <div class="flex flex-col items-center justify-center text-slate-400">
+                            <i class="fas fa-circle-notch fa-spin text-2xl mb-3 text-brand-500"></i>
+                            <span class="text-xs">데이터를 불러오는 중입니다...</span>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="pagination-controls" class="p-4 border-t border-slate-100 flex justify-center items-center gap-2 bg-slate-50/30"></div>
+</div>
+
+			<!-- [FIX] reception-management-content 닫힘 태그 누락으로 인해 '1:1 문의 관리' 탭이 표시되지 않던 문제 수정 -->
+			</div>
+
+            <div id="inquiry-management-content" class="main-tab-content">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+                        <h2 class="text-lg font-bold text-slate-700"><i class="fas fa-comments mr-2 text-brand-500"></i>1:1 문의 목록</h2>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="order-table">
+                            <thead class="text-xs uppercase bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                                <tr>
+                                    <th scope="col" class="px-6 py-4">문의일</th>
+                                    <th scope="col" class="px-6 py-4">고객명</th>
+                                    <th scope="col" class="px-6 py-4">제목</th>
+                                    <th scope="col" class="px-6 py-4 text-center">상태</th>
+                                    <th scope="col" class="px-6 py-4 text-center">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inquiry-list-body" class="divide-y divide-slate-100">
+                                <tr><td colspan="5" class="text-center py-16 text-slate-400">문의 내역을 불러오는 중입니다...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <div id="detailsModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col rounded-2xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h2 id="modal-title" class="text-lg font-bold text-slate-800">상세 정보</h2>
+                <button id="openSheetBtn" class="md:hidden px-3 h-9 rounded-lg bg-emerald-600 text-white text-sm font-bold flex items-center gap-2"><i class="fas fa-comments"></i><span>상담</span></button>
+<button id="closeModalBtn" class="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="flex-grow flex flex-col md:flex-row overflow-hidden">
+                <div id="modalContent" class="w-full md:w-7/12 p-6 overflow-y-auto border-b md:border-b-0 md:border-r border-slate-200 bg-white"></div>
+                
+                <div id="modalSide" class="w-full md:w-5/12 flex flex-col bg-slate-50">
+                    <div id="sheetHandle" class="sheet-handle-area md:hidden"><div class="sheet-handle"></div><button id="closeSheetBtn" class="sheet-close-btn" aria-label="상담 닫기"><i class="fas fa-times"></i></button></div>
+                    <div class="border-b border-slate-200 bg-white flex-shrink-0 px-4 py-2.5 flex items-center justify-between">
+                        <span class="text-sm font-bold text-slate-700 flex items-center gap-2"><i class="fas fa-comments text-brand-500"></i>상담</span>
+                        <button id="toggle-files-panel-btn" type="button" class="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-brand-600 px-2 py-1 rounded-lg hover:bg-slate-100 transition" title="파일 목록">
+                            <i class="fas fa-paperclip text-[11px]"></i><span id="files-count-badge">파일</span>
+                        </button>
+                    </div>
+
+                    <!-- 파일 패널 (슬라이드 토글) -->
+                    <div id="files-panel" class="hidden border-b border-slate-200 bg-white px-4 py-3 max-h-40 overflow-y-auto">
+                        <div id="file-list" class="space-y-1.5"></div>
+                        <div id="file-list-empty" class="text-xs text-slate-400 text-center py-2">첨부 파일 없음</div>
+                    </div>
+                    
+                    <div id="chat-tab" class="tab-content active flex-grow flex flex-col overflow-hidden relative">
+                        <div id="chat-messages" class="flex-grow p-4 overflow-y-auto flex flex-col gap-3"></div>
+                        
+                        <div id="upload-progress-container" class="hidden px-4 pb-2 bg-white border-t border-slate-100">
+                            <div class="flex items-center justify-between text-xs py-2">
+                                <span id="upload-file-name" class="text-slate-600 truncate pr-2 font-medium"></span>
+                                <label class="flex items-center cursor-pointer flex-shrink-0 hover:text-brand-600">
+                                    <input type="checkbox" id="is-proof-checkbox" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                    <span class="ml-1.5 font-bold">시안(Proof) 전송</span>
+                                </label>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-1.5">
+                                <div id="upload-progress-bar" class="bg-brand-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <div id="chatInputBar" class="p-3 bg-white border-t border-slate-200 relative">
+                             <div id="canned-response-popover" class="absolute bottom-[100%] left-2 right-2 bg-white border border-slate-200 rounded-lg shadow-xl hidden z-10 overflow-hidden mb-2">
+                                <div class="p-2 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                                    <h4 class="text-xs font-bold text-slate-600">빠른 답변 선택</h4>
+                                    <button id="manage-canned-responses-btn" class="text-slate-400 hover:text-brand-600"><i class="fas fa-cog"></i></button>
+                                </div>
+                                <ul id="canned-response-list" class="max-h-48 overflow-y-auto text-sm divide-y divide-slate-100"></ul>
+                            </div>
+
+                            <form id="chat-form" class="flex gap-2 items-end">
+                                <button type="button" id="canned-response-btn" class="p-2 text-slate-400 hover:text-brand-600 transition-colors" title="빠른 답변"><i class="fas fa-bolt"></i></button>
+                                <button type="button" id="attach-file-btn" class="p-2 text-slate-400 hover:text-brand-600 transition-colors" title="파일 첨부"><i class="fas fa-paperclip"></i></button>
+                                <div class="flex-grow relative">
+                                    <input type="text" id="chat-input" class="w-full bg-slate-100 border-0 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all" placeholder="메시지 입력..." autocomplete="off">
+                                    <input type="file" id="file-input" class="hidden">
+                                </div>
+                                <button type="submit" class="p-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors shadow-sm"><i class="fas fa-paper-plane"></i></button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- 메모 패널: 하단 고정 접이식 -->
+                    <div id="memo-panel" class="border-t border-slate-200 bg-white flex-shrink-0">
+                        <button id="toggle-memo-btn" type="button" class="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition">
+                            <span class="flex items-center gap-1.5"><i class="fas fa-sticky-note text-yellow-400"></i>관리자 메모</span>
+                            <i id="memo-chevron" class="fas fa-chevron-up text-[10px]"></i>
+                        </button>
+                        <div id="memo-body" class="hidden px-4 pb-3 bg-yellow-50/40">
+                            <div id="memo-list" class="space-y-2 mb-2 max-h-32 overflow-y-auto"></div>
+                            <form id="memo-form" class="flex gap-2">
+                                <input id="memo-input" type="text" class="form-input flex-grow text-xs py-1.5" placeholder="메모 입력 후 저장">
+                                <button type="submit" class="btn btn-sm bg-yellow-400 hover:bg-yellow-500 text-yellow-900 border-0 font-bold whitespace-nowrap">저장</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="companyInfoModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-[60]">
+        <div class="bg-white shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col rounded-2xl">
+            <div class="p-5 border-b border-slate-200 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-slate-800">공급자 정보 관리</h2>
+                <button id="closeCompanyInfoModalBtn" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="flex-grow p-6 overflow-y-auto">
+                <form id="company-info-form" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">사업자등록번호</label><input type="text" id="bizNum" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">상호</label><input type="text" id="companyName" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">대표자</label><input type="text" id="ceoName" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">주소</label><input type="text" id="address" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">업태</label><input type="text" id="bizCategory" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">종목</label><input type="text" id="bizType" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">계좌번호</label><input type="text" id="accountNum" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">예금주</label><input type="text" id="accountHolder" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">전화번호</label><input type="text" id="tel" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">팩스</label><input type="text" id="fax" class="form-input w-full"></div>
+                    </div>
+                    <div class="pt-4 border-t border-slate-100">
+                        <label class="block text-xs font-bold text-slate-500 mb-2">직인 이미지</label>
+                        <div class="flex items-center gap-4">
+                            <img id="companySealPreview" src="" class="h-20 w-20 object-contain border border-slate-200 rounded p-1 bg-slate-50">
+                            <input type="file" id="companySealFile" class="form-input flex-grow text-sm" accept="image/png, image/jpeg">
+                        </div>
+                    </div>
+                    <div class="text-right pt-4">
+                        <button type="button" id="saveCompanyInfoBtn" class="btn btn-primary px-6">저장하기</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div id="cannedResponseManagementModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-[70]">
+        <div class="bg-white shadow-2xl w-full max-w-2xl h-[80vh] flex flex-col rounded-2xl">
+            <div class="p-4 border-b border-slate-200 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-slate-800">빠른 답변 관리</h2>
+                <button id="closeCannedResponseModalBtn" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="response-list-container" class="flex-grow p-4 overflow-y-auto space-y-2 bg-slate-50"></div>
+            <div class="p-4 bg-white border-t border-slate-200">
+                <form id="add-response-form" class="space-y-3">
+                    <input type="text" id="new-response-title" class="form-input w-full" placeholder="제목 (예: 입금 확인 요청)" required>
+                    <textarea id="new-response-text" class="form-textarea w-full" rows="2" placeholder="내용" required></textarea>
+                    <button type="submit" class="btn btn-primary w-full">추가</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div id="imageManagementModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-[65]">
+        <div class="bg-white shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col rounded-2xl overflow-hidden ring-1 ring-slate-900/5">
+            <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white z-10">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fas fa-images text-brand-500"></i> 이미지 리소스 관리
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">견적서 미리보기에 사용될 이미지를 등록하고 관리합니다.</p>
+                </div>
+                <button id="closeImageManagementModalBtn" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors flex items-center justify-center">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+
+            <div class="px-6 bg-white border-b border-slate-100">
+                <nav id="image-modal-tabs" class="flex gap-8" aria-label="Tabs">
+                    <button class="tab-btn active group flex items-center gap-2 py-4 text-sm font-bold border-b-2 border-brand-600 text-brand-600 transition-all" data-tab="coverPaper-previews">
+                        <span class="flex items-center justify-center w-6 h-6 rounded bg-brand-50 text-brand-600 group-[.active]:bg-brand-100 transition-colors">
+                            <i class="fas fa-book-open"></i>
+                        </span>
+                        표지 이미지
+                    </button>
+                    <button class="tab-btn group flex items-center gap-2 py-4 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300 transition-all" data-tab="innerPaper-previews">
+                        <span class="flex items-center justify-center w-6 h-6 rounded bg-slate-50 text-slate-400 group-hover:bg-slate-100 transition-colors">
+                            <i class="fas fa-file-alt"></i>
+                        </span>
+                        내지 이미지
+                    </button>
+                    <button class="tab-btn group flex items-center gap-2 py-4 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300 transition-all" data-tab="binding-previews">
+                        <span class="flex items-center justify-center w-6 h-6 rounded bg-slate-50 text-slate-400 group-hover:bg-slate-100 transition-colors">
+                            <i class="fas fa-book-medical"></i>
+                        </span>
+                        제본 이미지
+                    </button>
+                </nav>
+            </div>
+
+            <div class="flex-grow flex flex-col overflow-hidden bg-slate-50/50 relative">
+                 <div class="absolute inset-0 opacity-[0.03] pointer-events-none" style="background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 24px 24px;"></div>
+                
+                <div class="flex-grow p-6 overflow-y-auto relative z-0">
+                    <div id="coverPaper-previews-tab" class="tab-content active space-y-6">
+                        </div>
+                    <div id="innerPaper-previews-tab" class="tab-content space-y-6">
+                        </div>
+                    <div id="binding-previews-tab" class="tab-content space-y-6">
+                        </div>
+                </div>
+            </div>
+            
+            <div class="px-6 py-3 bg-white border-t border-slate-100 text-[11px] text-slate-400 flex justify-between items-center">
+                <span><i class="fas fa-info-circle mr-1"></i>이미지 권장 사이즈: 600 x 400px (JPG, PNG)</span>
+                <span>Auto Saved</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="homepageManagementModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-[60]">
+        <div class="bg-white shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col rounded-2xl overflow-hidden ring-1 ring-slate-900/5">
+            <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white z-10">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fas fa-desktop text-brand-500"></i> 홈페이지 콘텐츠 관리
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">메인 홈페이지에 노출되는 공지사항과 포트폴리오를 관리합니다.</p>
+                </div>
+                <button id="closeHomepageManagementModalBtn" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors flex items-center justify-center">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+
+            <div class="px-6 bg-white border-b border-slate-100">
+                <nav id="homepage-sub-tab-nav" class="flex gap-8" aria-label="Tabs">
+                    <button class="tab-btn active group flex items-center gap-2 py-4 text-sm font-bold border-b-2 border-brand-600 text-brand-600 transition-all" data-tab="notice-content-panel">
+                        <span class="flex items-center justify-center w-6 h-6 rounded bg-brand-50 text-brand-600 group-[.active]:bg-brand-100 transition-colors">
+                            <i class="fas fa-bullhorn"></i>
+                        </span>
+                        공지사항
+                    </button>
+                    <button class="tab-btn group flex items-center gap-2 py-4 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300 transition-all" data-tab="portfolio-content-panel">
+                        <span class="flex items-center justify-center w-6 h-6 rounded bg-slate-50 text-slate-400 group-hover:bg-slate-100 transition-colors">
+                            <i class="fas fa-photo-video"></i>
+                        </span>
+                        포트폴리오
+                    </button>
+                </nav>
+            </div>
+
+            <div class="flex-grow flex flex-col overflow-hidden bg-slate-50/50 relative">
+                <div class="absolute inset-0 opacity-[0.03] pointer-events-none" style="background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 24px 24px;"></div>
+                
+                <div class="flex-grow overflow-y-auto p-6 relative z-0">
+                    <div id="notice-content-panel" class="homepage-sub-tab-content active">
+                        <div class="grid grid-cols-1 lg:grid-cols-10 gap-6">
+                            
+                            <div class="lg:col-span-6">
+                                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-full max-h-[650px] flex flex-col">
+                                    <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                                        <span class="w-8 h-8 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center text-sm"><i class="fas fa-pen"></i></span>
+                                        <h4 class="text-sm font-bold text-slate-700">새 공지 작성</h4>
+                                    </div>
+                                    <form id="notice-form" class="space-y-4 h-full flex flex-col">
+                                        <input type="hidden" id="notice-id">
+                                        <div>
+                                            <input type="text" id="notice-title" class="form-input w-full font-bold placeholder-slate-400" placeholder="공지 제목을 입력하세요" required>
+                                        </div>
+                                        <div class="flex-1 min-h-0">
+                                            <div class="border border-slate-200 rounded-xl overflow-hidden bg-white h-full flex flex-col">
+                                                <div class="flex flex-wrap items-center gap-1 p-2 bg-slate-50 border-b border-slate-200">
+                                                    <button type="button" class="editor-btn btn btn-secondary btn-sm" data-cmd="bold" title="굵게"><i class="fas fa-bold"></i></button>
+                                                    <button type="button" class="editor-btn btn btn-secondary btn-sm" data-cmd="italic" title="기울임"><i class="fas fa-italic"></i></button>
+                                                    <button type="button" class="editor-btn btn btn-secondary btn-sm" data-cmd="underline" title="밑줄"><i class="fas fa-underline"></i></button>
+                                                    <span class="h-6 w-px bg-slate-200 mx-1"></span>
+
+                                                    <button type="button" class="editor-btn btn btn-secondary btn-sm" data-align="left" title="왼쪽 정렬"><i class="fas fa-align-left"></i></button>
+                                                    <button type="button" class="editor-btn btn btn-secondary btn-sm" data-align="center" title="가운데 정렬"><i class="fas fa-align-center"></i></button>
+                                                    <button type="button" class="editor-btn btn btn-secondary btn-sm" data-align="right" title="오른쪽 정렬"><i class="fas fa-align-right"></i></button>
+                                                    <span class="h-6 w-px bg-slate-200 mx-1"></span>
+
+                                                    <button type="button" class="editor-btn btn btn-secondary btn-sm" data-list="ul" title="글머리 기호"><i class="fas fa-list-ul"></i></button>
+                                                    <button type="button" class="editor-btn btn btn-secondary btn-sm" data-list="ol" title="번호 매기기"><i class="fas fa-list-ol"></i></button>
+                                                    <span class="h-6 w-px bg-slate-200 mx-1"></span>
+
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="text-[11px] font-bold text-slate-500">크기</span>
+                                                        <select id="notice-font-size" class="form-select !py-1 !px-2 text-xs !rounded-lg">
+                                                            <option value="13">작게</option>
+                                                            <option value="14" selected>기본</option>
+                                                            <option value="16">크게</option>
+                                                            <option value="18">아주 크게</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <button type="button" class="editor-btn btn btn-secondary btn-sm ml-auto" id="notice-editor-clear" title="서식 제거">
+                                                        <i class="fas fa-eraser mr-1"></i>서식 초기화
+                                                    </button>
+                                                </div>
+
+                                                <div id="notice-content-editor" contenteditable="true"
+                                                    class="p-3 text-sm min-h-[350px] flex-1 outline-none leading-relaxed overflow-y-auto"
+                                                    style="white-space: pre-wrap;"
+                                                    data-placeholder="공지 내용을 입력하세요..."></div>
+                                            </div>
+
+                                            <textarea id="notice-content" class="hidden"></textarea>
+                                        </div>
+                                        <div class="flex items-center justify-between pt-2">
+                                            <div class="flex items-center gap-4">
+                                                <label class="flex items-center text-sm text-slate-600 cursor-pointer select-none hover:text-brand-700 transition-colors">
+                                                    <div class="relative flex items-center">
+                                                        <input type="checkbox" id="notice-isImportant" class="peer sr-only">
+                                                        <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-500"></div>
+                                                    </div>
+                                                    <span class="ml-2 font-medium">중요 (상단고정)</span>
+                                                </label>
+                                                <label class="flex items-center text-sm text-slate-600 cursor-pointer select-none hover:text-brand-700 transition-colors">
+                                                    <div class="relative flex items-center">
+                                                        <input type="checkbox" id="notice-isPopup" class="peer sr-only">
+                                                        <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600"></div>
+                                                    </div>
+                                                    <span class="ml-2 font-medium">메인 팝업</span>
+                                                </label>
+                                            </div>
+                                            <div class="space-x-2 shrink-0">
+                                                <button type="button" id="clear-notice-form-btn" class="btn btn-secondary btn-sm">초기화</button>
+                                                <button type="submit" id="save-notice-btn" class="btn btn-primary btn-sm px-4"><i class="fas fa-check mr-1"></i>저장</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-4 flex flex-col">
+                                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col h-full max-h-[650px]">
+                                    <div class="flex items-center justify-between mb-3 shrink-0 pb-3 border-b border-slate-200">
+                                        <h4 class="text-sm font-bold text-slate-700"><i class="fas fa-list-ul mr-1.5 text-brand-500"></i>등록된 공지 목록</h4>
+                                        <span class="text-[10px] text-slate-400 font-medium bg-white px-2 py-1 rounded border border-slate-200">최신순</span>
+                                    </div>
+                                    
+                                    <div id="notice-list-admin" class="space-y-2 flex-grow overflow-y-auto pr-1 custom-scrollbar">
+                                        </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div id="portfolio-content-panel" class="homepage-sub-tab-content pb-24">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h4 class="text-lg font-bold text-slate-800">포트폴리오 목록</h4>
+                                <p class="text-xs text-slate-500 mt-1">드래그하여 순서를 변경하거나 내용을 수정할 수 있습니다.</p>
+                            </div>
+                            <button id="add-portfolio-item" class="btn btn-primary btn-sm shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5">
+                                <i class="fas fa-plus mr-1.5"></i>새 프로젝트 추가
+                            </button>
+                        </div>
+                        
+                        <div id="portfolio-list-admin" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                        
+                        <div class="homepage-floating-save z-20">
+                            <button id="save-portfolio-content" class="btn btn-primary shadow-xl hover:shadow-2xl px-6 py-3 rounded-full flex items-center gap-2 transform transition-all hover:scale-105">
+                                <i class="fas fa-save"></i> 전체 변경사항 저장
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="inquiry-details-modal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-[60]">
+        <div class="bg-white shadow-2xl w-full max-w-2xl flex flex-col rounded-2xl">
+            <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h2 class="text-lg font-bold text-slate-800">문의 답변</h2>
+                <button id="close-inquiry-modal-btn" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-[70vh]">
+                <div class="bg-white border border-slate-200 rounded-lg p-5 mb-6 shadow-sm">
+                    <div class="flex justify-between items-start mb-2">
+                        <span id="inquiry-modal-user" class="font-bold text-slate-800"></span>
+                        <span id="inquiry-modal-date" class="text-xs text-slate-400"></span>
+                    </div>
+                    <h3 class="text-md font-bold text-brand-700 mb-3" id="inquiry-modal-title"></h3>
+                    <div id="inquiry-modal-question" class="text-sm text-slate-600 whitespace-pre-wrap bg-slate-50 p-3 rounded"></div>
+                </div>
+                
+                <form id="inquiry-reply-form" class="space-y-4">
+                    <input type="hidden" id="inquiry-modal-id">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">답변 내용</label>
+                        <textarea id="inquiry-modal-answer" rows="6" class="form-textarea w-full" placeholder="답변을 입력하세요..."></textarea>
+                    </div>
+                    <div class="flex justify-between items-center pt-2">
+                        <button type="button" id="btn-save-as-faq" class="btn btn-secondary btn-sm text-yellow-600 border-yellow-200 hover:bg-yellow-50">
+                            <i class="fas fa-star mr-1"></i>FAQ로 등록
+                        </button>
+                        <button type="submit" class="btn btn-primary">답변 완료 처리</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div id="confirmationModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-[80]">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm text-center border border-slate-100">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3 id="confirmationTitle" class="text-lg font-bold text-slate-800 mb-2"></h3>
+            <p id="confirmationMessage" class="text-sm text-slate-500 mb-6 leading-relaxed"></p>
+            <div class="flex justify-center gap-3">
+                <button id="confirmCancelBtn" class="btn btn-secondary flex-1">취소</button>
+                <button id="confirmActionBtn" class="btn btn-danger flex-1">확인</button>
+            </div>
+        </div>
+    </div>
+
+    
+<div id="iframeModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-[90]">
+    <div class="bg-white shadow-2xl w-full max-w-7xl h-[95vh] flex flex-col rounded-2xl overflow-hidden relative">
+        <button id="closeIframeModalBtn" class="absolute top-4 right-6 z-50 w-10 h-10 rounded-full bg-white shadow-lg hover:bg-slate-100 flex items-center justify-center text-slate-500 transition-colors border border-slate-200">
+            <i class="fas fa-times text-lg"></i>
+        </button>
+        <iframe id="contentIframe" class="w-full h-full border-0 bg-slate-50"></iframe>
+    </div>
+
+<div id="sheetOverlay" class="sheet-overlay hidden"></div>
+</div>
+  <!-- ── 관리자 전용 로그아웃 함수 ─────────────────────────────────────────
+       session.js 모듈이 로드되기 전에 인라인에서도 hardLogout() 을 호출할 수 있도록
+       별도로 정의합니다. 모듈 로드 후에는 window.hardLogout 이 재정의됩니다.
+  -->
+  <script>
+async function hardLogout(redirectUrl = 'index.html') {
+  // 세션/로컬 스토리지 초기화
+  try { sessionStorage.clear(); } catch (e) {}
+  try {
+    // Role / user
+    localStorage.removeItem('userRole');
+    sessionStorage.removeItem('userRole');
+    localStorage.removeItem('userName');
+    sessionStorage.removeItem('userName');
+
+    // Quote draft / routing
+    localStorage.removeItem('quoteToReload');
+    localStorage.removeItem('quoteDraft');
+    localStorage.removeItem('lastQuoteDraft');
+    localStorage.removeItem('postLoginRedirect');
+
+    // Guest lookup keys
+    localStorage.removeItem('guestLookupKey');
+    localStorage.removeItem('guestLookupKeyLegacy');
+    localStorage.removeItem('guestName');
+    localStorage.removeItem('guestContact');
+    localStorage.removeItem('guestContactRaw');
+    localStorage.removeItem('guestContactHyphen');
+    localStorage.removeItem('guestPwLast4');
+  } catch (e) {}
+
+  // Optional: clear last quote cache keys when present
+  try {
+    if (typeof __LAST_QUOTE_CACHE_KEY_BOOK !== 'undefined') {
+      try { sessionStorage.removeItem(__LAST_QUOTE_CACHE_KEY_BOOK); } catch (e) {}
+      try { localStorage.removeItem(__LAST_QUOTE_CACHE_KEY_BOOK); } catch (e) {}
+    }
+    if (typeof __LAST_QUOTE_CACHE_KEY_PRINT !== 'undefined') {
+      try { sessionStorage.removeItem(__LAST_QUOTE_CACHE_KEY_PRINT); } catch (e) {}
+      try { localStorage.removeItem(__LAST_QUOTE_CACHE_KEY_PRINT); } catch (e) {}
+    }
+  } catch (e) {}
+
+  // Optional: unsubscribe snapshot listeners if present (mypage 등)
+  try { if (typeof unsubscribeQuotesSnapshot === 'function') unsubscribeQuotesSnapshot(); } catch (e) {}
+  try { if (typeof unsubscribeQuotesSnapshot !== 'undefined') unsubscribeQuotesSnapshot = null; } catch (e) {}
+
+  // Admin safety: 관리자에서 로그아웃한 직후 메인에서 1회 익명로그인 억제
+  try {
+    const p = (location && location.pathname ? location.pathname : '').toLowerCase();
+    if (p.endsWith('/admin.html') || p.endsWith('admin.html')) {
+      sessionStorage.setItem('suppressAnonOnce', '1');
+    }
+  } catch (e) {}
+
+  // Firebase sign out (module auth or window.auth)
+  try {
+    if (typeof auth !== 'undefined' && auth && typeof signOut === 'function') {
+      await signOut(auth);
+    } else if (window.auth && typeof window.auth.signOut === 'function') {
+      await window.auth.signOut();
+    }
+  } catch (e) {
+    console.warn('signOut failed:', e);
+  }
+
+  location.replace(redirectUrl || 'index.html');
+}
+</script>
+
+
+<!-- 관리자 페이지는 Firebase 이메일 로그인 전용 → 비회원 세션 처리 불필요 -->
+
+<script>
+  // work-guide 모달이 아직 로드되지 않았을 때를 대비한 안전장치
+  window.openWorkGuideModal = window.openWorkGuideModal || function () {
+    alert('가이드안내를 불러오는 중입니다. 잠시 후 다시 눌러주세요.');
+  };
+</script>
+<div id="workGuideContainer"></div>
+<script>
+    // work-guide.html 로드 및 안전한 스크립트 주입
+    fetch('work-guide.html')
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // 1. 모달 HTML 가져오기 (ID 충돌 방지 확인)
+            const newModal = doc.getElementById('workGuideModal');
+            if (newModal && !document.getElementById('workGuideModal')) {
+                document.body.appendChild(newModal);
+            }
+
+            // 2. 모듈 스크립트 실행
+            // work-guide.html 은 외부 모듈 스크립트(src)를 사용하므로, src도 함께 복사해야 함.
+            const moduleScripts = doc.querySelectorAll('script[type="module"]');
+            moduleScripts.forEach(ms => {
+                const newScript = document.createElement('script');
+                newScript.type = "module";
+                if (ms.src) {
+                    // 상대경로 유지 (admin.html과 동일 폴더 기준)
+                    const url = new URL(ms.getAttribute('src'), location.href);
+                    newScript.src = url.pathname + url.search + url.hash;
+                } else {
+                    newScript.textContent = ms.textContent || "";
+                }
+                document.body.appendChild(newScript);
+            });
+
+            // 3. (필요시) 스타일 복사 (Tailwind가 있어서 대부분 괜찮지만 커스텀 스타일 위해)
+            const styles = doc.querySelectorAll('style');
+            styles.forEach(s => document.head.appendChild(s.cloneNode(true)));
+
+        })
+        .catch(err => logger.error('작업 가이드 로드 실패:', err));
+
+    // 혹시라도 로딩 전에 버튼이 눌릴 경우를 대비한 플레이스홀더 함수
+    if (!window.openWorkGuideModal) {
+        window.openWorkGuideModal = function() {
+            logger.warn('가이드안내 모듈이 아직 로딩 중입니다.');
+        };
+    }
+
+        
+        // ── 알림 토글 초기화 ────────────────────────────────────
+        // admin.js 모듈이 로드된 뒤 window.__toggleAdminNotifs 가 등록됩니다.
+        // 버튼의 onclick="window.__toggleAdminNotifs()" 가 직접 호출하므로
+        // 여기서는 초기 UI 상태만 맞춰주면 됩니다.
+        window.addEventListener('DOMContentLoaded', () => {
+            // admin.js 로드 타이밍이 늦을 수 있어 약간 지연 후 초기화
+            setTimeout(() => {
+                try {
+                    if (typeof window.__updateNotifToggleUI === 'function') {
+                        window.__updateNotifToggleUI();
+                    }
+                    if (typeof updateNotifStatus === 'function') {
+                        updateNotifStatus();
+                    }
+                } catch(e) {}
+            }, 300);
+        });
+</script>
+
+<script>
+/* ===== Program dropdown (open in new tab) ===== */
+function toggleProgramMenu(e){
+  try { if (e) e.stopPropagation(); } catch(_) {}
+  const dd = document.getElementById('programDropdown');
+  if (!dd) return;
+  dd.classList.toggle('hidden');
+}
+document.addEventListener('click', function(e){
+  const dd = document.getElementById('programDropdown');
+  if (!dd) return;
+  const wrapper = e.target.closest('.admin-program-menu');
+  if (!wrapper) dd.classList.add('hidden');
+});
+</script>
+
+
+<script type="module" src="assets/js/pages/admin.js"></script>
+<script>
+/* ===== Mobile Bottom Sheet (상담) ===== */
+(function(){
+  const modal = document.getElementById('detailsModal');
+  const side = document.getElementById('modalSide');
+  const overlay = document.getElementById('sheetOverlay');
+  const openBtn = document.getElementById('openSheetBtn');
+  const closeBtn = document.getElementById('closeSheetBtn');
+  const handle = document.getElementById('sheetHandle');
+
+  if(!modal || !side || !overlay || !openBtn || !closeBtn || !handle) return;
+
+  function isMobile(){
+    return window.matchMedia('(max-width: 768px)').matches;
+  }
+
+  function openSheet(){
+    if(!isMobile()) return;
+    overlay.classList.remove('hidden');
+    side.classList.add('sheet-open');
+    // 채팅 탭이면 맨 아래로
+    setTimeout(()=>{
+      const box = document.getElementById('chat-messages');
+      if(box) box.scrollTop = box.scrollHeight;
+    }, 0);
+  }
+
+  function closeSheet(){
+    overlay.classList.add('hidden');
+    side.classList.remove('sheet-open');
+  }
+
+  openBtn.addEventListener('click', openSheet);
+  closeBtn.addEventListener('click', closeSheet);
+  overlay.addEventListener('click', closeSheet);
+
+  // 모달 닫힐 때 시트도 정리
+  const closeModalBtn = document.getElementById('closeModalBtn');
+  if(closeModalBtn) closeModalBtn.addEventListener('click', closeSheet);
+
+  // 드래그로 내리기
+  let startY = 0;
+  let currentY = 0;
+  let dragging = false;
+
+  function onStart(e){
+    if(!isMobile()) return;
+    dragging = true;
+    startY = (e.touches ? e.touches[0].clientY : e.clientY);
+    currentY = 0;
+    side.style.transition = 'none';
+  }
+
+  function onMove(e){
+    if(!dragging) return;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY);
+    const dy = Math.max(0, y - startY);
+    currentY = dy;
+    side.style.transform = `translateY(${dy}px)`;
+  }
+
+  function onEnd(){
+    if(!dragging) return;
+    dragging = false;
+    side.style.transition = '';
+    // 120px 이상 내리면 닫기
+    if(currentY > 120){
+      side.style.transform = '';
+      closeSheet();
+    }else{
+      side.style.transform = '';
+      side.classList.add('sheet-open');
+    }
+  }
+
+  handle.addEventListener('touchstart', onStart, {passive:true});
+  handle.addEventListener('touchmove', onMove, {passive:true});
+  handle.addEventListener('touchend', onEnd);
+})();
+
+</script>
+
+<script>
+(function(){
+  function qs(s){ return document.querySelector(s); }
+  function qsa(s){ return Array.from(document.querySelectorAll(s)); }
+
+  const openBtn = qs('#mobileMenuOpenBtn');
+  const closeBtn = qs('#mobileMenuCloseBtn');
+  const overlay = qs('#mobileMenuOverlay');
+  const sheet = qs('#mobileMenuSheet');
+  const handle = qs('#mobileMenuHandle');
+  const currentLabel = qs('#mobileCurrentSection');
+
+  function openMenu(){
+    if(!overlay || !sheet) return;
+    overlay.classList.add('show');
+    overlay.classList.remove('hidden');
+    sheet.classList.add('show');
+    sheet.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeMenu(){
+    if(!overlay || !sheet) return;
+    sheet.classList.remove('show');
+    overlay.classList.remove('show');
+    sheet.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    setTimeout(()=>{ overlay.classList.add('hidden'); }, 220);
+  }
+
+  function syncCurrentLabel(){
+    // find active tab button in top nav (PC buttons exist but hidden on mobile)
+    const active = document.querySelector('.nav-item.active[data-tab]');
+    if(active && currentLabel){
+      const txt = active.textContent.replace(/\s+/g,' ').trim();
+      // normalize labels to PC names
+      const map = { '견적관리':'접수관리', '문의관리':'1:1 문의' };
+      currentLabel.textContent = map[txt] || txt;
+    }
+  }
+
+  // wire open/close
+  openBtn && openBtn.addEventListener('click', openMenu);
+  closeBtn && closeBtn.addEventListener('click', closeMenu);
+  overlay && overlay.addEventListener('click', closeMenu);
+
+  // logout buttons
+  const logoutTop = qs('#mobileLogoutBtn');
+  const logoutInSheet = qs('#mobileMenuLogoutBtn');
+  const logoutExist = qs('#logout-btn');
+  function doLogout(){
+    if(logoutExist) logoutExist.click();
+  }
+  logoutTop && logoutTop.addEventListener('click', doLogout);
+  logoutInSheet && logoutInSheet.addEventListener('click', doLogout);
+
+  // menu item actions
+  qsa('.mobile-menu-item[data-tab]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const tab = btn.getAttribute('data-tab');
+      const target = document.querySelector('.nav-item[data-tab="'+tab+'"]');
+      if(target) target.click(); // reuse existing tab switching logic
+      syncCurrentLabel();
+      closeMenu();
+    });
+  });
+
+  qsa('.mobile-menu-item[data-click]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const sel = btn.getAttribute('data-click');
+      const target = sel ? document.querySelector(sel) : null;
+      if(target) target.click();
+      closeMenu();
+    });
+  });
+
+  qsa('.mobile-menu-item[data-call]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const fn = btn.getAttribute('data-call');
+      if(fn && typeof window[fn] === 'function') window[fn]();
+      closeMenu();
+    });
+  });
+
+  // drag-to-close
+  let startY=null, startT=null, dragging=false;
+  function onStart(e){
+    dragging=true;
+    startY = (e.touches ? e.touches[0].clientY : e.clientY);
+    startT = Date.now();
+    sheet.style.transition = 'none';
+  }
+  function onMove(e){
+    if(!dragging) return;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY);
+    const dy = Math.max(0, y - startY);
+    sheet.style.transform = 'translateY(' + dy + 'px)';
+  }
+  function onEnd(e){
+    if(!dragging) return;
+    dragging=false;
+    sheet.style.transition = '';
+    const y = (e.changedTouches ? e.changedTouches[0].clientY : e.clientY);
+    const dy = Math.max(0, y - startY);
+    const dt = Math.max(1, Date.now() - startT);
+    const v = dy / dt; // px/ms
+    // close if dragged enough or fast swipe down
+    if(dy > 120 || v > 0.8){
+      // reset transform so close animation uses class
+      sheet.style.transform = '';
+      closeMenu();
+    }else{
+      sheet.style.transform = '';
+      // snap back
+      sheet.classList.add('show');
+    }
+  }
+  if(handle){
+    handle.addEventListener('touchstart', onStart, {passive:true});
+    handle.addEventListener('touchmove', onMove, {passive:true});
+    handle.addEventListener('touchend', onEnd);
+    handle.addEventListener('mousedown', onStart);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+  }
+
+  // initial label sync + update when tabs change
+  document.addEventListener('click', (e)=>{
+    const t = e.target.closest && e.target.closest('.nav-item[data-tab]');
+    if(t){ setTimeout(syncCurrentLabel, 0); }
+  });
+  document.addEventListener('DOMContentLoaded', syncCurrentLabel);
+  setTimeout(syncCurrentLabel, 200);
+})();
+</script>
+
+</body>
+</html>

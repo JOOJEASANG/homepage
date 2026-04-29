@@ -1,0 +1,2458 @@
+// ============================================================
+// quote-book.js — 책자/제본 견적 페이지 전체 로직
+//
+// 주요 기능:
+//   - 표지/내지/후가공 옵션 선택 → 자동 견적 계산
+//   - 이미지 미리보기 (Firebase Storage 업로드 이미지)
+//   - 파일 첨부 업로드 (Firebase Storage)
+//   - 비회원 접수 (이름+연락처 입력 → Firestore 저장)
+//   - 관리자 수정 모드 (adminEdit=1 URL 파라미터)
+//   - 폼 데이터 임시 저장/복구 (localStorage)
+// ============================================================
+
+import { app, auth, db, storage,
+         onAuthStateChanged, signOut, signInAnonymously,
+         setPersistence, browserLocalPersistence,
+         doc, getDoc, onSnapshot, addDoc, setDoc, updateDoc,
+         Timestamp, collection, runTransaction, serverTimestamp,
+         ref as storageRef, uploadBytes, getDownloadURL,
+} from "../firebase.js";
+import { initHeader } from "../header.js";
+import "../session.js";
+
+// 페이지 로드 시 공통 헤더 렌더링
+document.addEventListener("DOMContentLoaded", () => initHeader("book"));
+
+// 인라인 스크립트에서도 auth 접근 가능하도록 전역 등록
+try { window.auth = auth; } catch(e) {}
+        
+        try { window.signOut = signOut; } catch(e) {}
+        try { window.signInAnonymously = signInAnonymously; } catch(e) {}
+        try { window.onAuthStateChanged = onAuthStateChanged; } catch(e) {}
+        try { window.__currentUser = auth.currentUser || null; } catch(e) {}
+        try { window.currentUser = auth.currentUser || null; } catch(e) {}
+        try { window.__AUTH_READY = false; } catch(e) {}
+
+        // ✅ keep header/login button in sync across page transitions
+        onAuthStateChanged(auth, (u) => {
+            try { window.__currentUser = u || null; } catch(e) {}
+            try { window.currentUser = u || null; } catch(e) {}
+            try { window.__AUTH_READY = true; } catch(e) {}
+            try { window.updateAuthLabels && window.updateAuthLabels(); } catch(e) {}
+        });
+
+        // (patched) 로그인 유지 설정은 login.html에서 처리합니다. 여기서는 강제하지 않습니다.
+        // SAFE_GUEST_INIT: wait for Firebase Auth to restore session first.
+        // If still no user, then (and only then) sign in anonymously for guest features.
+        const __initialUser = await new Promise((resolve) => {
+            const unsub = onAuthStateChanged(auth, (u) => { try { unsub(); } catch(e) {} try { window.__currentUser = u || null; } catch(e) {} resolve(u || null); });
+        });
+if (!__initialUser) {
+            // (patched) 자동 익명 로그인 비활성화: 회원 세션이 사라지는 문제 방지
+            // 비회원 기능이 필요하면 비회원 조회/접수 흐름에서 명시적으로 signInAnonymously를 호출하세요.
+        }
+// ── 접수번호(영수증 번호) 자동 생성 ─────────────────────────
+// 형식: YYYYMMDD-XXXX (날짜 + 4자리 랜덤) Firestore transaction 으로 중복 방지
+    const _pad4 = (n) => String(n).padStart(4, '0');
+    const _ymd = () => {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const da = String(d.getDate()).padStart(2, '0');
+        return `${y}${m}${da}`;
+    };
+
+    async function generateReceiptNo() {
+    // meta/quoteReceiptCounter를 읽지 않는 버전(비회원 권한 문제 방지)
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const da = String(d.getDate()).padStart(2, '0');
+    const ymd = `${y}${m}${da}`;
+    // 6자리 시간 + 3자리 랜덤 (충돌 가능성 낮춤)
+    const t = String(Date.now()).slice(-6);
+    const r = String(Math.floor(Math.random() * 900) + 100);
+    return `Q${ymd}-${t}${r}`;
+}
+// =========================
+	    // 공통: 관리자 라우팅 + 강제 로그아웃
+	    // =========================
+	    async function getUserRole(user) {
+	        if (!user || !user.uid) return null;
+	        const cached = sessionStorage.getItem('userRole');
+	        if (cached) return cached;
+	        try {
+	            const snap = await getDoc(doc(db, 'users', user.uid));
+	            const role = snap.exists() ? (snap.data().role || 'user') : 'user';
+	            sessionStorage.setItem('userRole', role);
+	            return role;
+	        } catch (e) {
+	            console.warn('role check failed:', e);
+	            return null;
+	        }
+	    }
+
+	    async function redirectIfAdmin(user) {
+	        const role = await getUserRole(user);
+	        if (role === 'admin' && !location.pathname.endsWith('admin.html')) {
+              const params = new URLSearchParams(location.search);
+              const allowAdminEdit = params.get('adminEdit') === '1';
+              if (allowAdminEdit) { return false; }
+
+	            location.replace('admin.html');
+	            return true;
+	        }
+	        return false;
+	    }
+
+	    window.hardLogout = async function(redirectUrl = 'index.html') {
+  // Clear UI/session state
+  try { sessionStorage.clear(); } catch (e) {}
+  try {
+    // Role / user
+    localStorage.removeItem('userRole');
+    sessionStorage.removeItem('userRole');
+    localStorage.removeItem('userName');
+    sessionStorage.removeItem('userName');
+
+    // Quote draft / routing
+    localStorage.removeItem('quoteToReload');
+    localStorage.removeItem('quoteDraft');
+    localStorage.removeItem('lastQuoteDraft');
+    localStorage.removeItem('postLoginRedirect');
+
+    // Guest lookup keys
+    localStorage.removeItem('guestLookupKey');
+    localStorage.removeItem('guestLookupKeyLegacy');
+    localStorage.removeItem('guestName');
+    localStorage.removeItem('guestContact');
+    localStorage.removeItem('guestContactRaw');
+    localStorage.removeItem('guestContactHyphen');
+    localStorage.removeItem('guestPwLast4');
+  } catch (e) {}
+
+  // Optional: clear last quote cache keys when present
+  try {
+    if (typeof __LAST_QUOTE_CACHE_KEY_BOOK !== 'undefined') {
+      try { sessionStorage.removeItem(__LAST_QUOTE_CACHE_KEY_BOOK); } catch (e) {}
+      try { localStorage.removeItem(__LAST_QUOTE_CACHE_KEY_BOOK); } catch (e) {}
+    }
+    if (typeof __LAST_QUOTE_CACHE_KEY_PRINT !== 'undefined') {
+      try { sessionStorage.removeItem(__LAST_QUOTE_CACHE_KEY_PRINT); } catch (e) {}
+      try { localStorage.removeItem(__LAST_QUOTE_CACHE_KEY_PRINT); } catch (e) {}
+    }
+  } catch (e) {}
+
+  // Optional: unsubscribe snapshot listeners if present (mypage 등)
+  try { if (typeof unsubscribeQuotesSnapshot === 'function') unsubscribeQuotesSnapshot(); } catch (e) {}
+  try { if (typeof unsubscribeQuotesSnapshot !== 'undefined') unsubscribeQuotesSnapshot = null; } catch (e) {}
+
+  // Admin safety: 관리자에서 로그아웃한 직후 메인에서 1회 익명로그인 억제
+  try {
+    const p = (location && location.pathname ? location.pathname : '').toLowerCase();
+    if (p.endsWith('/admin.html') || p.endsWith('admin.html')) {
+      sessionStorage.setItem('suppressAnonOnce', '1');
+    }
+  } catch (e) {}
+
+  // Firebase sign out (module auth or window.auth)
+  try {
+    if (typeof auth !== 'undefined' && auth && typeof signOut === 'function') {
+      await signOut(auth);
+    } else if (window.auth && typeof window.auth.signOut === 'function') {
+      await window.auth.signOut();
+    }
+  } catch (e) {
+    console.warn('signOut failed:', e);
+  }
+
+  location.replace(redirectUrl || 'index.html');
+}
+
+    let lastCalculatedQuote = {};
+    // ✅ 로그인/새로고침 시 견적 계산값 유지(회원 로그인 후 '견적정보가 계산되지 않았습니다' 방지)
+    const __LAST_QUOTE_CACHE_KEY_BOOK = 'lastCalculatedQuote_book_v1';
+    try {
+        const __saved = sessionStorage.getItem(__LAST_QUOTE_CACHE_KEY_BOOK) || localStorage.getItem(__LAST_QUOTE_CACHE_KEY_BOOK);
+        if (__saved) {
+            const __parsed = JSON.parse(__saved);
+            if (__parsed && typeof __parsed === 'object') lastCalculatedQuote = __parsed;
+        }
+    } catch(e) { /* ignore */ }
+    const BLOCKED_INNER_PAPER_KEYS = new Set(['snow200','snow250','arte190']);
+let unitPriceConfig = {};
+    let imagePreviewsCache = { coverPaper: {}, innerPaper: {}, binding: {} };
+    let __lastPreviewRequest = null; // 마지막 미리보기 요청(초기 로딩/실시간 갱신 시 재렌더용)
+    // 이미지 미리보기 값 정규화 (string URL 또는 {url, path} 객체 모두 지원)
+    function getPreviewUrl(val) {
+        if (!val) return '';
+        if (typeof val === 'string') return val;
+
+        if (typeof val === 'object') {
+            // Most common shapes used across admin versions
+            const candidates = [
+                val.url,
+                val.downloadURL,
+                val.downloadUrl,
+                val.src,
+                val.imageUrl,
+                val.previewUrl
+            ].filter(Boolean);
+            if (candidates.length) return candidates[0];
+
+            // Some admin UIs store nested objects
+            if (val.meta && typeof val.meta === 'object') {
+                const nested = [val.meta.url, val.meta.downloadURL, val.meta.downloadUrl].filter(Boolean);
+                if (nested.length) return nested[0];
+            }
+        }
+        return '';
+    }
+
+    let currentUser = null;
+    let unsubscribeImagePreviews = null;
+
+
+        // 게스트(비회원) 접수 저장 시에만 익명 로그인 생성 (페이지 로드 시 자동 실행 금지)
+        async function ensureGuestAuth() {
+            const existing = auth.currentUser;
+            if (existing) return existing;
+            try {
+                const cred = await signInAnonymously(auth);
+                return cred.user;
+            } catch (e) {
+                console.warn('[quote-book] anonymous sign-in failed:', e);
+                throw e;
+            }
+        }
+
+    // 마이페이지에서 "견적보기/수정"으로 들어오면 수정 모드로 동작
+    // DIFF_SUMMARY_BOOK_V6
+function makeDiffSummaryBook(oldDoc, newPayload){
+  // 간단 알림만 남기기(마이페이지 메시지 과도한 상세 방지)
+  return '견적이 수정되었습니다.';
+}
+// /DIFF_SUMMARY_BOOK_V6
+
+const editState = { enabled: false, quoteId: null, adminEdit: false };
+    // adminEdit 플래그(관리자에서 고객 견적 수정으로 진입한 경우)
+    try{
+        const p = new URLSearchParams(location.search || '');
+        editState.adminEdit = (p.get('adminEdit') === '1' || p.get('admin_edit') === '1');
+
+        // ✅ URL id 파라미터로 editState 즉시 설정 (localStorage 의존 제거)
+        // localStorage가 quota 초과 등으로 실패해도 URL id가 있으면 수정 모드 유지
+        const urlEditId = (p.get('edit') === '1' && p.get('id')) ? p.get('id') : null;
+        if (urlEditId) {
+            editState.enabled = true;
+            editState.quoteId = urlEditId;
+        }
+
+        // 관리자 수정 모드에서는 버튼 문구를 '관리자 수정'으로 표시
+        try { if (editState.adminEdit) { document.getElementById('submitQuoteBtn')?.querySelector('.btn-text') && (document.getElementById('submitQuoteBtn').querySelector('.btn-text').textContent = '관리자 수정'); } } catch(e) {}
+    }catch(e){}
+
+    let quoteItemCounter = 0;
+    const TEMP_STORAGE_KEY_PREFIX = 'multiQuoteFormData_';
+
+    const DOMElements = {
+        loadingOverlay: document.getElementById('loading-overlay'),
+        mainContent: document.getElementById('main-content'),
+        form: document.getElementById('quoteForm'),
+        priceBreakdownEl: document.getElementById('priceBreakdown'),
+        submitQuoteBtn: document.getElementById('submitQuoteBtn'),
+        resetFormBtn: document.getElementById('resetFormBtn'),
+        welcomeMessage: document.getElementById('welcome-message'),
+        quoteItemsContainer: document.getElementById('quote-items-container'),
+        addQuoteItemBtn: document.getElementById('add-quote-item-btn'),
+        confirmationModal: document.getElementById('confirmationModal'),
+        confirmationTitle: document.getElementById('confirmationTitle'),
+        confirmationMessage: document.getElementById('confirmationMessage'),
+        confirmCancelBtn: document.getElementById('confirmCancelBtn'),
+        confirmActionBtn: document.getElementById('confirmActionBtn'),
+        signupModal: document.getElementById('signupModal'),
+        closeSignupModalBtn: document.getElementById('closeSignupModalBtn'),
+        signupForm: document.getElementById('signup-form'),
+        attachmentsInput: document.getElementById('quote-attachments'),
+        attachmentsList: document.getElementById('attachments-list'),
+        tabGuestBtn: document.getElementById('tab-guest'),
+        tabMemberBtn: document.getElementById('tab-member'),
+        guestTab: document.getElementById('guest-tab-content'),
+        memberTab: document.getElementById('member-tab-content'),
+        memberStatusText: document.getElementById('member-status-text'),
+        memberGoLoginBtn: document.getElementById('member-go-login-btn'),
+        memberSubmitBtn: document.getElementById('member-submit-btn'),
+    };
+    
+    function getTempStorageKey() {
+        const uid = currentUser ? currentUser.uid : 'anonymous';
+        return `${TEMP_STORAGE_KEY_PREFIX}${uid}`;
+    }
+    
+    function closeSignupModal() {
+        DOMElements.signupModal.classList.add('hidden');
+    }
+
+    function showToast(message, type = 'info', duration = 3000) {
+        const toastContainer = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        // Colors updated for new theme
+        const icons = { success: 'fa-check-circle', error: 'fa-circle-exclamation', info: 'fa-info-circle', restore: 'fa-history' };
+        const colors = { success: 'bg-green-600', error: 'bg-red-500', info: 'bg-slate-800', restore: 'bg-brand-600' };
+        
+        toast.className = `flex items-center p-4 rounded-lg text-white shadow-xl transform translate-x-full transition-all duration-300 ${colors[type] || 'bg-slate-800'}`;
+        toast.innerHTML = `<i class="fas ${icons[type]} mr-3 text-lg"></i><span class="font-medium text-sm">${sanitizeHTML(message)}</span>`;
+        
+        if (type === 'restore') {
+            const btnContainer = document.createElement('div');
+            btnContainer.className = 'ml-4 flex gap-2 pl-4 border-l border-white/20';
+            const yesBtn = document.createElement('button');
+            yesBtn.className = 'font-bold text-xs bg-white/20 px-2 py-1 rounded hover:bg-white/30 transition';
+            yesBtn.textContent = '불러오기';
+            yesBtn.onclick = () => { restoreFormData(); toast.remove(); };
+            const noBtn = document.createElement('button');
+            noBtn.className = 'text-xs px-2 py-1 rounded hover:bg-white/10 transition';
+            noBtn.textContent = '닫기';
+            noBtn.onclick = () => { localStorage.removeItem(getTempStorageKey()); toast.remove(); };
+            btnContainer.append(yesBtn, noBtn);
+            toast.appendChild(btnContainer);
+        }
+
+        toastContainer.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.remove('translate-x-full'));
+        
+        if (type !== 'restore') {
+            setTimeout(() => {
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+    }
+
+    function showConfirmation(title, message) {
+        return new Promise((resolve) => {
+            DOMElements.confirmationTitle.textContent = title;
+            DOMElements.confirmationMessage.textContent = message;
+            DOMElements.confirmationModal.classList.remove('hidden');
+            const cleanupAndHide = (result) => {
+                DOMElements.confirmationModal.classList.add('hidden');
+                DOMElements.confirmActionBtn.removeEventListener('click', onConfirm);
+                DOMElements.confirmCancelBtn.removeEventListener('click', onCancel);
+                resolve(result);
+            };
+            const onConfirm = () => cleanupAndHide(true);
+            const onCancel = () => cleanupAndHide(false);
+            DOMElements.confirmActionBtn.addEventListener('click', onConfirm);
+            DOMElements.confirmCancelBtn.addEventListener('click', onCancel);
+        });
+    }
+    
+    function findPriceTier(tiers = [], value) {
+        if (!Array.isArray(tiers) || tiers.length === 0) return 0;
+        const sortedTiers = [...tiers].sort((a, b) => b.threshold - a.threshold);
+        for (const tier of sortedTiers) {
+            if (value >= tier.threshold) return tier.price;
+        }
+        return tiers.length > 0 ? tiers[tiers.length - 1].price : 0;
+    }
+
+    function findBindingPriceTier(tiers = [], quantity, totalPages) {
+        if (!Array.isArray(tiers) || tiers.length === 0) return 0;
+        const sortedTiers = [...tiers].sort((a, b) => (a.pageThreshold !== b.pageThreshold) ? a.pageThreshold - b.pageThreshold : b.qtyThreshold - a.qtyThreshold);
+        for (const tier of sortedTiers) {
+            const pageCondition = tier.pageOperator === 'lte' ? totalPages <= tier.pageThreshold : totalPages >= tier.pageThreshold;
+            const qtyCondition = tier.qtyOperator === 'gte' ? quantity >= tier.qtyThreshold : quantity <= tier.qtyThreshold;
+            if (pageCondition && qtyCondition) return tier.price;
+        }
+        return 0;
+    }
+    
+    // 기본(하위호환) 목록 - Firestore settings/imagePreviews._meta.items 가 있으면 자동으로 대체됩니다.
+    let baseInnerPapers = [ { value: 'mimoon80', text: '미색모조 80g' }, { value: 'mimoon100', text: '미색모조 100g' }, { value: 'baek80', text: '백색모조 80g' }, { value: 'baek100', text: '백색모조 100g' }, ];
+    let premiumInnerPapers = [ { value: 'snow120', text: '스노우지 120g' }, { value: 'snow150', text: '스노우지 150g' }, ];
+    let coverPaperOptions = [ { value: 'none', text: '표지없음' }, { value: 'snow200', text: '스노우지 (200g)' }, { value: 'snow250', text: '스노우지 (250g)' }, { value: 'arte190', text: '아르떼 (190g)' } ];
+
+    function inferInnerGroup(key) {
+        // 기본 휴리스틱 (meta에 group 없을 때)
+        const premiumKeys = new Set(['snow120','snow150','snow200','snow250','arte190']);
+        return premiumKeys.has(key) ? 'premium' : 'general';
+    }
+
+    function applyPaperMetaFromImagePreviews() {
+        const metaItems = imagePreviewsCache?._meta?.items || {};
+        const cover = Array.isArray(metaItems.coverPaper) ? metaItems.coverPaper : [];
+        const inner = Array.isArray(metaItems.innerPaper) ? metaItems.innerPaper : [];
+
+        // meta 라벨 맵(견적서/관리자/리스트 표시 통일)
+        const coverMap = {};
+        const innerMap = {};
+        cover.forEach(it => { if (it && it.key) coverMap[it.key] = it.text || it.label || it.key; });
+        inner.forEach(it => { if (it && it.key) innerMap[it.key] = it.text || it.label || it.key; });
+        window.__paperMetaMaps = { coverPaper: coverMap, innerPaper: innerMap };
+
+        // cover 옵션 생성
+        if (cover.length) {
+            const uniq = new Set();
+            const list = [];
+            cover.forEach(it => {
+                if (!it || !it.key) return;
+                if (uniq.has(it.key)) return;
+                uniq.add(it.key);
+                list.push({ value: it.key, text: coverMap[it.key] || it.key });
+            });
+            coverPaperOptions = list;
+        }
+
+        // inner 옵션 생성 (group: general/premium)
+        if (inner.length) {
+            const g = [];
+            const p = [];
+            const seen = new Set();
+            inner.forEach(it => {
+                if (!it || !it.key) return;
+                if (seen.has(it.key)) return;
+                seen.add(it.key);
+                const group = (it.group || inferInnerGroup(it.key));
+                const row = { value: it.key, text: innerMap[it.key] || it.key };
+                (group === 'premium' ? p : g).push(row);
+            });
+            // 최소 1개라도 유지
+            if (g.length) baseInnerPapers = g;
+            if (p.length) premiumInnerPapers = p;
+        }
+    }
+
+    async function loadUnitPriceConfig() {
+        const loadingText = DOMElements.loadingOverlay.querySelector('p');
+        if(loadingText) loadingText.textContent = '견적 설정 정보를 불러오는 중입니다...';
+        try {
+            const docRef = doc(db, "settings", "unitPriceConfig");
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                unitPriceConfig = docSnap.data();
+            } else {
+                showToast("단가 정보가 설정되지 않았습니다. 관리자에게 문의하세요.", "error");
+                unitPriceConfig = {};
+            }
+        } catch(e) {
+            console.error("Failed to load price config:", e);
+            showToast("단가 정보를 불러오는 데 실패했습니다.", "error");
+        } 
+    }
+    
+    async function loadImagePreviews() {
+        try {
+            // 기존 1회 로드(getDoc)에서 실시간 구독(onSnapshot)으로 변경
+            if (unsubscribeImagePreviews) { try { unsubscribeImagePreviews(); } catch(_) {} }
+            const docRef = doc(db, "settings", "imagePreviews");
+            unsubscribeImagePreviews = onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data() || {};
+                    // 모든 카테고리를 캐시에 보관 (추후 타입 추가 대비)
+                    Object.keys(data).forEach(k => {
+                        if (data[k] && typeof data[k] === 'object') imagePreviewsCache[k] = data[k];
+                    });
+
+                    // 하위 호환: 기존 paper 필드만 있던 경우 cover/inner 둘 다 paper를 사용
+                    const paperFallback = data.paper || {};
+                    imagePreviewsCache.coverPaper = data.coverPaper || paperFallback;
+                    imagePreviewsCache.innerPaper = data.innerPaper || paperFallback;
+                    imagePreviewsCache.binding = data.binding || {};
+                    imagePreviewsCache._meta = data._meta || imagePreviewsCache._meta || {};
+                    applyPaperMetaFromImagePreviews();
+                    try { applyImagePreviewsToUI(); } catch (e) {}
+                    // ✅ 미리보기 모달이 열린 상태에서 캐시가 늦게 채워지는 경우(표지 초기 썸네일 0개) 자동 재렌더
+                    maybeRefreshOpenPreviewModal();
+                }
+            }, (e) => {
+                console.error('이미지 미리보기 실시간 구독 실패:', e);
+            });
+        } catch (e) {
+            console.error('이미지 미리보기 로딩 실패:', e);
+        }
+    }
+
+    function openImagePreview(title, url) {
+        // 하위 호환: 단일 URL 미리보기
+        openPreviewLayer({
+            title: title || '미리보기',
+            selectedUrl: url || '',
+            items: url ? [{ key: 'single', label: title || '미리보기', url }] : [],
+            emptyText: '등록된 이미지가 없습니다.',
+            categoryKey: null,
+            categoryLabel: null
+        });
+    }
+
+    function openPreviewLayer({ title, selectedUrl, items = [], emptyText = '등록된 이미지가 없습니다.', categoryKey = null, categoryLabel = null } = {}) {
+        const modal = document.getElementById('image-preview-modal');
+        const img = document.getElementById('image-preview-img');
+        const t = document.getElementById('image-preview-title');
+        const msg = document.getElementById('image-preview-message');
+        const thumbs = document.getElementById('image-preview-thumbs');
+        const count = document.getElementById('image-preview-count');
+        const badge = document.getElementById('image-preview-badge');
+
+        if (!modal || !img || !t || !msg || !thumbs) return;
+
+        // 제목/배지
+        t.textContent = title || '미리보기';
+        if (badge) {
+            badge.className = 'hidden text-[11px] px-2 py-1 rounded-full font-extrabold border';
+            badge.textContent = '';
+            if (categoryKey) {
+                const map = {
+                    coverPaper: { text: '표지', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+                    innerPaper: { text: '내지', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                    binding: { text: '제본', cls: 'bg-violet-50 text-violet-700 border-violet-200' },
+                };
+                const info = map[categoryKey] || { text: (categoryLabel || '구분'), cls: 'bg-slate-50 text-slate-700 border-slate-200' };
+                badge.textContent = categoryLabel || info.text;
+                badge.classList.remove('hidden');
+                badge.classList.add(...info.cls.split(' '));
+            }
+        }
+        if (modal) {
+            modal.dataset.category = categoryKey || '';
+        }
+
+        // 메시지 / 메인이미지
+        const hasMain = !!selectedUrl;
+        if (hasMain) {
+            img.src = selectedUrl;
+            img.classList.remove('hidden');
+            msg.classList.add('hidden');
+            msg.textContent = '';
+        } else {
+            img.src = '';
+            img.classList.add('hidden');
+            msg.textContent = emptyText;
+            msg.classList.remove('hidden');
+        }
+
+        // 썸네일(등록된 것만)
+        thumbs.innerHTML = '';
+        const safeItems = (items || []).filter(it => it && it.url);
+        if (count) count.textContent = safeItems.length ? `${safeItems.length}개` : '';
+
+        if (safeItems.length === 0) {
+            // 등록된 이미지가 하나도 없으면 안내만
+            if (!hasMain) {
+                msg.textContent = emptyText;
+                msg.classList.remove('hidden');
+            }
+        } else {
+            for (const it of safeItems) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'group bg-white rounded-xl overflow-hidden border border-slate-100 shadow-sm hover:shadow transition flex flex-col w-[calc((100%-24px)/3)] max-w-[220px]';
+                btn.innerHTML = `
+                    <div class="aspect-[4/3] bg-slate-50 overflow-hidden">
+                        <img src="${it.url}" alt="${(it.label||it.key||'').replace(/"/g,'&quot;')}" class="w-full h-full object-cover group-hover:scale-[1.02] transition">
+                    </div>
+                    <div class="p-2 text-xs text-slate-600 truncate">${(it.label || it.key || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+                `;
+                btn.addEventListener('click', () => {
+                    img.src = it.url;
+                    img.classList.remove('hidden');
+                    msg.classList.add('hidden');
+                    msg.textContent = '';
+                });
+                thumbs.appendChild(btn);
+            }
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function openCategoryPreview({ categoryKey, specKey, selectedKey, titlePrefix = '' } = {}) {
+        __lastPreviewRequest = { categoryKey, specKey, selectedKey, titlePrefix };
+        const category = (imagePreviewsCache && imagePreviewsCache[categoryKey]) ? (imagePreviewsCache[categoryKey] || {}) : {};
+
+        // 카테고리별 노출/정렬 정책
+        const EXCLUDE_KEYS_BY_CATEGORY = {
+            // ✅ 표지 미리보기: 불필요한 슬롯 숨김
+            coverPaper: new Set(['snow150', 'snow120', 'baek80']),
+            // ✅ 내지 미리보기/옵션에서 제외(삭제된 용지)
+            innerPaper: new Set(['snow200','snow250','arte190']),
+        };
+
+        const labelFor = (k) => {
+            // 1) 스펙 맵(기존) 우선
+            if (specKey) {
+                try {
+                    const label = getSpecText(specKey, k);
+                    if (label) return label;
+                } catch (e) {}
+            }
+            // 2) 관리자에서 추가한 커스텀 라벨(_meta.items) fallback
+            try {
+                const metaList = imagePreviewsCache?._meta?.items?.[categoryKey];
+                if (Array.isArray(metaList)) {
+                    const found = metaList.find(x => x && x.key === k);
+                    if (found && found.text) return found.text;
+                }
+            } catch (e) {}
+            return k;
+        };
+
+const hasImage = (k) => {
+            let u = getPreviewUrl(category?.[k]);            return !!u;
+        };
+
+        // ✅ 정렬된 키 목록 만들기
+        let orderedKeys = [];
+
+        if (categoryKey === 'innerPaper') {
+            // "일반 내지"부터 정렬: 고정 4종 → 일반(추가) → 고급
+            const FIXED_BASE_KEYS = ['mimoon80','mimoon100','baek80','baek100'];
+            const fixedSet = new Set(FIXED_BASE_KEYS);
+
+            const extraGeneralKeys = (baseInnerPapers || [])
+                .map(x => x?.value).filter(Boolean)
+                .filter(v => !fixedSet.has(v));
+
+            const premiumKeys = (premiumInnerPapers || []).map(x => x?.value).filter(Boolean);
+
+            orderedKeys = [...FIXED_BASE_KEYS, ...extraGeneralKeys, ...premiumKeys];
+        } else if (categoryKey === 'coverPaper') {
+            // coverPaperOptions 순서 우선 + 제외 키 제거
+            const optKeys = (coverPaperOptions || []).map(x => x?.value).filter(Boolean);
+            const dbKeys = Object.keys(category || {});
+            orderedKeys = [...optKeys, ...dbKeys];
+        } else if (categoryKey === 'binding') {
+            // UI와 동일한 순서로
+            orderedKeys = ['none', 'perfect', 'wire', 'saddle'];
+        } else {
+            // 기본: 현재 객체 key 순서
+            orderedKeys = Object.keys(category || {});
+        }
+
+        // 중복 제거 + 존재하는 이미지/키만
+        const excludeSet = EXCLUDE_KEYS_BY_CATEGORY?.[categoryKey] || new Set();
+        const seen = new Set();
+        const keys = orderedKeys.filter(k => {
+            if (!k) return false;
+            if (seen.has(k)) return false;
+            seen.add(k);
+            if (excludeSet.has(k)) return false;
+            return hasImage(k);
+        });
+
+        const items = keys.map(k => {
+            const raw = category?.[k];
+            let url = getPreviewUrl(raw);            return { key: k, label: labelFor(k), url };
+        });
+
+        const selectedUrl = selectedKey ? getPreviewUrl(category[selectedKey]) : '';
+        const icon = (titlePrefix === '표지') ? '📘' : (titlePrefix === '내지') ? '📄' : (titlePrefix === '제본') ? '📎' : '🖼️';
+        const selectedLabel = selectedKey ? labelFor(selectedKey) : '';
+        const title = titlePrefix
+            ? `${icon} ${titlePrefix} 미리보기${selectedLabel ? ` · ${selectedLabel}` : ''}`
+            : (selectedLabel || '🖼️ 미리보기');
+
+        openPreviewLayer({
+            title,
+            selectedUrl,
+            items,
+            emptyText: '등록된 이미지가 없습니다.',
+            categoryKey,
+            categoryLabel: titlePrefix || null
+        });
+    }
+
+    function closeImagePreview() {
+        const modal = document.getElementById('image-preview-modal');
+        const img = document.getElementById('image-preview-img');
+        const msg = document.getElementById('image-preview-message');
+        const thumbs = document.getElementById('image-preview-thumbs');
+        const count = document.getElementById('image-preview-count');
+
+        if (img) img.src = '';
+        if (msg) { msg.textContent = ''; msg.classList.add('hidden'); }
+        if (thumbs) thumbs.innerHTML = '';
+        if (count) count.textContent = '';
+
+        modal?.classList.add('hidden');
+        modal?.classList.remove('flex');
+    }
+
+    // SHA-256: WebCrypto(TextEncoder 기반, 한글 완전 지원) + 동일 결과 폴백
+    function _sha256Bytes(bytes) {
+      const K = [
+        0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+        0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+        0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+        0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+        0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+        0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+        0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+        0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+      ];
+      let h = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+      const r = (x,n) => (x>>>n)|(x<<(32-n));
+      const bitLen = bytes.length * 8;
+      bytes.push(0x80);
+      while (bytes.length % 64 !== 56) bytes.push(0);
+      for (let i = 7; i >= 0; i--) bytes.push((bitLen / Math.pow(2, i*8)) & 0xff);
+      for (let i = 0; i < bytes.length; i += 64) {
+        const w = new Array(64).fill(0);
+        for (let j = 0; j < 16; j++)
+          w[j] = (bytes[i+j*4]<<24)|(bytes[i+j*4+1]<<16)|(bytes[i+j*4+2]<<8)|bytes[i+j*4+3];
+        for (let j = 16; j < 64; j++) {
+          const s0 = r(w[j-15],7)^r(w[j-15],18)^(w[j-15]>>>3);
+          const s1 = r(w[j-2],17)^r(w[j-2],19)^(w[j-2]>>>10);
+          w[j] = (w[j-16]+s0+w[j-7]+s1)|0;
+        }
+        let [a,b,c,d,e,f,g,hh] = h;
+        for (let j = 0; j < 64; j++) {
+          const S1 = r(e,6)^r(e,11)^r(e,25);
+          const ch = (e&f)^(~e&g);
+          const t1 = (hh+S1+ch+K[j]+w[j])|0;
+          const S0 = r(a,2)^r(a,13)^r(a,22);
+          const maj = (a&b)^(a&c)^(b&c);
+          const t2 = (S0+maj)|0;
+          hh=g; g=f; f=e; e=(d+t1)|0; d=c; c=b; b=a; a=(t1+t2)|0;
+        }
+        h = [h[0]+a,h[1]+b,h[2]+c,h[3]+d,h[4]+e,h[5]+f,h[6]+g,h[7]+hh].map(v=>v|0);
+      }
+      return h.map(v => (v>>>0).toString(16).padStart(8,'0')).join('');
+    }
+
+    async function sha256Hex(text) {
+        try {
+            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+            return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+        } catch(e) {}
+        try {
+            return _sha256Bytes(Array.from(new TextEncoder().encode(text)));
+        } catch(e) {}
+        // 최후 폴백
+        const utf8 = unescape(encodeURIComponent(text));
+        return _sha256Bytes(Array.from({length: utf8.length}, (_,i) => utf8.charCodeAt(i)));
+    }
+
+window.sha256 = sha256Hex;
+
+    
+    function maybeRefreshOpenPreviewModal() {
+        try {
+            const modal = document.getElementById('image-preview-modal');
+            if (!modal) return;
+            const isOpen = !modal.classList.contains('hidden');
+            if (!isOpen) return;
+            if (!__lastPreviewRequest || !__lastPreviewRequest.categoryKey) return;
+
+            const cat = imagePreviewsCache?.[__lastPreviewRequest.categoryKey] || {};
+            // 카테고리에 실제 이미지가 하나라도 생겼으면 재렌더
+            const hasAny = Object.keys(cat).some(k => !!getPreviewUrl(cat[k]));
+            if (!hasAny) return;
+
+            const thumbs = document.getElementById('image-preview-thumbs');
+            const count = document.getElementById('image-preview-count');
+            const currentCount = count?.textContent ? parseInt((count.textContent.match(/\d+/)||['0'])[0],10) : 0;
+            const emptyNow = !thumbs || thumbs.children.length === 0 || currentCount === 0;
+
+            // 초기 빈 렌더(0개) 상태면 즉시 재렌더
+            if (emptyNow) {
+                openCategoryPreview(__lastPreviewRequest);
+            }
+        } catch (e) {
+            // no-op
+        }
+    }
+
+function applyImagePreviewsToUI(root=document) {
+        root.querySelectorAll('.binding-preview-thumb[data-binding-key]').forEach(img => {
+            const key = img.getAttribute('data-binding-key');
+            const url = getPreviewUrl(imagePreviewsCache.binding?.[key]);
+            if (url) {
+                img.src = url; img.classList.add('cursor-pointer'); img.title = '클릭하여 크게 보기';
+            } else {
+                img.src = 'data:image/svg+xml;charset=UTF-8,%3csvg width="120" height="120" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" preserveAspectRatio="none"%3e%3crect width="100%25" height="100%25" fill="%23f1f5f9"/%3e%3ctext x="50%25" y="50%25" fill="%2394a3b8" dy=".3em" font-size="12" text-anchor="middle"%3eNo Image%3c/text%3e%3c/svg%3e';
+                img.classList.remove('cursor-pointer');
+            }
+        });
+    }
+
+    function updateInnerPaperOptions(selectElement) {
+        const currentInnerValue = selectElement.value;
+        selectElement.innerHTML = '';
+
+        // 1) 고정 기본 내지 4종(절대 삭제되지 않음)
+        const FIXED_BASE = [
+            { value: 'mimoon80',  text: '미색모조 80g' },
+            { value: 'mimoon100', text: '미색모조 100g' },
+            { value: 'baek80',    text: '백색모조 80g' },
+            { value: 'baek100',   text: '백색모조 100g' },
+        ];
+
+        const createOptGroup = (label, papers) => {
+            const group = document.createElement('optgroup');
+            group.label = label;
+            (papers || []).forEach(opt => {
+                if (!opt || !opt.value) return;
+                const option = document.createElement('option');
+                option.value = opt.value;
+                option.textContent = opt.text || opt.value;
+                group.appendChild(option);
+            });
+            return group;
+        };
+
+        // 기본 내지(4종)는 항상 최상단
+        selectElement.appendChild(createOptGroup('일반 내지 (기본)', FIXED_BASE));
+
+        // 2) meta/확장으로 들어온 일반 내지(추가) - 기본 4종과 중복 제거
+        const fixedSet = new Set(FIXED_BASE.map(p => p.value));
+        const extraGeneral = (baseInnerPapers || []).filter(p => p && p.value && !fixedSet.has(p.value));
+        if (extraGeneral.length) {
+            selectElement.appendChild(createOptGroup('일반 용지 (추가)', extraGeneral));
+        }
+
+        // 3) 고급 내지
+        if ((premiumInnerPapers || []).length) {
+            selectElement.appendChild(createOptGroup('고급 용지', premiumInnerPapers));
+        }
+
+        // 값 유지/기본값
+        const fallback = 'mimoon80';
+        selectElement.value = Array.from(selectElement.options).some(opt => opt.value === currentInnerValue) ? currentInnerValue : fallback;
+    }
+
+    function updateCoverPaperOptions(selectElement) {
+        const current = selectElement.value;
+        selectElement.innerHTML = '';
+        (coverPaperOptions || []).forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.text;
+            selectElement.appendChild(option);
+        });
+        // 기존 값 유지, 없으면 기본값
+        const has = Array.from(selectElement.options).some(o => o.value === current);
+        selectElement.value = has ? current : (coverPaperOptions?.[0]?.value || 'none');
+    }
+
+    function updateBindingOptions(itemEl) {
+        let totalInnerPages = 0;
+        itemEl.querySelectorAll('.inner-section').forEach(section => { totalInnerPages += parseInt(section.querySelector('.innerPages').value) || 0; });
+        const bindingOptions = itemEl.querySelector('.binding-options');
+        const saddleOption = bindingOptions.querySelector('[data-value="saddle"]');
+        const wireOption = bindingOptions.querySelector('[data-value="wire"]');
+        if (saddleOption) saddleOption.classList.toggle('disabled', totalInnerPages > 40);
+        if (wireOption) wireOption.classList.toggle('disabled', totalInnerPages > 450);
+        const selectedOption = bindingOptions.querySelector('.selected');
+        if (selectedOption && selectedOption.classList.contains('disabled')) {
+            selectedOption.classList.remove('selected');
+            const noneOption = bindingOptions.querySelector('[data-value="none"]');
+            noneOption.classList.add('selected');
+            itemEl.querySelector('.bindingType').value = 'none';
+            showToast('페이지 수 제한으로 제본 방식이 "제본 안함"으로 변경되었습니다.', 'info');
+        }
+    }
+
+    function createNewQuoteItem(data = {}) {
+        quoteItemCounter++;
+        const newItem = document.createElement('div');
+        newItem.className = 'quote-item animate-fade-in';
+        newItem.dataset.itemId = quoteItemCounter;
+        const designPrice = unitPriceConfig?.book?.etc?.coverDesign || 0;
+        const oshiPrice = unitPriceConfig?.book?.etc?.coverOshi || 0;
+
+        newItem.innerHTML = `
+            <div class="quote-item-header">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-brand-100 text-brand-600 text-xs flex items-center justify-center">${quoteItemCounter}</span>
+                    견적 항목
+                </h3>
+                <button type="button" class="remove-quote-item-btn text-red-400 hover:text-red-600 transition-colors p-2 ${quoteItemCounter === 1 ? 'hidden' : ''}" title="삭제"><i class="fas fa-trash-alt"></i></button>
+            </div>
+
+            <div class="mb-8">
+                <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fas fa-pen-nib"></i> 기본 정보
+                </h2>
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                    <label class="block text-xs font-bold text-slate-500 mb-1">제작물 제목 (품명)</label>
+                    <input type="text" name="orderName" class="form-input w-full orderName font-medium" placeholder="예: 2025년 상반기 자료집" required>
+                </div>
+            </div>
+
+            <div class="mb-8">
+                <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fas fa-book-open"></i> 표지 설정
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">표지 용지 <button type="button" class="ml-1 text-[10px] text-blue-700 underline cover-paper-preview-btn">📘 미리보기</button></label>
+                        <select name="coverPaperType" class="form-select w-full coverPaperType"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">표지 인쇄</label>
+                        <select name="coverPrintType" class="form-select w-full coverPrintType">
+                            <option value="none">인쇄 안함</option>
+                            <option value="color_simplex" selected>컬러 단면</option>
+                            <option value="color_duplex">컬러 양면</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2 pt-2 flex flex-wrap gap-4 border-t border-slate-200 mt-2">
+                        <label class="flex items-center cursor-pointer gap-2">
+                            <input type="checkbox" name="coverDesign" class="coverDesign rounded text-brand-600 focus:ring-brand-500">
+                            <span class="text-sm text-slate-700">표지 디자인 의뢰 (+${designPrice.toLocaleString()}원)</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer gap-2">
+                            <input type="checkbox" name="coverOshi" class="coverOshi rounded text-brand-600 focus:ring-brand-500">
+                            <span class="text-sm text-slate-700">표지 오시 1줄 (+${oshiPrice.toLocaleString()}원/부)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-8">
+                <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fas fa-file-alt"></i> 내지 설정
+                </h2>
+                <div class="space-y-3 inner-sections-container"></div>
+                <div class="mt-3 grid grid-cols-2 gap-3">
+                    <button type="button" class="add-inner-section-btn py-2 px-3 border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+                        <i class="fas fa-plus text-xs mr-1"></i> 내지 추가
+                    </button>
+                    <button type="button" class="add-interleaf-btn py-2 px-3 border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+                        <i class="fas fa-palette text-xs mr-1"></i> 색지(간지) 추가
+                    </button>
+                </div>
+                
+                <div class="interleaf-section mt-4 bg-orange-50 border border-orange-100 p-4 rounded-lg hidden">
+                    <h3 class="text-sm font-bold text-orange-800 mb-3">🎨 간지(색지) 설정</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">간지 색상 (90g)</label>
+                            <select name="interleafColor" class="form-select w-full interleafColor">
+                                <option value="sky">하늘색</option>
+                                <option value="green">연두색</option>
+                                <option value="pink">분홍색</option>
+                                <option value="yellow">노란색</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">간지 수량 (페이지)</label>
+                            <input type="number" name="interleafSheets" value="0" min="0" class="form-input w-full interleafSheets">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" name="includeInterleaf" class="includeInterleaf rounded text-brand-600 focus:ring-brand-500">
+                                <span class="text-sm text-slate-700">전체 페이지 수에 간지 포함 (내지 페이지에서 차감)</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-8">
+                <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fas fa-cogs"></i> 제본 및 수량
+                </h2>
+                <div class="space-y-4">
+                     <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-2">제본 방식</label>
+                        <input type="hidden" name="bindingType" class="bindingType" value="none">
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 binding-options">
+                            <button type="button" class="option-card" data-value="perfect">
+                                <div class="relative w-12 h-12 mb-2 rounded overflow-hidden border border-slate-100">
+                                    <img class="binding-preview-thumb w-full h-full object-cover" data-binding-key="perfect" alt="무선 제본">
+                                </div>
+                                <span class="title">무선 제본</span>
+                                <span class="description">책자 형태</span>
+                            </button>
+                            <button type="button" class="option-card" data-value="wire">
+                                <div class="relative w-12 h-12 mb-2 rounded overflow-hidden border border-slate-100">
+                                    <img class="binding-preview-thumb w-full h-full object-cover" data-binding-key="wire" alt="와이어 제본">
+                                </div>
+                                <span class="title">와이어 제본</span>
+                                <span class="description">스프링 방식</span>
+                            </button>
+                            <button type="button" class="option-card" data-value="saddle">
+                                <div class="relative w-12 h-12 mb-2 rounded overflow-hidden border border-slate-100">
+                                    <img class="binding-preview-thumb w-full h-full object-cover" data-binding-key="saddle" alt="중철 제본">
+                                </div>
+                                <span class="title">중철 제본</span>
+                                <span class="description">스테이플러</span>
+                            </button>
+                            <button type="button" class="option-card selected" data-value="none">
+                                <div class="w-12 h-12 mb-2 rounded bg-slate-100 flex items-center justify-center text-slate-400">
+                                    <i class="fas fa-file text-xl m-0"></i>
+                                </div>
+                                <span class="title">제본 안함</span>
+                                <span class="description">낱장 인쇄</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">주문 수량 (부)</label>
+                        <input type="number" name="quantity" value="1" min="1" class="form-input w-full quantity text-lg font-bold text-brand-700">
+                    </div>
+                </div>
+            </div>
+            
+             <div>
+                <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fas fa-comment-dots"></i> 비고 (요청사항)
+                </h2>
+                <textarea name="remarks" rows="2" class="form-textarea w-full remarks resize-none" placeholder="특별히 요청하실 내용이 있다면 적어주세요."></textarea>
+            </div>
+        `;
+
+        DOMElements.quoteItemsContainer.appendChild(newItem);
+        try { applyImagePreviewsToUI(newItem); } catch(e) {}
+
+        // 표지 용지 옵션은 Firestore 메타(추가 항목)까지 반영
+        const coverSelect = newItem.querySelector('.coverPaperType');
+        if (coverSelect) updateCoverPaperOptions(coverSelect);
+
+        if (data && Object.keys(data).length > 0) {
+            newItem.querySelector('.orderName').value = data.orderName || '';
+            newItem.querySelector('.coverPaperType').value = data.coverPaperType || 'none';
+            newItem.querySelector('.coverPrintType').value = data.coverPrintType || 'none';
+            newItem.querySelector('.coverDesign').checked = data.coverDesign || false;
+            newItem.querySelector('.coverOshi').checked = data.coverOshi || false;
+            const bindingValue = data.bindingType || 'none';
+            newItem.querySelector('.bindingType').value = bindingValue;
+            newItem.querySelectorAll('.binding-options .option-card').forEach(card => {
+                card.classList.toggle('selected', card.dataset.value === bindingValue);
+            });
+            newItem.querySelector('.quantity').value = data.quantity || '1';
+            newItem.querySelector('.remarks').value = data.remarks || '';
+            if (data.interleafSheets > 0) {
+                const interleafSection = newItem.querySelector('.interleaf-section');
+                interleafSection.classList.remove('hidden');
+                interleafSection.querySelector('.interleafColor').value = data.interleafColor || 'sky';
+                interleafSection.querySelector('.interleafSheets').value = data.interleafSheets || '0';
+                interleafSection.querySelector('.includeInterleaf').checked = data.includeInterleaf || false;
+            }
+            const innerContainer = newItem.querySelector('.inner-sections-container');
+            innerContainer.innerHTML = ''; 
+            if (data.innerSections && data.innerSections.length > 0) {
+                data.innerSections.forEach(isData => addInnerSection(innerContainer, isData));
+            } else {
+                addInnerSection(innerContainer); 
+            }
+        } else {
+            addInnerSection(newItem.querySelector('.inner-sections-container'));
+        }
+        setupItemEventListeners(newItem);
+    }
+    
+    function addInnerSection(container, data = {}) {
+        const sectionCount = container.children.length;
+        const newSection = document.createElement('div');
+        newSection.className = 'inner-section bg-slate-50 p-4 rounded-lg border border-slate-200 relative animate-fade-in';
+        newSection.innerHTML = `
+            ${sectionCount > 0 ? `<button type="button" class="remove-inner-section-btn absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-200 text-slate-500 hover:bg-red-100 hover:text-red-500 flex items-center justify-center transition-colors" title="삭제"><i class="fas fa-times text-xs"></i></button>` : ''}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">규격 (사이즈)</label>
+                    <select name="paperSize" class="form-select w-full paperSize">
+                        <option value="1" selected>A4 (국배판)</option>
+                        <option value="0.9">B5 (46배판)</option>
+                        <option value="1.8">B4 (타블로이드)</option>
+                        <option value="2">A3</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">내지 용지 <button type="button" class="ml-1 text-[10px] text-emerald-700 underline inner-paper-preview-btn">📄 미리보기</button></label>
+                    <select name="innerPaperType" class="form-select w-full innerPaperType"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">내지 인쇄</label>
+                    <select name="innerPrintType" class="form-select w-full innerPrintType">
+                        <option value="bw_simplex">흑백 단면</option>
+                        <option value="bw_duplex" selected>흑백 양면</option>
+                        <option value="color_simplex">컬러 단면</option>
+                        <option value="color_duplex">컬러 양면</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">페이지 수</label>
+                    <input name="innerPages" type="number" value="50" min="1" class="form-input w-full innerPages">
+                </div>
+            </div>`;
+        const paperSelect = newSection.querySelector('.innerPaperType');
+        updateInnerPaperOptions(paperSelect);
+        if (data.paperSize) newSection.querySelector('.paperSize').value = data.paperSize;
+        if (data.innerPaperType) paperSelect.value = data.innerPaperType;
+        if (data.innerPrintType) newSection.querySelector('.innerPrintType').value = data.innerPrintType;
+        if (data.innerPages) newSection.querySelector('.innerPages').value = data.innerPages;
+        container.appendChild(newSection);
+    }
+
+    function setupItemEventListeners(itemEl) {
+        itemEl.querySelector('.remove-quote-item-btn').addEventListener('click', () => { itemEl.remove(); calculateAndSave(); });
+        itemEl.querySelector('.add-inner-section-btn').addEventListener('click', (e) => { const container = e.target.closest('.quote-item').querySelector('.inner-sections-container'); addInnerSection(container); });
+        itemEl.querySelector('.add-interleaf-btn').addEventListener('click', (e) => {
+            const interleafSection = e.target.closest('.quote-item').querySelector('.interleaf-section');
+            interleafSection.classList.toggle('hidden');
+            if (interleafSection.classList.contains('hidden')) { interleafSection.querySelector('.interleafSheets').value = 0; }
+            calculateAndSave();
+        });
+        const bindingOptionsContainer = itemEl.querySelector('.binding-options');
+        bindingOptionsContainer.addEventListener('click', (e) => {
+            const selectedCard = e.target.closest('.option-card');
+            if (!selectedCard) return;
+            bindingOptionsContainer.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected'));
+            selectedCard.classList.add('selected');
+            itemEl.querySelector('.bindingType').value = selectedCard.dataset.value;
+            calculateAndSave();
+        });
+    }
+
+    // ── 폼 데이터 임시 저장 ──────────────────────────────────
+    // 페이지 이탈 전 입력값을 localStorage 에 저장, 돌아올 때 복구합니다.
+    function saveFormData() {
+        const tempStorageKey = getTempStorageKey();
+        if (!tempStorageKey) return;
+        const allItemsData = [];
+        document.querySelectorAll('.quote-item').forEach(itemEl => {
+            const itemData = {};
+            itemData.orderName = itemEl.querySelector('.orderName').value;
+            itemData.coverPaperType = itemEl.querySelector('.coverPaperType').value;
+            itemData.coverPrintType = itemEl.querySelector('.coverPrintType').value;
+            itemData.coverDesign = itemEl.querySelector('.coverDesign').checked;
+            itemData.coverOshi = itemEl.querySelector('.coverOshi').checked;
+            itemData.bindingType = itemEl.querySelector('.bindingType').value;
+            itemData.quantity = itemEl.querySelector('.quantity').value;
+            itemData.remarks = itemEl.querySelector('.remarks').value;
+            const interleafSection = itemEl.querySelector('.interleaf-section');
+            if (!interleafSection.classList.contains('hidden')) {
+                itemData.interleafColor = interleafSection.querySelector('.interleafColor').value;
+                itemData.interleafSheets = interleafSection.querySelector('.interleafSheets').value;
+                itemData.includeInterleaf = interleafSection.querySelector('.includeInterleaf').checked;
+            } else {
+                itemData.interleafSheets = 0;
+            }
+            itemData.innerSections = [];
+            itemEl.querySelectorAll('.inner-section').forEach(section => {
+                itemData.innerSections.push({
+                    paperSize: section.querySelector('.paperSize').value,
+                    innerPaperType: section.querySelector('.innerPaperType').value,
+                    innerPrintType: section.querySelector('.innerPrintType').value,
+                    innerPages: section.querySelector('.innerPages').value
+                });
+            });
+            allItemsData.push(itemData);
+        });
+        localStorage.setItem(tempStorageKey, JSON.stringify(allItemsData));
+    }
+
+    async function restoreFormData(){
+        const tempStorageKey = getTempStorageKey();
+        if (!tempStorageKey) return;
+        const savedData = JSON.parse(localStorage.getItem(tempStorageKey) || '[]');
+        if (savedData.length === 0) return;
+        DOMElements.quoteItemsContainer.innerHTML = '';
+        quoteItemCounter = 0;
+        savedData.forEach(itemData => createNewQuoteItem(itemData));
+        applyImagePreviewsToUI();
+        showToast('작성 중이던 내용을 불러왔습니다.', 'success');
+        calculateQuote();
+        // (자동 접수는 initializePage()의 autoSubmitBook 처리에서 단 1회만 수행합니다.)
+
+    }
+    
+    function checkForTempData() {
+        const tempStorageKey = getTempStorageKey();
+        if(tempStorageKey && localStorage.getItem(tempStorageKey)) {
+            showToast('이전에 작성하던 견적이 있습니다.', 'restore');
+        }
+    }
+    
+    function calculateAndSave() { calculateQuote(); saveFormData(); }
+
+    // ── 자동 견적 계산 ────────────────────────────────────────
+    // 선택된 옵션(부수, 페이지수, 표지/내지 종이, 제본 방식 등)을 기반으로
+    // 단가 데이터를 조회해 최종 견적금액을 계산하고 화면에 표시합니다.
+    function calculateQuote() {
+        const priceConfig = unitPriceConfig?.book ? unitPriceConfig.book : unitPriceConfig;
+        if (!priceConfig || !priceConfig.cover) {
+            DOMElements.priceBreakdownEl.innerHTML = `<li class="text-center py-4 text-slate-400">단가 정보가 없어 계산할 수 없습니다.</li>`;
+            lastCalculatedQuote = {};
+            return;
+        }
+
+        let grandTotalPrice = 0;
+        let finalBreakdownHtml = '';
+        const allItemsForSubmission = [];
+        const breakdownForLastQuote = [];
+
+        document.querySelectorAll('.quote-item').forEach((itemEl, index) => {
+            updateBindingOptions(itemEl);
+
+            const orderName = itemEl.querySelector('.orderName').value;
+            const quantity = parseInt(itemEl.querySelector('.quantity').value) || 0;
+            if (quantity === 0) return;
+
+            let itemTotalPrice = 0;
+            let itemBreakdownHtml = '';
+
+            const interleafSection = itemEl.querySelector('.interleaf-section');
+            const interleafSheets = interleafSection.classList.contains('hidden') ? 0 : (parseInt(itemEl.querySelector('.interleafSheets').value) || 0);
+            const interleafColor = interleafSection.querySelector('.interleafColor').value;
+            const includeInterleafInTotal = itemEl.querySelector('.includeInterleaf').checked;
+            
+            let remainingInterleafToDeduct = includeInterleafInTotal ? interleafSheets : 0;
+
+            const coverPaperType = itemEl.querySelector('.coverPaperType').value;
+            const coverPrintType = itemEl.querySelector('.coverPrintType').value;
+            let coverUnitPrice = 0;
+            let totalCoverCost = 0;
+
+            if (coverPaperType !== 'none' && coverPrintType !== 'none') {
+                const coverKey = `${coverPaperType}_${coverPrintType}`;
+                const coverTiers = priceConfig.cover[coverKey] || [];
+                coverUnitPrice = findPriceTier(coverTiers, quantity);
+                totalCoverCost = coverUnitPrice * quantity;
+                if (itemEl.querySelector('.bindingType').value === 'wire') totalCoverCost /= 2;
+
+                if (totalCoverCost > 0) {
+                    const coverSpecText = `${getSpecText('coverPaperType', coverPaperType)} / ${getSpecText('coverPrintType', coverPrintType)}`;
+                    itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 표지 (${coverSpecText})</span><span class="text-slate-500 text-xs">${Math.round(coverUnitPrice).toLocaleString()}원/부</span></div><div class="flex justify-end font-medium text-slate-800">${Math.round(totalCoverCost).toLocaleString()}원</div></li>`;
+                }
+            }
+
+            let totalInnerCost = 0;
+            const innerSectionDetailsForSubmission = [];
+            let totalInnerPagesSpecified = 0;
+
+            itemEl.querySelectorAll('.inner-section').forEach((section, innerIndex) => {
+                const paperTypeValue = section.querySelector('.innerPaperType').value;
+                const printTypeValue = section.querySelector('.innerPrintType').value;
+                const sizeMultiplier = parseFloat(section.querySelector('.paperSize').value);
+                const pages = parseInt(section.querySelector('.innerPages').value) || 0;
+
+                totalInnerPagesSpecified += pages;
+
+                let billablePages = pages;
+                let deductedMsg = '';
+
+                if (includeInterleafInTotal && remainingInterleafToDeduct > 0) {
+                    const deduct = Math.min(pages, remainingInterleafToDeduct);
+                    billablePages = pages - deduct;
+                    remainingInterleafToDeduct -= deduct;
+                    if (deduct > 0) deductedMsg = ` (간지 ${deduct}p 제외)`;
+                }
+
+                const isBasePaper = baseInnerPapers.some(p => p.value === paperTypeValue);
+                const basePriceKey = isBasePaper ? 'base_general' : 'base_premium';
+                const a4Tiers = priceConfig.inner[basePriceKey]?.[printTypeValue] || [];
+                
+                const baseUnitPrice = findPriceTier(a4Tiers, billablePages * quantity);
+                const upcharge = priceConfig.inner.upcharges?.[paperTypeValue] || 0;
+                const finalInnerUnitPrice = (baseUnitPrice + upcharge) * sizeMultiplier;
+                
+                const sectionCost = finalInnerUnitPrice * billablePages * quantity;
+                totalInnerCost += sectionCost;
+
+                innerSectionDetailsForSubmission.push({
+                    index: innerIndex + 1,
+                    specs: `${getSpecText('innerPaperType', paperTypeValue)} / ${getSpecText('innerPrintType', printTypeValue)} / ${pages}p${deductedMsg}`,
+                    unitPricePerPage: finalInnerUnitPrice,
+                    pages: billablePages,
+                    amount: sectionCost
+                });
+
+                if (sectionCost > 0) {
+                    const innerSpecText = `${getSpecText('innerPaperType', paperTypeValue)}, ${getSpecText('innerPrintType', printTypeValue)}, ${pages}p${deductedMsg}`;
+                    if (billablePages > 0) {
+                        itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 내지 #${innerIndex + 1} (${innerSpecText})</span><span class="text-slate-500 text-xs">${Math.round(finalInnerUnitPrice).toLocaleString()}원/p</span></div><div class="flex justify-end font-medium text-slate-800">${Math.round(sectionCost).toLocaleString()}원</div></li>`;
+                    }
+                }
+            });
+
+            let totalInterleafCost = 0;
+            let interleafUnitPrice = 0;
+
+            if (interleafSheets > 0) {
+                const interleafTiers = priceConfig.interleaf[interleafColor] || [];
+                const totalInterleafSheets = interleafSheets * quantity;
+                interleafUnitPrice = findPriceTier(interleafTiers, totalInterleafSheets);
+                totalInterleafCost = interleafUnitPrice * totalInterleafSheets;
+
+                if (totalInterleafCost > 0) {
+                    const interleafSpecText = `${getSpecText('interleafColor', interleafColor)} / ${interleafSheets}p`;
+                    const includeMsg = includeInterleafInTotal ? ' (포함)' : ' (추가)';
+                    itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 간지 (${interleafSpecText})${includeMsg}</span><span class="text-slate-500 text-xs">${Math.round(interleafUnitPrice).toLocaleString()}원/장</span></div><div class="flex justify-end font-medium text-slate-800">${Math.round(totalInterleafCost).toLocaleString()}원</div></li>`;
+                }
+            }
+
+            const bindingType = itemEl.querySelector('.bindingType').value;
+            let bindingCost = 0;
+            let bindingUnitPrice = 0;
+
+            if (bindingType !== 'none') {
+                const actualTotalPages = includeInterleafInTotal ? 
+                                         totalInnerPagesSpecified : 
+                                         (totalInnerPagesSpecified + interleafSheets);
+
+                const bindingTiers = priceConfig.binding[bindingType] || [];
+                bindingUnitPrice = findBindingPriceTier(bindingTiers, quantity, actualTotalPages);
+                bindingCost = bindingUnitPrice * quantity;
+
+                if (bindingCost > 0) {
+                    itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 제본 (${getSpecText('bindingType', bindingType)})</span><span class="text-slate-500 text-xs">${Math.round(bindingUnitPrice).toLocaleString()}원/부</span></div><div class="flex justify-end font-medium text-slate-800">${Math.round(bindingCost).toLocaleString()}원</div></li>`;
+                }
+            }
+
+            const coverDesign = itemEl.querySelector('.coverDesign').checked;
+            const coverOshi = itemEl.querySelector('.coverOshi').checked;
+            let etcDesignCost = 0;
+            let etcOshiCost = 0;
+
+            if (coverDesign) {
+                etcDesignCost = priceConfig.etc.coverDesign || 0;
+                if (etcDesignCost > 0) {
+                    itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 디자인</span><div class="font-medium text-slate-800">${Math.round(etcDesignCost).toLocaleString()}원</div></div></li>`;
+                }
+            }
+            if (coverOshi) {
+                etcOshiCost = (priceConfig.etc.coverOshi || 0) * quantity;
+                if (etcOshiCost > 0) {
+                    itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 오시</span><div class="font-medium text-slate-800">${Math.round(etcOshiCost).toLocaleString()}원</div></div></li>`;
+                }
+            }
+
+            itemTotalPrice = totalCoverCost + totalInnerCost + totalInterleafCost + bindingCost + etcDesignCost + etcOshiCost;
+
+            breakdownForLastQuote.push({
+                orderName: orderName || `견적항목 ${index + 1}`,
+                quantity,
+                cover: (coverPaperType !== 'none' && coverPrintType !== 'none') ? { unitPrice: (typeof coverUnitPrice === 'number' ? coverUnitPrice : 0), amount: totalCoverCost, paperType: coverPaperType, printType: coverPrintType } : null,
+                inners: innerSectionDetailsForSubmission,
+                interleaf: (interleafSheets > 0) ? { sheets: interleafSheets, color: interleafColor, unitPrice: (typeof interleafUnitPrice === 'number' ? interleafUnitPrice : 0), amount: totalInterleafCost } : null,
+                binding: (bindingType !== 'none') ? { type: bindingType, unitPrice: (typeof bindingUnitPrice === 'number' ? bindingUnitPrice : 0), amount: bindingCost } : null,
+                etc: { coverDesign: etcDesignCost, coverOshi: etcOshiCost },
+                itemTotal: itemTotalPrice
+            });
+
+            grandTotalPrice += itemTotalPrice;
+
+            finalBreakdownHtml += `
+                <div class="bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
+                    <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-100">
+                        <span class="font-bold text-slate-800 truncate pr-2" style="max-width: 150px;">${sanitizeHTML(orderName) || '품명 없음'}</span>
+                        <span class="text-xs font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded">${quantity.toLocaleString()}부</span>
+                    </div>
+                    ${itemBreakdownHtml ? `<ul class="space-y-1">${itemBreakdownHtml}</ul>` : ''}
+                    <div class="mt-2 pt-2 border-t border-slate-100 flex justify-between items-center">
+                        <span class="text-xs text-slate-500">항목 합계</span>
+                        <span class="font-bold text-slate-900">${Math.round(itemTotalPrice).toLocaleString()}원</span>
+                    </div>
+                </div>
+            `;
+
+            allItemsForSubmission.push({
+                title: orderName || `견적항목 ${index + 1}`,
+                specs: innerSectionDetailsForSubmission.map(s => s.specs).join('\n'),
+                unitPrice: itemTotalPrice / quantity,
+                quantity: quantity
+            });
+        });
+
+        const totalQuantityAll = Array.from(document.querySelectorAll('.quote-item .quantity')).reduce((a,el)=>a+(Number(el.value)||0),0) || 0;
+        const unitPriceAll = totalQuantityAll>0 ? cut10(grandTotalPrice / totalQuantityAll) : 0;
+        const grandTotalPriceCut = totalQuantityAll>0 ? (unitPriceAll * totalQuantityAll) : cut10(grandTotalPrice);
+        const grandTotalSupplyPrice = cut10(grandTotalPriceCut / 1.1);
+        const grandTotalVat = grandTotalPriceCut - grandTotalSupplyPrice;
+
+        if (finalBreakdownHtml) {
+            finalBreakdownHtml += `
+                <div class="bg-slate-800 p-4 rounded-lg text-white mt-4 shadow-lg">
+                    <div class="flex justify-between text-xs text-slate-300 mb-1"><span>공급가액</span><span>${grandTotalSupplyPrice.toLocaleString()}원</span></div>
+                    <div class="flex justify-between text-xs text-slate-300 mb-3 border-b border-slate-600 pb-2"><span>부가세 (10%)</span><span>${grandTotalVat.toLocaleString()}원</span></div>
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold">최종 결제 금액</span>
+                        <span class="text-xl font-bold text-brand-300">${grandTotalPriceCut.toLocaleString()}원</span>
+                    </div>
+                    <div class="mt-2 text-xs text-slate-300 text-right">${unitPriceAll.toLocaleString()}원 × ${totalQuantityAll.toLocaleString()}권 = ${grandTotalPriceCut.toLocaleString()}원</div>
+
+                </div>`;
+            DOMElements.priceBreakdownEl.innerHTML = finalBreakdownHtml;
+        } else {
+            DOMElements.priceBreakdownEl.innerHTML = `<li class="flex flex-col items-center justify-center py-8 text-slate-400 gap-2"><i class="fas fa-mouse-pointer text-2xl opacity-50"></i><span>옵션을 선택하면 견적이 계산됩니다.</span></li>`;
+        }
+
+        const firstItemName = document.querySelector('.quote-item .orderName')?.value || '복수 견적';
+        const allRemarks = Array.from(document.querySelectorAll('.quote-item .remarks')).map((el, i) => { const orderName = el.closest('.quote-item').querySelector('.orderName').value || `항목 ${i + 1}`; return el.value ? `[${orderName}]: ${el.value}` : ''; }).filter(Boolean).join('\n\n');
+        
+        lastCalculatedQuote = { orderName: firstItemName, items: JSON.stringify(allItemsForSubmission), supplyPrice: grandTotalSupplyPrice, vat: grandTotalVat, finalPrice: grandTotalPrice, quantity: allItemsForSubmission.reduce((sum, item) => sum + item.quantity, 0), remarks: allRemarks, breakdown: breakdownForLastQuote };
+        // ✅ 계산 완료 시 캐시 저장(로그인/리로드 대비)
+        try {
+            const __payload = JSON.stringify(lastCalculatedQuote || {});
+            sessionStorage.setItem(__LAST_QUOTE_CACHE_KEY_BOOK, __payload);
+            localStorage.setItem(__LAST_QUOTE_CACHE_KEY_BOOK, __payload);
+        } catch(e) { /* ignore */ }
+    }
+
+    function resetFormAndStorage() {
+        quoteItemCounter = 0; DOMElements.quoteItemsContainer.innerHTML = ''; createNewQuoteItem();
+        const tempStorageKey = getTempStorageKey(); if (tempStorageKey) localStorage.removeItem(tempStorageKey);
+        try { sessionStorage.removeItem(__LAST_QUOTE_CACHE_KEY_BOOK); } catch(e) {}
+        try { localStorage.removeItem(__LAST_QUOTE_CACHE_KEY_BOOK); } catch(e) {}
+        calculateQuote(); window.scrollTo(0, 0); showToast('모든 내용이 초기화되었습니다.', 'success');
+    }
+
+    function formatContact(contact) { return contact.replace(/[^0-9]/g, '').replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, `$1-$2-$3`); };
+
+    function renderAttachmentsList() {
+        const listEl = DOMElements.attachmentsList;
+        const input = DOMElements.attachmentsInput;
+        if (!listEl || !input) return;
+        const files = Array.from(input.files || []);
+        if (files.length === 0) { listEl.innerHTML = ''; return; }
+        listEl.innerHTML = files.map(f => `<li><i class="fas fa-file text-brand-500 mr-1"></i>${sanitizeHTML(f.name)} <span class="text-slate-400">(${Math.round(f.size/1024).toLocaleString()}KB)</span></li>`).join('');
+    }
+
+    let __QUOTE_SUBMIT_LOCK = false;
+
+    // ── 견적 접수 버튼 핸들러 ────────────────────────────────
+    // 제출 버튼 클릭 → 관리자 수정 / 기존 세션 / 신규 비회원 접수 분기 처리
+    async function handleQuoteSubmit() {
+        if (__QUOTE_SUBMIT_LOCK) return;
+        __QUOTE_SUBMIT_LOCK = true;
+        try {
+        let isValid = true;
+        document.querySelectorAll('.quote-item .orderName').forEach(input => { if (!input.value.trim()) { isValid = false; input.focus(); } });
+        if (!isValid) { showToast('각 견적 항목의 품명을 모두 입력해주세요.', 'error'); return; }
+
+        calculateQuote();
+
+
+        // ✅ 관리자 수정 모드(edit=1&adminEdit=1): 접수정보 입력 모달 없이 바로 '수정' 저장
+        // - 기존 문서의 고객 정보(회원/비회원)를 그대로 사용하여 새 접수가 생성되지 않게 함
+        if (editState.enabled && editState.quoteId && __isAdminEditMode()) {
+            try {
+                const targetRef = doc(db, "quotes", editState.quoteId);
+                const snap = await getDoc(targetRef);
+                if (snap.exists()) {
+                    const ex = snap.data() || {};
+                    if (ex.isGuest === true || ex.userId === 'guest' || ex.userId === 'GUEST') {
+                        await submitQuoteRequest(null,
+                            ex.guestName || ex.ordererName || '',
+                            ex.guestContact || ex.ordererContact || '',
+                            ex.ordererCompany || '',
+                            { isGuest: true, guestLookupKey: ex.guestLookupKey || null, guestContactRaw: ex.guestContactRaw || null, guestPwLast4: ex.guestPwLast4 || '' }
+                        );
+                    } else {
+                        await submitQuoteRequest(auth.currentUser,
+                            ex.ordererName || '',
+                            ex.ordererContact || '',
+                            ex.ordererCompany || '',
+                            { isGuest: false }
+                        );
+                    }
+                    return;
+                }
+            } catch(e) {
+                // fallthrough to modal (should not normally happen)
+            }
+        }
+
+
+        // ✅ 수정 모드(회원)라면: 접수정보 입력 모달 없이 바로 '수정 저장' (기존 고객 정보 유지)
+        try {
+            if (editState.enabled && editState.quoteId && currentUser && !currentUser.isAnonymous && !__isAdminEditMode()) {
+                const targetRef = doc(db, "quotes", editState.quoteId);
+                const snap = await getDoc(targetRef);
+                if (snap.exists()) {
+                    const ex = snap.data() || {};
+                    await submitQuoteRequest(auth.currentUser,
+                        (ex.ordererName || ''),
+                        (ex.ordererContact || ''),
+                        (ex.ordererCompany || ''),
+                        { isGuest: false }
+                    );
+                    return;
+                }
+            }
+        } catch (e) {
+            // fallthrough
+        }
+
+        // ✅ 비회원(익명 로그인) 상태라면: 정보가 이미 저장돼 있으면 모달 없이 바로 접수/수정
+        try {
+            const k = (sessionStorage.getItem('guestLookupKey') || localStorage.getItem('guestLookupKey') || '').trim();
+            const n = (sessionStorage.getItem('guestName') || localStorage.getItem('guestName') || '').trim();
+            const cRaw = (sessionStorage.getItem('guestContactRaw') || localStorage.getItem('guestContactRaw') || '').trim();
+            const c = ((sessionStorage.getItem('guestContact') || localStorage.getItem('guestContact') || '')).trim().replace(/[^0-9]/g, '');
+            const cr = (cRaw || c || '').trim();
+
+            // 비회원(익명) 로그인 상태이고, 필수 정보가 있으면 바로 진행
+            if ((!currentUser || currentUser.isAnonymous) && k && n && c) {
+                await ensureGuestAuth();
+                await submitQuoteRequest(null, n, c, '', { isGuest: true, guestLookupKey: k, guestContactRaw: cr });
+                return;
+            }
+        } catch(e) {}
+
+
+
+        // ✅ 회원(로그인) 상태 + 신규 접수(수정모드 아님)라면: 접수정보 입력 모달 없이 바로 접수
+        // - 회원 접수 버튼을 한번 더 누르지 않도록 UX 개선
+        try {
+            if (!editState.enabled && currentUser && !currentUser.isAnonymous && !__isAdminEditMode()) {
+                const ordererName = currentUser.name || '사용자';
+                let ordererContact = pickContactFromUserData(currentUser) || currentUser.contact || '';
+                if (!ordererContact) { ordererContact = await resolveMemberContact(currentUser.uid); }
+                if (!ordererContact) ordererContact = '연락처 없음';
+                const __rid = (localStorage.getItem('autoSubmitBookRequestId') || null);
+                    await submitQuoteRequest(currentUser, ordererName, ordererContact, '', { isGuest: false, forceDocId: __rid });
+                    try { if (__rid) { localStorage.removeItem('autoSubmitBookRequestId'); } } catch(e) {}
+                return;
+            }
+        } catch(e) {}
+
+
+// ✅ 수정 모드인데 여기까지 왔다면 앞의 모든 경로가 실패한 것
+        // 모달을 띄우지 말고 현재 auth 상태에 맞게 직접 처리
+        if (editState.enabled && editState.quoteId) {
+            try {
+                const _snap = await getDoc(doc(db, 'quotes', editState.quoteId));
+                if (_snap.exists()) {
+                    const _ex = _snap.data() || {};
+                    const _authUser = auth.currentUser;
+                    if (_authUser && !_authUser.isAnonymous) {
+                        // 회원 수정
+                        await submitQuoteRequest(_authUser,
+                            _ex.ordererName || '',
+                            _ex.ordererContact || '',
+                            _ex.ordererCompany || '',
+                            { isGuest: false }
+                        );
+                    } else if (_ex.isGuest === true) {
+                        // 비회원 수정
+                        await ensureGuestAuth();
+                        await submitQuoteRequest(null,
+                            _ex.guestName || _ex.ordererName || '',
+                            _ex.guestContact || _ex.ordererContact || '',
+                            _ex.ordererCompany || '',
+                            { isGuest: true, guestLookupKey: _ex.guestLookupKey || null, guestContactRaw: _ex.guestContactRaw || null, guestPwLast4: _ex.guestPwLast4 || '' }
+                        );
+                    } else {
+                        await submitQuoteRequest(_authUser || null,
+                            _ex.ordererName || '',
+                            _ex.ordererContact || '',
+                            _ex.ordererCompany || '',
+                            { isGuest: false }
+                        );
+                    }
+                    return;
+                }
+            } catch(_e) {
+                console.error('[quote-book] edit fallback failed:', _e);
+                showToast('수정 중 오류가 발생했습니다: ' + (_e.message || _e), 'error');
+                return;
+            }
+        }
+
+        DOMElements.signupModal.classList.remove('hidden');
+        try {
+            if (currentUser && !currentUser.isAnonymous) {
+                setModalTab('member');
+                if (DOMElements.memberStatusText) {
+                    DOMElements.memberStatusText.textContent = `${(__isAdminEditMode() ? '관리자님' : (__displayNameForHeader(currentUser) + '님'))}으로 접수합니다.`;
+                    DOMElements.memberGoLoginBtn.classList.add('hidden');
+                    DOMElements.memberSubmitBtn.classList.remove('hidden');
+                }
+            } else {
+                setModalTab('guest');
+                if (DOMElements.memberStatusText) {
+                     DOMElements.memberStatusText.textContent = '회원 접수는 로그인 후 이용 가능합니다.';
+                     DOMElements.memberGoLoginBtn.classList.remove('hidden');
+                     DOMElements.memberSubmitBtn.classList.add('hidden');
+                }
+            }
+        } catch(e) {}
+    
+        } finally {
+            __QUOTE_SUBMIT_LOCK = false;
+        }
+}
+
+    // ── Firestore 견적 문서 저장 ─────────────────────────────
+    // 실제 Firestore 에 접수 데이터를 저장하고 완료 처리합니다.
+    // 신규: addDoc / 수정: updateDoc / 관리자 수정: updateDoc + diff 메시지
+    async function submitQuoteRequest(user, ordererName, ordererContact, ordererCompany = '', opts = {}) {
+        const isGuest = !!opts.isGuest && (!user || opts.forceGuest === true);
+        let guestLookupKey = opts.guestLookupKey || null;
+        const normalizedContact = (ordererContact || '').toString().replace(/[^0-9]/g, '');
+
+        // ✅ 비회원 '수정' 모드에서는, 기존 문서의 비회원 식별값을 그대로 사용하면 되므로
+        //    다시 이름/연락처를 입력하지 않아도 저장 가능하도록 fallback 처리
+        if (isGuest && editState.enabled && editState.quoteId && (!guestLookupKey || !ordererName || !normalizedContact)) {
+            try {
+                const targetRef = doc(db, "quotes", editState.quoteId);
+                const snap = await getDoc(targetRef);
+                if (snap.exists()) {
+                    const ex = snap.data() || {};
+                    guestLookupKey = guestLookupKey || ex.guestLookupKey || null;
+
+                    // 기존 값이 있으면 우선 사용
+                    if (!ordererName) ordererName = ex.guestName || ex.ordererName || '';
+                    if (!ordererContact) ordererContact = ex.guestContact || ex.ordererContact || '';
+                }
+            } catch (e) {}
+        }
+
+        if (!isGuest && (!user || !user.uid)) { showToast('사용자 정보가 없어 접수할 수 없습니다.', 'error'); return; }
+        if (isGuest && (!guestLookupKey || !ordererName || !String(ordererContact || '').replace(/[^0-9]/g, ''))) { showToast('비회원 정보가 올바르지 않습니다.', 'error'); return; }
+        // ✅ 혹시 로그인/복원 타이밍으로 계산값이 비어있으면 한 번 더 계산 시도
+        if (Object.keys(lastCalculatedQuote).length === 0 || lastCalculatedQuote.finalPrice === undefined) {
+            try { calculateQuote(); } catch(e) {}
+        }
+
+        if (Object.keys(lastCalculatedQuote).length === 0 || lastCalculatedQuote.finalPrice === undefined) { 
+            showToast('견적 정보가 계산되지 않았습니다. 다시 시도해주세요.', 'error'); 
+            return; 
+        }
+
+        const allItemsData = [];
+        document.querySelectorAll('.quote-item').forEach(itemEl => {
+            const itemData = {};
+            itemData.orderName = itemEl.querySelector('.orderName').value;
+            itemData.coverPaperType = itemEl.querySelector('.coverPaperType').value;
+            itemData.coverPrintType = itemEl.querySelector('.coverPrintType').value;
+            itemData.coverDesign = itemEl.querySelector('.coverDesign').checked;
+            itemData.coverOshi = itemEl.querySelector('.coverOshi').checked;
+            itemData.bindingType = itemEl.querySelector('.bindingType').value;
+            itemData.quantity = itemEl.querySelector('.quantity').value;
+            itemData.remarks = itemEl.querySelector('.remarks').value;
+            const interleafSection = itemEl.querySelector('.interleaf-section');
+            itemData.interleafSheets = interleafSection.classList.contains('hidden') ? 0 : (itemEl.querySelector('.interleafSheets').value || 0);
+            if(itemData.interleafSheets > 0){
+                itemData.interleafColor = itemEl.querySelector('.interleafColor').value;
+                itemData.includeInterleaf = itemEl.querySelector('.includeInterleaf').checked;
+            }
+            itemData.innerSections = [];
+            itemEl.querySelectorAll('.inner-section').forEach(section => {
+                itemData.innerSections.push({
+                    paperSize: section.querySelector('.paperSize').value,
+                    innerPaperType: section.querySelector('.innerPaperType').value,
+                    innerPrintType: section.querySelector('.innerPrintType').value,
+                    innerPages: section.querySelector('.innerPages').value
+                });
+            });
+            allItemsData.push(itemData);
+        });
+        
+        const quoteRequestData = {
+            ...lastCalculatedQuote,
+            userId: isGuest ? 'guest' : user.uid, 
+            isGuest: isGuest,
+            guestName: isGuest ? ordererName : null,
+            guestContact: isGuest ? normalizedContact : null,
+            guestContactRaw: isGuest ? (opts.guestContactRaw || null) : null,
+            guestContactHyphen: isGuest ? (formatPhoneHyphen(normalizedContact) || null) : null,
+            guestLookupKey: isGuest ? guestLookupKey : null, 
+            
+            guestUid: isGuest ? (auth.currentUser ? auth.currentUser.uid : null) : null,
+guestPwLast4: isGuest ? (normalizedContact || "").slice(-4) : null,
+            guestNameNorm: isGuest ? (ordererName || "").replace(/\s+/g, "").trim() : null,
+
+            ordererName: ordererName,
+            ordererContact: isGuest ? normalizedContact : ordererContact,
+            ordererCompany: ordererCompany,
+            status: '접수완료',
+            createdAt: Timestamp.now(),
+            hasUnreadAdminMessage: false,
+            hasUnreadCustomerMessage: false,
+            breakdownHtml: DOMElements.priceBreakdownEl.innerHTML,
+            breakdownData: JSON.stringify(lastCalculatedQuote.breakdown || []),
+            formData: JSON.stringify(allItemsData),
+            productType: 'book'
+        };
+
+        try {
+            const submitBtn = DOMElements.submitQuoteBtn;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>처리 중...';
+            
+            
+            if (isGuest && (!auth.currentUser || !auth.currentUser.uid)) { await ensureGuestAuth(); }
+
+// ✅ Idempotent create (prevents duplicate submissions when auto-submit triggers twice)
+const __forceDocId = (opts && opts.forceDocId) ? String(opts.forceDocId) : null;
+async function __createNewQuoteDoc(data){
+    if(__forceDocId){
+        // ✅ Idempotent write without requiring read permission.
+        // Calling setDoc twice with the same docId will NOT create duplicates.
+        const ref = doc(db, "quotes", __forceDocId);
+        await setDoc(ref, data, { merge: true });
+        return { id: ref.id, existed: false };
+    }
+    const newRef = await addDoc(collection(db, "quotes"), data);
+    return { id: newRef.id, existed: false };
+}
+let savedDocId = null;
+            let existingAttachments = [];
+
+            // 수정 모드: 기존 문서 업데이트 / 일반 모드: 새 문서 생성
+            if (editState.enabled && editState.quoteId) {
+                savedDocId = editState.quoteId;
+                const targetRef = doc(db, "quotes", savedDocId);
+                const snap = await getDoc(targetRef);
+                if (snap.exists()) {
+                    const existing = snap.data() || {};
+                    existingAttachments = existing.attachments || [];
+
+                    // 고객 수정 잠금: Firestore Rules와 동일하게 "접수완료"일 때만 고객 수정 허용 (관리자 예외)
+                    if (!__isAdminEditMode() && (existing.status !== '접수완료')) {
+                        showToast(`현재 상태(${existing.status || '-'})에서는 수정이 불가합니다. (접수완료 상태에서만 수정 가능)`, 'error');
+                        throw new Error('CUSTOMER_EDIT_LOCKED');
+                    }
+
+                    // 진행중 상태를 덮어쓰지 않도록 기존 상태를 우선 유지
+                    const payload = { ...quoteRequestData };
+                    delete payload.createdAt;
+
+                    // ✅ 관리자 수정 모드: "대상 견적"의 소유/신원 정보를 절대 변경하지 않음
+                    // - 관리자 계정(uid)로 userId가 덮이거나, 회원 견적이 비회원으로 변하는 문제 방지
+                    if (__isAdminEditMode()) {
+                        const keep = [
+                            'userId','isGuest',
+                            'guestUid','guestLookupKey','guestPwLast4',
+                            'guestName','guestContact','guestContactRaw','guestContactHyphen','guestNameNorm',
+                            'ordererName','ordererContact','ordererCompany'
+                        ];
+                        keep.forEach((k)=>{
+                            if (existing[k] !== undefined) payload[k] = existing[k];
+                        });
+                    }
+
+                    // ✅ 비회원(guest) 수정 시, Rules에서 신원/키 필드는 보통 immutable 이므로 기존 값을 유지
+                    // (guestUid, guestLookupKey, guestPwLast4, userId/isGuest 등)
+                    if (existing.isGuest === true || existing.userId === 'guest' || existing.userId === 'GUEST') {
+                        const immutable = [
+                            'userId','isGuest','guestUid','guestLookupKey','guestPwLast4',
+                            'guestName','guestContact','guestContactRaw','guestContactHyphen','guestNameNorm',
+                            'ordererName','ordererContact','ordererCompany'
+                        ];
+                        immutable.forEach((k)=>{
+                            if (existing[k] !== undefined && existing[k] !== null) payload[k] = existing[k];
+                        });
+                    }
+
+                    payload.updatedAt = Timestamp.now();
+                    payload.status = existing.status || payload.status;
+
+                    // ✅ Rules 호환: 회원/비회원 공통 불변 필드(소유/타입)는 항상 기존값 유지
+                    if (!__isAdminEditMode()) {
+                        if (existing.userId !== undefined) payload.userId = existing.userId;
+                        if (existing.isGuest !== undefined) payload.isGuest = existing.isGuest;
+                        if (existing.productType !== undefined) payload.productType = existing.productType;
+                    }
+
+                    payload.lastEditedBy = editState.adminEdit ? 'admin' : 'customer';
+                    payload.lastEditedAt = Timestamp.now();
+                    payload.hasUnreadAdminMessage = editState.adminEdit ? false : true;
+                    payload.hasUnreadCustomerMessage = editState.adminEdit ? true : false;
+payload.receiptNo = existing.receiptNo || payload.receiptNo || await generateReceiptNo();
+const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니다.' : '견적이 수정되었습니다.';
+                    await updateDoc(targetRef, payload);
+                    try {
+                        await addDoc(collection(db, `quotes/${savedDocId}/messages`), {
+                            sender: editState.adminEdit ? 'admin' : 'customer',
+                            timestamp: serverTimestamp(),
+                            text: diffText,
+                            type: 'system'
+                        });
+                    } catch(e) { console.warn('diff message failed', e); }
+} else {
+                    // 문서가 없으면 새로 생성
+                    // 접수번호가 없으면 생성
+
+                    if (!quoteRequestData.receiptNo) quoteRequestData.receiptNo = await generateReceiptNo();
+
+                    const created = await __createNewQuoteDoc(quoteRequestData);
+                    savedDocId = created.id;
+                    if(created.existed){ console.warn('Duplicate auto-submit prevented (existing doc)', savedDocId); }
+                    editState.enabled = false;
+                    editState.quoteId = null;
+                }
+            } else {
+                // 접수번호가 없으면 생성
+
+                if (!quoteRequestData.receiptNo) quoteRequestData.receiptNo = await generateReceiptNo();
+
+                const created = await __createNewQuoteDoc(quoteRequestData);
+                    savedDocId = created.id;
+                    if(created.existed){ console.warn('Duplicate auto-submit prevented (existing doc)', savedDocId); }
+            }
+
+            const files = Array.from(DOMElements.attachmentsInput?.files || []);
+            if (files.length > 0) {
+                const uploads = await Promise.all(files.map(async (file) => {
+                    const safeName = file.name.replace(/[^a-zA-Z0-9._-가-힣\s]/g, '_');
+                    const path = `quotes/${savedDocId}/attachments/${Date.now()}_${safeName}`;
+                    const r = storageRef(storage, path);
+                    await uploadBytes(r, file);
+                    const url = await getDownloadURL(r);
+                    return { name: file.name, url, path, size: file.size, type: file.type || '' };
+                }));
+                const merged = (existingAttachments || []).concat(uploads);
+                try {
+                    await updateDoc(doc(db, "quotes", savedDocId), { attachments: merged });
+                } catch (e) {
+                    // updateDoc가 권한/존재 문제 등으로 실패할 수 있어 setDoc(merge)로 한 번 더 시도
+                    console.warn('updateDoc attachments failed, retry with setDoc(merge):', e);
+                    try {
+                        await setDoc(doc(db, "quotes", savedDocId), { attachments: merged }, { merge: true });
+                    } catch (e2) {
+                        console.warn('Failed to save attachments metadata (setDoc merge)', e2);
+                    }
+                }
+            }
+            
+            const tempStorageKey = getTempStorageKey();
+            if (tempStorageKey) localStorage.removeItem(tempStorageKey);
+            
+            if(isGuest && guestLookupKey) {
+                const pwLast4 = (normalizedContact || '').slice(-4);
+                const contactRaw = (opts.guestContactRaw || '').toString().trim();
+                let legacyKey = null;
+                try { if (contactRaw) legacyKey = await sha256Hex(`${ordererName}|${contactRaw}|${pwLast4}`); } catch(e) {}
+
+                // sessionStorage (same-tab)
+                sessionStorage.setItem('guestLookupKey', guestLookupKey);
+                if (legacyKey) sessionStorage.setItem('guestLookupKeyLegacy', legacyKey);
+                sessionStorage.setItem('guestName', ordererName);
+                sessionStorage.setItem('guestContact', normalizedContact);
+                sessionStorage.setItem('guestContactRaw', contactRaw);
+                sessionStorage.setItem('guestPwLast4', pwLast4);
+                sessionStorage.setItem('guestContactHyphen', formatPhoneHyphen(normalizedContact));
+
+                // localStorage (refresh/new tab safe)
+                try {
+                    localStorage.setItem('guestLookupKey', guestLookupKey);
+                    if (legacyKey) localStorage.setItem('guestLookupKeyLegacy', legacyKey);
+                    localStorage.setItem('guestName', ordererName);
+                    localStorage.setItem('guestContact', normalizedContact);
+                    localStorage.setItem('guestContactRaw', contactRaw);
+                    localStorage.setItem('guestPwLast4', pwLast4);
+                } catch(e) {}
+            }
+
+            if (DOMElements.attachmentsInput) DOMElements.attachmentsInput.value = '';
+            if (DOMElements.attachmentsList) DOMElements.attachmentsList.innerHTML = '';
+            showToast(editState.enabled ? '견적이 수정되었습니다.' : '견적 신청이 성공적으로 접수되었습니다.', 'success');
+            setTimeout(() => {
+                 window.location.href = isGuest ? 'mypage.html?guest=1' : 'mypage.html';
+            }, 1500);
+
+        } catch (error) {
+            console.error("Failed to save quote request: ", error);
+            if (error.code === 'permission-denied') {
+                // 수정 모드이면 항상 에러 표시
+                if (editState.enabled) {
+                    showToast('수정 권한이 없습니다. (Firestore 권한 오류)', 'error');
+                } else {
+                    // 자동접수 중복 트리거는 조용히 무시
+                    try {
+                        const rid = (opts && opts.forceDocId) ? String(opts.forceDocId) : null;
+                        const inflight = sessionStorage.getItem('autoSubmitBookInFlight');
+                        const done = sessionStorage.getItem('autoSubmitBookDone');
+                        const consumed = sessionStorage.getItem('__AUTO_SUBMIT_BOOK_CONSUMED');
+                        if ((rid && (done === rid || inflight === rid)) || consumed === '1') {
+                            return;
+                        }
+                    } catch(e) {}
+                    showToast('접수 권한이 없습니다.', 'error');
+                }
+            } else {
+                showToast('견적 신청 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+            }
+            DOMElements.submitQuoteBtn.disabled = false;
+            DOMElements.submitQuoteBtn.innerHTML = editState.enabled
+                ? (editState.adminEdit ? '<i class="fas fa-pen-to-square mr-2"></i>관리자 수정 저장' : '<i class="fas fa-pen-to-square mr-2"></i>견적 수정')
+                : '<i class="fas fa-paper-plane mr-2"></i>견적 신청';
+        }
+    }
+
+    
+        // --- User menu ---
+        const userMenuBtn = document.getElementById('user-menu-btn');
+        const userMenuModal = document.getElementById('userMenuModal');
+        const closeUserMenuBtn = document.getElementById('closeUserMenuBtn');
+        const userMenuStatus = document.getElementById('userMenuStatus');
+        const userMenuGoMyPageBtn = document.getElementById('userMenuGoMyPageBtn');
+        const userMenuGoLoginBtn = document.getElementById('userMenuGoLoginBtn');
+        const userMenuLogoutBtn = document.getElementById('userMenuLogoutBtn');
+        const userMenuGuestLookupBtn = document.getElementById('guest-lookup-open');
+
+        function renderUserMenu() {
+            if (!userMenuStatus) return;
+
+            if (currentUser && !currentUser.isAnonymous) {
+                userMenuStatus.textContent = `${(__isAdminEditMode() ? '관리자님' : (__displayNameForHeader(currentUser) + '님'))}으로 이용 중입니다.`;
+                userMenuGoMyPageBtn?.classList.remove('hidden');
+                userMenuLogoutBtn?.classList.remove('hidden');
+                userMenuGoLoginBtn?.classList.add('hidden');
+                userMenuGuestLookupBtn?.classList.add('hidden');
+                return;
+            }
+            const guestName = sessionStorage.getItem('guestName');
+            const hasGuestSession = !!guestName || !!localStorage.getItem('guestLookupKey') || !!localStorage.getItem('guestPwLast4');
+
+            if (hasGuestSession) {
+                userMenuStatus.innerHTML = guestName
+                    ? `<span class="font-bold text-slate-800">${guestName}</span>님 (비회원)<br><span class="text-xs text-slate-400">주문 조회 중입니다.</span>`
+                    : '<span class="font-bold text-slate-800">비회원</span>으로 이용 중입니다.<br><span class="text-xs text-slate-400">주문 조회/접수 세션이 유지되고 있어요.</span>';
+
+                userMenuGoMyPageBtn?.classList.remove('hidden');
+                userMenuLogoutBtn?.classList.remove('hidden');
+                userMenuGoLoginBtn?.classList.add('hidden');
+                userMenuGuestLookupBtn?.classList.add('hidden');
+                return;
+            }
+
+            userMenuStatus.innerHTML = '<span class="font-bold text-slate-800">방문자</span>님 환영합니다.<br><span class="text-xs text-slate-400">로그인 후 더 많은 기능을 이용해보세요.</span>';
+
+            userMenuGoMyPageBtn?.classList.add('hidden');
+            userMenuLogoutBtn?.classList.add('hidden');
+            userMenuGoLoginBtn?.classList.remove('hidden');
+            userMenuGuestLookupBtn?.classList.remove('hidden');
+        }
+
+        function openUserMenu() {
+            renderUserMenu();
+            userMenuModal?.classList.remove('hidden');
+            userMenuModal?.classList.add('flex');
+        }
+        function closeUserMenu() {
+            userMenuModal?.classList.add('hidden');
+            userMenuModal?.classList.remove('flex');
+        }
+        
+        function setModalTab(which) {
+            if (which === 'member') {
+                DOMElements.guestTab?.classList.add('hidden');
+                DOMElements.memberTab?.classList.remove('hidden');
+                DOMElements.tabMemberBtn?.classList.add('bg-brand-600','text-white', 'shadow-md');
+                DOMElements.tabMemberBtn?.classList.remove('text-slate-500', 'hover:text-slate-700');
+                DOMElements.tabGuestBtn?.classList.remove('bg-white','text-brand-700', 'shadow-sm');
+                DOMElements.tabGuestBtn?.classList.add('text-slate-500', 'hover:text-slate-700');
+            } else {
+                DOMElements.memberTab?.classList.add('hidden');
+                DOMElements.guestTab?.classList.remove('hidden');
+                DOMElements.tabGuestBtn?.classList.add('bg-white','text-brand-700', 'shadow-sm');
+                DOMElements.tabGuestBtn?.classList.remove('text-slate-500', 'hover:text-slate-700');
+                DOMElements.tabMemberBtn?.classList.remove('bg-brand-600','text-white', 'shadow-md');
+                DOMElements.tabMemberBtn?.classList.add('text-slate-500', 'hover:text-slate-700');
+            }
+        }
+
+        userMenuBtn?.addEventListener('click', openUserMenu);
+        closeUserMenuBtn?.addEventListener('click', closeUserMenu);
+        userMenuModal?.addEventListener('click', (e) => { if (e.target === userMenuModal) closeUserMenu(); });
+
+        userMenuGoMyPageBtn?.addEventListener('click', () => { location.href = 'mypage.html'; });
+        userMenuGoLoginBtn?.addEventListener('click', () => {
+            // 상단 메뉴에서 로그인할 경우 autoSubmitBook 플래그가 설정되지 않으면
+            // "입력 후 로그인했는데 접수 안됨" 증상이 발생할 수 있음.
+            // 작성중인 초안이 있으면 로그인 후 자동접수를 트리거한다.
+            try {
+                try { saveFormData(); } catch(e) {}
+
+                const anonKey = 'multiQuoteFormData_anonymous';
+                const hasDraft = !!localStorage.getItem(anonKey)
+                    || !!sessionStorage.getItem(__LAST_QUOTE_CACHE_KEY_BOOK)
+                    || !!localStorage.getItem(__LAST_QUOTE_CACHE_KEY_BOOK);
+
+                localStorage.setItem('postLoginRedirect', 'quote-book.html');
+                if (hasDraft) {
+                    localStorage.setItem('autoSubmitBook', 'true');
+                    
+                    try { sessionStorage.removeItem('__AUTO_SUBMIT_BOOK_CONSUMED'); } catch(e) {}
+                    try { sessionStorage.removeItem('__AUTO_SUBMIT_BOOK_LOCK'); } catch(e) {}
+// auto-submit idempotency token
+                    if (!localStorage.getItem('autoSubmitBookRequestId')) {
+                        const rid = `BOOKAUTO_${Date.now()}_${Math.floor(Math.random()*900000)+100000}`;
+                        localStorage.setItem('autoSubmitBookRequestId', rid);
+                    }
+                }
+            } catch(e) {}
+            location.href = 'login.html';
+        });
+	    userMenuLogoutBtn?.addEventListener('click', async () => {
+	        await window.hardLogout('index.html');
+	    });
+
+    // ── 이벤트 바인딩 ─────────────────────────────────────────
+    // 옵션 선택 변경, 버튼 클릭, 파일 선택 등 모든 인터랙션 이벤트를 등록합니다.
+    function setupEventListeners() {
+        const closeBtn = document.getElementById('close-image-preview-btn');
+        const modal = document.getElementById('image-preview-modal');
+        if (closeBtn && modal) {
+            closeBtn.addEventListener('click', closeImagePreview);
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeImagePreview(); });
+        }
+        DOMElements.form.addEventListener('input', calculateAndSave);
+        if (DOMElements.attachmentsInput) {
+            DOMElements.attachmentsInput.addEventListener('change', renderAttachmentsList);
+        }
+        DOMElements.addQuoteItemBtn.addEventListener('click', () => createNewQuoteItem());
+        DOMElements.submitQuoteBtn.addEventListener('click', handleQuoteSubmit);
+        DOMElements.resetFormBtn.addEventListener('click', async () => {
+            const confirmed = await showConfirmation('새로 작성', '정말 모든 내용을 지우고 새로 작성하시겠습니까?');
+            if (confirmed) { resetFormAndStorage(); }
+        });
+        DOMElements.quoteItemsContainer.addEventListener('click', (e) => {
+            const genericPreviewBtn = e.target.closest('[data-preview-category]');
+            if (genericPreviewBtn) {
+                const categoryKey = genericPreviewBtn.getAttribute('data-preview-category');
+                const specKey = genericPreviewBtn.getAttribute('data-preview-speckey') || '';
+                const selectedSelector = genericPreviewBtn.getAttribute('data-preview-selected') || '';
+                let selectedKey = '';
+                if (selectedSelector) {
+                    selectedKey = genericPreviewBtn.closest('.quote-item, .inner-section, body')?.querySelector(selectedSelector)?.value || '';
+                }
+                const titlePrefix = genericPreviewBtn.getAttribute('data-preview-title') || '';
+                openCategoryPreview({ categoryKey, specKey: specKey || null, selectedKey: selectedKey || null, titlePrefix });
+                return;
+            }
+            if (e.target.closest('.remove-inner-section-btn')) { e.target.closest('.inner-section').remove(); calculateAndSave(); }
+            const coverBtn = e.target.closest('.cover-paper-preview-btn');
+            if (coverBtn) {
+                const item = coverBtn.closest('.quote-item');
+                const v = item?.querySelector('.coverPaperType')?.value;
+                openCategoryPreview({ categoryKey: 'coverPaper', specKey: 'coverPaperType', selectedKey: v, titlePrefix: '표지' });
+                return;
+            }
+            const innerBtn = e.target.closest('.inner-paper-preview-btn');
+            if (innerBtn) {
+                const section = innerBtn.closest('.inner-section');
+                const v = section?.querySelector('.innerPaperType')?.value;
+                openCategoryPreview({ categoryKey: 'innerPaper', specKey: 'innerPaperType', selectedKey: v, titlePrefix: '내지' });
+                return;
+            }
+            const bindingImg = e.target.closest('.binding-preview-thumb');
+            if (bindingImg) {
+                const key = bindingImg.getAttribute('data-binding-key');
+                openCategoryPreview({ categoryKey: 'binding', specKey: 'bindingType', selectedKey: key, titlePrefix: '제본' });
+                return;
+            }
+        });
+        DOMElements.closeSignupModalBtn.addEventListener('click', () => { DOMElements.signupModal.classList.add('hidden'); });
+        
+        DOMElements.signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const name = (form.querySelector('#signup-name')?.value || '').trim();
+            const contactRaw = (form.querySelector('#signup-contact')?.value || '').trim();
+            const contact = contactRaw.replace(/[^0-9]/g, '');
+            // 비회원 비밀번호 정책: 연락처 뒤 4자리
+            const password = (contact || '').slice(-4);
+
+            if (!name || !contact || contact.length < 4) { showToast('이름/연락처를 입력해주세요.', 'error'); return; }
+
+            const button = form.querySelector('button[type="submit"]');
+            const buttonText = button.querySelector('.btn-text');
+            const spinner = button.querySelector('.fa-spinner');
+            button.disabled = true;
+            if(buttonText) buttonText.classList.add('hidden');
+            if(spinner) spinner.classList.remove('hidden');
+
+            try {
+                const pwLast4 = (contact||'').toString().replace(/[^0-9]/g,'').slice(-4);
+          if(password !== pwLast4){
+            guestErr?.classList.remove('hidden');
+            return;
+          }
+
+                const guestLookupKey = await sha256Hex(`${name}|${contact}|${pwLast4}`);
+                await submitQuoteRequest(null, name, contact, '', { isGuest: true, guestLookupKey, guestContactRaw: contactRaw });
+                DOMElements.signupModal.classList.add('hidden');
+            } catch (error) {
+                console.error(error);
+                showToast('접수 중 오류가 발생했습니다.', 'error');
+                button.disabled = false;
+                if(buttonText) buttonText.classList.remove('hidden');
+                if(spinner) spinner.classList.add('hidden');
+            }
+        });
+
+        document.getElementById('signup-contact')?.addEventListener('input', (e) => {
+            e.target.value = formatContact(e.target.value);
+            try {
+                const digits = (e.target.value || '').replace(/[^0-9]/g, '');
+                // 비회원 비밀번호는 '연락처 끝 4자리' 정책.
+                // 입력 중간(예: 010-1234) 단계에서 '1234'가 비번으로 보이면 혼동되므로,
+                // 전화번호가 충분히 완성된 길이(10~11자리)일 때만 자동 입력한다.
+                const isCompletePhone = (digits.length === 10 || digits.length === 11);
+                const last4 = isCompletePhone ? digits.slice(-4) : '';
+                const pwEl = document.getElementById('signup-password');
+                if (pwEl) pwEl.value = last4;
+            } catch(err) {}
+        });
+        
+        DOMElements.tabGuestBtn?.addEventListener('click', () => setModalTab('guest'));
+        DOMElements.tabMemberBtn?.addEventListener('click', () => setModalTab('member'));
+        
+        DOMElements.memberGoLoginBtn?.addEventListener('click', () => {
+            saveFormData();
+            localStorage.setItem('postLoginRedirect', 'quote-book.html');
+            localStorage.setItem('autoSubmitBook', 'true');
+            
+                    try { sessionStorage.removeItem('__AUTO_SUBMIT_BOOK_CONSUMED'); } catch(e) {}
+                    try { sessionStorage.removeItem('__AUTO_SUBMIT_BOOK_LOCK'); } catch(e) {}
+// ✅ auto-submit idempotency token (prevents duplicate submissions across reloads)
+            try {
+                if (!localStorage.getItem('autoSubmitBookRequestId')) {
+                    const rid = `BOOKAUTO_${Date.now()}_${Math.floor(Math.random()*900000)+100000}`;
+                    localStorage.setItem('autoSubmitBookRequestId', rid);
+                }
+            } catch(e) {}
+            location.href = 'login.html';
+        });
+
+        DOMElements.memberSubmitBtn?.addEventListener('click', async (e) => {
+            if (!currentUser) return;
+            const btn = e.currentTarget;
+            const spinner = btn.querySelector('.fa-spinner');
+            btn.disabled = true;
+            spinner?.classList.remove('hidden');
+            try {
+                const ordererName = currentUser.name || '사용자';
+                let ordererContact = pickContactFromUserData(currentUser) || currentUser.contact || '';
+                if (!ordererContact) { ordererContact = await resolveMemberContact(currentUser.uid); }
+                if (!ordererContact) ordererContact = '연락처 없음';
+                const __rid = (localStorage.getItem('autoSubmitBookRequestId') || null);
+                    await submitQuoteRequest(currentUser, ordererName, ordererContact, '', { isGuest: false, forceDocId: __rid });
+                    try { if (__rid) { localStorage.removeItem('autoSubmitBookRequestId'); } } catch(e) {}
+                closeSignupModal();
+            } catch (err) {
+                console.error(err);
+                showToast('회원 접수 중 오류가 발생했습니다.', 'error');
+            } finally {
+                btn.disabled = false;
+                spinner?.classList.add('hidden');
+            }
+        });
+    }
+
+    // ===============================
+    // 중복 접수 방지
+    // - 로그인 전환 과정에서 initializePage가 2회 이상 호출되거나
+    //   자동접수(autoSubmitBook)와 다른 트리거가 겹치면 2번 접수될 수 있음.
+    // - 페이지 로드 1회당 접수는 1회만 허용
+    // ===============================
+    let __BOOK_SUBMIT_LOCK = false;
+    // ── 중복 접수 방지 잠금 ──────────────────────────────────
+    // 제출 버튼 연타로 Firestore 문서가 중복 생성되는 것을 방지합니다.
+    function __acquireBookSubmitLock() {
+        try {
+            if (__BOOK_SUBMIT_LOCK) return false;
+            if (sessionStorage.getItem('__BOOK_SUBMIT_LOCK') === '1') return false;
+            __BOOK_SUBMIT_LOCK = true;
+            sessionStorage.setItem('__BOOK_SUBMIT_LOCK', '1');
+            return true;
+        } catch (e) {
+            // sessionStorage 사용 불가 환경이면 메모리 락만 사용
+            if (__BOOK_SUBMIT_LOCK) return false;
+            __BOOK_SUBMIT_LOCK = true;
+            return true;
+        }
+    }
+    function __releaseBookSubmitLock() {
+        __BOOK_SUBMIT_LOCK = false;
+        try { sessionStorage.removeItem('__BOOK_SUBMIT_LOCK'); } catch (e) {}
+    }
+
+    // ── 페이지 초기화 ─────────────────────────────────────────
+    // Firebase Auth 상태 확인 → 편집 모드 설정 → 단가 데이터 로드 → 이벤트 바인딩
+    async function initializePage(user) {
+        currentUser = user;
+        // 로그인 전환 직후 initializePage가 중복 호출되는 경우가 있어
+        // autoSubmitBook은 페이지 1회 로드당 1번만 소비하도록 가드한다.
+        const __shouldAutoSubmitBook = (
+            localStorage.getItem('autoSubmitBook') === 'true'
+            && sessionStorage.getItem('__AUTO_SUBMIT_BOOK_CONSUMED') !== '1'
+        );
+        if (__shouldAutoSubmitBook) {
+            try { sessionStorage.setItem('__AUTO_SUBMIT_BOOK_CONSUMED', '1'); } catch(e) {}
+            localStorage.removeItem('autoSubmitBook');
+        }
+        try {
+            if (currentUser && !currentUser.isAnonymous) {
+                const userDocRef = doc(db, "users", currentUser.uid);
+                const userDocSnap = await getDoc(userDocRef);
+                if (userDocSnap.exists()) {
+                    currentUser = { uid: currentUser.uid, ...userDocSnap.data() };
+                    // DOMElements.welcomeMessage.textContent = `${__displayNameForHeader(currentUser)}님`; // [Remove] Handled by updateAuthLabels
+                    // Save name for global script
+                    const name = (currentUser.name || currentUser.displayName || "").trim();
+                    if(name) sessionStorage.setItem('userName', name);
+                    // 회원 로그인 상태에서는 '비회원조회' 및 비회원 탭 숨김
+                    try{
+                        document.getElementById('guest-lookup-open')?.classList.add('hidden');
+                        DOMElements.tabGuestBtn?.classList.add('hidden');
+                        DOMElements.guestTab?.classList.add('hidden');
+                        setModalTab('member');
+                    }catch(e){}
+
+                }
+            } else {
+                // DOMElements.welcomeMessage.textContent = ''; // [Remove] Handled by updateAuthLabels
+                // DOMElements.welcomeMessage.classList.add('hidden');
+                sessionStorage.removeItem('userName');
+            try{
+                document.getElementById('guest-lookup-open')?.classList.remove('hidden');
+                DOMElements.tabGuestBtn?.classList.remove('hidden');
+            }catch(e){}
+
+            }
+
+            await loadUnitPriceConfig();
+            await loadImagePreviews();
+            setupEventListeners();
+            applyImagePreviewsToUI();
+
+            // ✅ 회원 로그인 전환 후 자동 접수: 단가표/이미지 로드 완료 뒤에 복원+계산 후 접수
+            if (__shouldAutoSubmitBook) {
+
+                const anonKey = 'multiQuoteFormData_anonymous';
+                const userKey = getTempStorageKey();
+
+                // 익명(로그인 전) 임시저장 → 회원키로 이관
+                if (localStorage.getItem(anonKey) && !localStorage.getItem(userKey)) {
+                    localStorage.setItem(userKey, localStorage.getItem(anonKey));
+                    localStorage.removeItem(anonKey);
+                }
+
+                // 폼 복원 + 재계산(restoreFormData() 내부에서 calculateQuote() 호출)
+                await restoreFormData();
+
+                // 계산 캐시도 즉시 저장(혹시 모를 리로드 대비)
+                try {
+                    const __payload = JSON.stringify(lastCalculatedQuote || {});
+                    sessionStorage.setItem(__LAST_QUOTE_CACHE_KEY_BOOK, __payload);
+                    localStorage.setItem(__LAST_QUOTE_CACHE_KEY_BOOK, __payload);
+                } catch(e) {}
+
+                showToast('로그인이 확인되어 자동 접수합니다.', 'info');
+
+                if (!currentUser) { showToast('사용자 정보가 없어 자동 접수할 수 없습니다.', 'error'); return; }
+
+                const ordererName = currentUser.name || '사용자';
+                let ordererContact = pickContactFromUserData(currentUser) || currentUser.contact || '';
+                if (!ordererContact) { ordererContact = await resolveMemberContact(currentUser.uid); }
+                if (!ordererContact) ordererContact = '연락처 없음';
+
+                closeSignupModal();
+
+                // 중복 접수 방지 락
+                if (!__acquireBookSubmitLock()) {
+                    return;
+                }
+                try {
+                    const __rid = (localStorage.getItem('autoSubmitBookRequestId') || null);
+                    await submitQuoteRequest(currentUser, ordererName, ordererContact, '', { isGuest: false, forceDocId: __rid });
+                    try { if (__rid) { localStorage.removeItem('autoSubmitBookRequestId'); } } catch(e) {}
+                } finally {
+                    __releaseBookSubmitLock();
+                }
+            }
+
+            
+            const quoteToReload = localStorage.getItem('quoteToReload');
+            if (quoteToReload) {
+                localStorage.removeItem('quoteToReload');
+                try {
+                    const parsed = JSON.parse(quoteToReload);
+
+                    // (1) 기존 방식: 배열만 저장되어 있을 때
+                    // (2) 신규 방식: { mode:'edit', quoteId, formData } 형태
+                    let items = [];
+                    if (Array.isArray(parsed)) {
+                        items = parsed;
+                    } else if (parsed && typeof parsed === 'object') {
+                        // admin.html 에서 mode:'admin_edit' 로 넘기는 케이스도 '수정'으로 처리
+                        if ((parsed.mode === 'edit' || parsed.mode === 'admin_edit') && parsed.quoteId) {
+                            editState.enabled = true;
+                            editState.quoteId = parsed.quoteId;
+                            // 버튼 문구 변경
+                            if (DOMElements.submitQuoteBtn) {
+                                DOMElements.submitQuoteBtn.innerHTML = editState.adminEdit ? '<i class="fas fa-pen-to-square mr-2"></i>관리자 수정 저장' : '<i class="fas fa-pen-to-square mr-2"></i>견적 수정';
+                            }
+
+                            // 비회원 수정 모드: 마이페이지에서 전달된 비회원 정보를 세션/로컬에 복구
+                            // ⚠️ mypage는 가능하면 guestLookupKey + guestPwLast4 로 조회하므로 pwLast4도 함께 복구해야 함
+                            try {
+                                if (parsed.isGuest && parsed.guestLookupKey) {
+                                    const gContact = (parsed.guestContact || '').toString().replace(/[^0-9]/g, '');
+                                    const pw4 = (parsed.guestPwLast4 || gContact.slice(-4) || '').toString();
+
+                                    // 기존 키가 있으면 legacy로 보관 (수정 후 마이페이지에서 두 견적 모두 보이도록)
+                                    try{
+                                        const prevKey = (sessionStorage.getItem('guestLookupKey') || localStorage.getItem('guestLookupKey') || '').trim();
+                                        if (prevKey && prevKey !== parsed.guestLookupKey) {
+                                            sessionStorage.setItem('guestLookupKeyLegacy', prevKey);
+                                            try{ localStorage.setItem('guestLookupKeyLegacy', prevKey); }catch(_){}
+                                        }
+                                    }catch(_){}
+                                    sessionStorage.setItem('guestLookupKey', parsed.guestLookupKey);
+                                    try{ localStorage.setItem('guestLookupKey', parsed.guestLookupKey); }catch(_){ }
+
+                                    if (parsed.guestLookupKeyLegacy) {
+                                        sessionStorage.setItem('guestLookupKeyLegacy', parsed.guestLookupKeyLegacy);
+                                        try{ localStorage.setItem('guestLookupKeyLegacy', parsed.guestLookupKeyLegacy); }catch(_){ }
+                                    }
+
+                                    if (parsed.guestName) {
+                                        sessionStorage.setItem('guestName', parsed.guestName);
+                                        try{ localStorage.setItem('guestName', parsed.guestName); }catch(_){ }
+                                    }
+
+                                    if (gContact) {
+                                        sessionStorage.setItem('guestContact', gContact);
+                                        try{ localStorage.setItem('guestContact', gContact); }catch(_){ }
+                                        sessionStorage.setItem('guestContactHyphen', formatPhoneHyphen(gContact));
+                                    }
+
+                                    if (parsed.guestContactRaw) {
+                                        sessionStorage.setItem('guestContactRaw', parsed.guestContactRaw);
+                                        try{ localStorage.setItem('guestContactRaw', parsed.guestContactRaw); }catch(_){ }
+                                    }
+
+                                    if (pw4) {
+                                        sessionStorage.setItem('guestPwLast4', pw4);
+                                        try{ localStorage.setItem('guestPwLast4', pw4); }catch(_){ }
+                                    }
+                                }
+                            } catch(err) {}
+                        }
+try {
+                            if (Array.isArray(parsed.formData)) {
+                                items = parsed.formData;
+                            } else if (typeof parsed.formData === 'string') {
+                                items = JSON.parse(parsed.formData || '[]');
+                            } else if (parsed.formData && typeof parsed.formData === 'object') {
+                                // tolerate single item object
+                                items = [parsed.formData];
+                            } else {
+                                items = [];
+                            }
+                        } catch (e) {
+                            items = [];
+                        }
+                    }
+
+                    DOMElements.quoteItemsContainer.innerHTML = '';
+                    quoteItemCounter = 0;
+                    (items || []).forEach(itemData => createNewQuoteItem(itemData));
+                    applyImagePreviewsToUI();
+                    showToast(editState.enabled ? '수정할 견적 내역을 불러왔습니다.' : '견적 내역을 불러왔습니다.', 'success');
+                } catch (e) {
+                    createNewQuoteItem();
+                }
+            } else if (editState.enabled && editState.quoteId) {
+                // ✅ localStorage quoteToReload 없지만 URL id로 editState 설정된 경우
+                // Firestore에서 직접 formData 로드
+                try {
+                    const snap = await getDoc(doc(db, 'quotes', editState.quoteId));
+                    if (snap.exists()) {
+                        const q = snap.data() || {};
+                        let items = [];
+                        try {
+                            if (Array.isArray(q.formData)) items = q.formData;
+                            else if (typeof q.formData === 'string') items = JSON.parse(q.formData || '[]');
+                            else if (q.formData && typeof q.formData === 'object') items = [q.formData];
+                        } catch(e) { items = []; }
+                        DOMElements.quoteItemsContainer.innerHTML = '';
+                        quoteItemCounter = 0;
+                        (items || []).forEach(itemData => createNewQuoteItem(itemData));
+                        applyImagePreviewsToUI();
+                        if (DOMElements.submitQuoteBtn) {
+                            DOMElements.submitQuoteBtn.innerHTML = editState.adminEdit
+                                ? '<i class="fas fa-pen-to-square mr-2"></i>관리자 수정 저장'
+                                : '<i class="fas fa-pen-to-square mr-2"></i>견적 수정';
+                        }
+                        showToast('수정할 견적 내역을 불러왔습니다.', 'success');
+                    } else {
+                        createNewQuoteItem();
+                    }
+                } catch(e) {
+                    console.warn('[quote-book] Firestore edit load failed:', e);
+                    createNewQuoteItem();
+                }
+            } else {
+                createNewQuoteItem();
+                checkForTempData();
+                applyImagePreviewsToUI();
+            }
+            calculateQuote();
+            DOMElements.loadingOverlay.classList.add('hidden');
+            DOMElements.mainContent.classList.remove('hidden');
+            try { clearTimeout(initTimeout); } catch(e) {}
+        } catch (error) {
+            console.error("Initialization failed:", error);
+            showToast('페이지 초기화 실패 (새로고침 해주세요)', 'error', 5000);
+            DOMElements.loadingOverlay.classList.add('hidden');
+            DOMElements.mainContent.classList.remove('hidden');
+            try { clearTimeout(initTimeout); } catch(e) {}
+        }
+        
+        // Trigger global header update
+        if (window.updateAuthLabels) window.updateAuthLabels();
+    }
+
+    const initTimeout = setTimeout(() => {
+        if (!DOMElements.loadingOverlay.classList.contains('hidden')) {
+            DOMElements.loadingOverlay.classList.add('hidden');
+            DOMElements.mainContent.classList.remove('hidden');
+            try { clearTimeout(initTimeout); } catch(e) {}
+        }
+    }, 4500);
+
+	    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            initializePage(null);
+            return;
+        }
+        if (user.isAnonymous) {
+            initializePage(null);
+            return;
+        }
+	        // 관리자 계정은 즉시 관리자 페이지로
+	        if (await redirectIfAdmin(user)) return;
+	        initializePage(user);
+    });
+    
+
+        // ===== Mobile Navigation =====
+        const mobileNavBtn = document.getElementById('mobile-nav-btn');
+        const mobileNavModal = document.getElementById('mobileNavModal');
+        const closeMobileNavBtn = document.getElementById('closeMobileNavBtn');
+
+        function openMobileNav() {
+            if (!mobileNavModal) return;
+            mobileNavModal.classList.remove('hidden');
+            mobileNavModal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeMobileNav() {
+            if (!mobileNavModal) return;
+            mobileNavModal.classList.add('hidden');
+            mobileNavModal.classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+        mobileNavBtn?.addEventListener('click', openMobileNav);
+        closeMobileNavBtn?.addEventListener('click', closeMobileNav);
+        mobileNavModal?.addEventListener('click', closeMobileNav);
+
+
+
+        // Info edit shortcut (회원 전용)
+        const userMenuEditInfoBtn = document.getElementById('userMenuEditInfoBtn');
+        userMenuEditInfoBtn?.addEventListener('click', () => {
+            window.location.href = 'mypage.html#profile-edit';
+        });
