@@ -144,13 +144,23 @@
 <body class="antialiased flex flex-col min-h-screen">
 
     <div id="toast-container" class="fixed top-20 right-5 z-[9999] flex flex-col gap-2.5"></div>
-    <div id="loading-overlay" class="fixed inset-0 bg-[#0a0f1e] z-[100] flex flex-col items-center justify-center transition-opacity duration-500">
-        <div class="relative w-14 h-14 mb-5">
-            <div class="absolute inset-0 border-[3px] border-emerald-900 rounded-full"></div>
-            <div class="absolute inset-0 border-[3px] border-emerald-500 rounded-full border-t-transparent animate-spin"></div>
+    <div id="loading-overlay" style="position:fixed;inset:0;background:#0a0f1e;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.5s;">
+        <div style="position:relative;width:56px;height:56px;margin-bottom:20px;">
+            <div style="position:absolute;inset:0;border:3px solid #064e3b;border-radius:50%;"></div>
+            <div style="position:absolute;inset:0;border:3px solid #10b981;border-radius:50%;border-top-color:transparent;animation:spin 1s linear infinite;"></div>
         </div>
-        <p class="text-emerald-400 font-bold tracking-[0.2em] text-sm">LOADING</p>
+        <p style="color:#34d399;font-weight:700;letter-spacing:0.2em;font-size:0.875rem;">LOADING</p>
     </div>
+    <script>
+    (function(){
+        var ov = document.getElementById('loading-overlay');
+        if (!ov) return;
+        var t = setTimeout(function(){
+            if (ov) { ov.style.opacity='0'; setTimeout(function(){ if(ov) ov.style.display='none'; }, 500); }
+        }, 5000);
+        window.__clearLoadingTimeout = function(){ clearTimeout(t); };
+    })();
+    </script>
 
     <div id="site-header"></div>
 

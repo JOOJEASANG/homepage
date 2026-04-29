@@ -27,51 +27,51 @@
             position: fixed; inset: 0; pointer-events: none;
         }
         .card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.10);
-            backdrop-filter: blur(24px);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 1.5rem;
             width: 100%; max-width: 440px;
             padding: 2.5rem;
             position: relative; z-index: 1;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.35);
         }
         .tab-container {
             display: flex; gap: 0.25rem; padding: 0.25rem;
-            background: rgba(255,255,255,0.06);
+            background: #f1f5f9;
             border-radius: 0.75rem;
             margin-bottom: 2rem;
-            border: 1px solid rgba(255,255,255,0.08);
+            border: 1px solid #e2e8f0;
         }
         .tab-btn {
             flex: 1; padding: 0.7rem; text-align: center;
             font-size: 0.875rem; font-weight: 600;
-            color: rgba(255,255,255,0.4);
+            color: #64748b;
             border-radius: 0.6rem;
             transition: all 0.2s ease; cursor: pointer;
         }
-        .tab-btn:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.05); }
+        .tab-btn:hover { color: #334155; background: #e2e8f0; }
         .tab-btn.active {
-            background: rgba(22,163,74,0.2);
-            color: #4ade80;
-            border: 1px solid rgba(22,163,74,0.3);
+            background: #ffffff;
+            color: #15803d;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         .input-group { margin-bottom: 1.1rem; }
         .input-label {
             display: block; font-size: 0.7rem; font-weight: 700;
-            color: rgba(255,255,255,0.4); margin-bottom: 0.4rem;
+            color: #64748b; margin-bottom: 0.4rem;
             text-transform: uppercase; letter-spacing: 0.08em;
         }
         .input-field {
             width: 100%; padding: 0.8rem 1rem;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
             border-radius: 0.6rem;
-            font-size: 0.95rem; color: #fff;
+            font-size: 0.95rem; color: #1e293b;
             transition: all 0.2s; outline: none;
             font-family: 'Pretendard', sans-serif;
         }
-        .input-field:focus { border-color: #16a34a; background: rgba(22,163,74,0.07); box-shadow: 0 0 0 3px rgba(22,163,74,0.15); }
-        .input-field::placeholder { color: rgba(255,255,255,0.25); }
+        .input-field:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.1); }
+        .input-field::placeholder { color: #94a3b8; }
         .btn-primary {
             width: 100%; padding: 0.9rem;
             background: linear-gradient(135deg, #16a34a 0%, #059669 100%);
@@ -85,18 +85,18 @@
         .btn-primary:active { transform: translateY(0); }
         .btn-primary:disabled { background: rgba(255,255,255,0.1); cursor: not-allowed; box-shadow: none; transform: none; color: rgba(255,255,255,0.3); }
         .error-msg {
-            background: rgba(239,68,68,0.12); color: #f87171;
+            background: #fef2f2; color: #ef4444;
             font-size: 0.8rem; padding: 0.7rem 1rem;
             border-radius: 0.5rem; margin-top: 0.5rem;
-            display: none; border: 1px solid rgba(239,68,68,0.25); font-weight: 500;
+            display: none; border: 1px solid #fecaca; font-weight: 500;
         }
         .info-box {
-            background: rgba(22,163,74,0.08);
-            border: 1px solid rgba(22,163,74,0.2);
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
             border-radius: 0.6rem;
             padding: 0.85rem 1rem;
             font-size: 0.8rem;
-            color: rgba(255,255,255,0.6);
+            color: #166534;
             line-height: 1.6;
             margin-bottom: 1.5rem;
         }
@@ -128,8 +128,8 @@
                     <i class="fas fa-print text-lg"></i>
                 </div>
                 <div class="text-left">
-                    <div class="text-xl font-black text-white tracking-tight leading-none">그린오피스</div>
-                    <div class="text-[10px] text-emerald-500 font-bold tracking-widest uppercase mt-0.5">Professional Printing</div>
+                    <div class="text-xl font-black text-slate-900 tracking-tight leading-none">그린오피스</div>
+                    <div class="text-[10px] text-emerald-600 font-bold tracking-widest uppercase mt-0.5">Professional Printing</div>
                 </div>
             </div>
         </div>
@@ -143,8 +143,8 @@
         <!-- 1. 주문 조회 -->
         <div id="guest-container" class="view-section">
             <div class="info-box">
-                <i class="fas fa-circle-info mr-1.5 text-emerald-400"></i>
-                <b class="text-white">주문 시 입력했던 정보</b>와 정확히 일치해야 조회가 가능합니다.<br>
+                <i class="fas fa-circle-info mr-1.5 text-emerald-600"></i>
+                <b>주문 시 입력했던 정보</b>와 정확히 일치해야 조회가 가능합니다.<br>
                 비밀번호를 분실하신 경우 조회가 불가능합니다.
             </div>
             <form id="guest-lookup-form">
@@ -178,10 +178,10 @@
                 </div>
                 <div class="flex items-center justify-between mb-2">
                     <label class="flex items-center gap-2 cursor-pointer group">
-                        <input type="checkbox" id="keep-login" class="w-4 h-4 rounded border-slate-600 text-emerald-500 focus:ring-emerald-500 cursor-pointer" style="accent-color:#16a34a;">
-                        <span class="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">로그인 유지</span>
+                        <input type="checkbox" id="keep-login" class="w-4 h-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer" style="accent-color:#16a34a;">
+                        <span class="text-sm text-slate-500 group-hover:text-slate-700 transition-colors">로그인 유지</span>
                     </label>
-                    <button type="button" onclick="switchView('reset-password-container')" class="text-sm text-slate-500 hover:text-emerald-400 transition-colors font-medium">비밀번호 찾기</button>
+                    <button type="button" onclick="switchView('reset-password-container')" class="text-sm text-slate-400 hover:text-emerald-600 transition-colors font-medium">비밀번호 찾기</button>
                 </div>
                 <div class="error-msg" id="login-error"></div>
                 <button type="submit" class="btn-primary">
@@ -193,11 +193,11 @@
         <!-- 3. 비밀번호 재설정 -->
         <div id="reset-password-container" class="view-section hidden">
             <div class="text-center mb-8">
-                <div class="w-14 h-14 bg-emerald-500/15 border border-emerald-500/25 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-lock-open text-emerald-400 text-xl"></i>
+                <div class="w-14 h-14 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-lock-open text-emerald-600 text-xl"></i>
                 </div>
-                <h3 class="text-lg font-bold text-white">비밀번호 재설정</h3>
-                <p class="text-sm text-slate-400 mt-1.5">가입한 이메일로 재설정 링크를 보내드립니다.</p>
+                <h3 class="text-lg font-bold text-slate-900">비밀번호 재설정</h3>
+                <p class="text-sm text-slate-500 mt-1.5">가입한 이메일로 재설정 링크를 보내드립니다.</p>
             </div>
             <form id="reset-password-form">
                 <div class="input-group">
@@ -206,15 +206,15 @@
                 </div>
                 <button type="submit" class="btn-primary">재설정 메일 보내기</button>
                 <button type="button" onclick="switchView('login-container')"
-                    class="w-full mt-4 text-sm text-slate-500 hover:text-slate-300 font-bold py-2 transition-colors text-center">
+                    class="w-full mt-4 text-sm text-slate-500 hover:text-slate-800 font-bold py-2 transition-colors text-center">
                     <i class="fas fa-arrow-left mr-1"></i> 로그인으로 돌아가기
                 </button>
             </form>
         </div>
 
         <!-- Bottom link -->
-        <p class="text-center mt-6 text-xs text-slate-600">
-            <a href="index.html" class="hover:text-emerald-400 transition-colors"><i class="fas fa-home mr-1"></i>홈으로 돌아가기</a>
+        <p class="text-center mt-6 text-xs text-slate-400">
+            <a href="index.html" class="hover:text-emerald-600 transition-colors"><i class="fas fa-home mr-1"></i>홈으로 돌아가기</a>
         </p>
     </div>
 
