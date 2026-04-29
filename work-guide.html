@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>가이드안내 (Work Guide)</title>
+  <link rel="icon" href="favicon.ico" />
+
+    <link rel="stylesheet" href="assets/css/tailwind.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* 모바일 터치감 개선 */
+        html, body { -webkit-tap-highlight-color: transparent; }
+        
+        /* 커스텀 스크롤바 */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        
+        /* 사이드바 스크롤바 숨김 */
+        .sidebar-scroll::-webkit-scrollbar { display: none; }
+        .sidebar-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* 뷰어 스타일 */
+        .ql-view-content h1 { font-size: 1.6em; font-weight: 800; color: #1e293b; margin: 0.8em 0 0.5em; line-height: 1.3; }
+        .ql-view-content h2 { font-size: 1.3em; font-weight: 700; color: #334155; margin: 1em 0 0.5em; border-left: 4px solid #16a34a; padding-left: 10px; }
+        .ql-view-content p { margin-bottom: 0.8em; line-height: 1.7; color: #475569; word-break: keep-all; }
+        .ql-view-content ul, .ql-view-content ol { padding-left: 1.4em; margin-bottom: 1em; color: #475569; }
+        .ql-view-content ul { list-style-type: disc; } 
+        .ql-view-content ol { list-style-type: decimal; }
+        .ql-view-content img { border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 100%; margin: 1rem 0; }
+        .ql-view-content blockquote { border-left: 3px solid #cbd5e1; background: #f8fafc; padding: 0.8rem; margin: 1rem 0; color: #64748b; font-size: 0.95em; }
+        .ql-view-content strong { color: #0f172a; font-weight: 700; }
+        
+        /* 에디터 placeholder */
+        #wg-content-editor:empty:before { content: attr(data-placeholder); color: #cbd5e1; }
+        #wg-content-editor ul { list-style: disc; padding-left: 1.25rem; }
+        #wg-content-editor ol { list-style: decimal; padding-left: 1.25rem; }
+        #wg-content-editor img { max-width: 100%; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin: 0.75rem 0; }
+    </style>
+    <script type="text/javascript" src="//wcs.pstatic.net/wcslog.js"></script>
+    <script type="text/javascript">
+    if(!wcs_add) var wcs_add = {};
+    wcs_add["wa"] = "93643ac58d5";
+    if(window.wcs) {
+    wcs_do();
+    }
+    </script>
+</head>
+<body class="bg-gray-100/60 font-sans text-slate-600">
+
+    <div id="workGuideModal" class="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center md:p-4 transition-all duration-200">
+        <div class="bg-white w-full h-full md:max-w-6xl md:h-[85vh] md:rounded-2xl shadow-soft overflow-hidden flex flex-col md:flex-row animate-fade-in relative">
+            
+            <div class="md:hidden h-14 bg-white border-b border-slate-100 flex items-center justify-between px-4 shrink-0 z-50">
+                <span class="font-bold text-slate-700">업무 가이드</span>
+                <button id="closeGuideMobile" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-800 -mr-2">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <div id="sidebarArea" class="w-full md:w-[280px] bg-[#f8fafc] border-r border-slate-200/80 flex flex-col h-full shrink-0 z-20">
+                
+                <div class="px-5 py-4 bg-[#f8fafc] border-b border-slate-100 shrink-0">
+                    <div class="flex items-center gap-2.5">
+                        <i class="fas fa-book text-brand-600"></i>
+                        <h2 class="text-[15px] font-bold text-slate-700 tracking-tight">가이드 목록</h2>
+                    </div>
+                </div>
+
+                <div id="guideList" class="flex-1 overflow-y-auto sidebar-scroll bg-slate-50">
+                    <div class="text-center py-10">
+                        <i class="fas fa-circle-notch fa-spin text-brand-500 mb-2"></i>
+                        <p class="text-xs text-slate-400">Loading...</p>
+                    </div>
+                </div>
+
+                <div id="adminSidebarAction" class="p-3 border-t border-slate-200 bg-white hidden shrink-0">
+                    <button onclick="window.openGuideEditor()" class="w-full py-3 rounded-lg bg-slate-800 text-white text-sm font-bold hover:bg-slate-900 transition-colors flex items-center justify-center gap-2">
+                        <i class="fas fa-plus text-xs"></i> 새 가이드
+                    </button>
+                </div>
+            </div>
+
+            <div id="contentArea" class="fixed inset-0 md:static bg-white z-30 flex-col h-full hidden md:flex flex-1 w-full">
+                
+                <div class="md:hidden h-14 bg-white border-b border-slate-100 flex items-center px-2 shrink-0">
+                    <button onclick="window.showSidebar()" class="w-10 h-10 flex items-center justify-center text-slate-500 mr-2">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <span class="font-bold text-slate-800 truncate pr-4" id="mobileHeaderTitle">내용 보기</span>
+                </div>
+
+                <button id="closeGuideDesktop" class="hidden md:flex items-center justify-center absolute top-5 right-5 w-8 h-8 rounded-full text-slate-300 hover:text-slate-600 transition z-50">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+
+                <div id="guideViewer" class="flex-1 flex flex-col h-full overflow-hidden">
+                    <div class="px-6 md:px-10 pt-6 md:pt-10 pb-4 shrink-0">
+                        <h1 id="viewTitle" class="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight leading-snug">
+                            가이드를 선택해주세요
+                        </h1>
+                    </div>
+                    
+                    <div class="h-px w-full bg-slate-100 mx-6 md:mx-10 max-w-[calc(100%-3rem)] md:max-w-[calc(100%-5rem)]"></div>
+
+                    <div id="viewContent" class="flex-1 overflow-y-auto px-6 md:px-10 py-6 ql-view-content custom-scrollbar whitespace-pre-wrap break-words">
+                        <div class="flex flex-col items-center justify-center h-full text-slate-300/60 pb-20">
+                            <i class="fas fa-mouse-pointer text-4xl mb-3"></i>
+                            <p class="font-medium text-sm">목록에서 문서를 선택하세요.</p>
+                        </div>
+                    </div>
+                    
+                    <div id="adminContentAction" class="px-6 py-4 bg-white border-t border-slate-100 flex justify-end gap-2 hidden shrink-0 pb-safe">
+                        <button onclick="window.deleteCurrentGuide()" class="px-3 py-2 rounded-lg text-red-500 hover:bg-red-50 text-xs font-bold transition">
+                            삭제
+                        </button>
+                        <button onclick="window.editCurrentGuide()" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-bold transition">
+                            수정하기
+                        </button>
+                    </div>
+                </div>
+
+                <div id="guideEditor" class="hidden flex-col h-full bg-slate-50">
+                    <div class="flex-1 flex flex-col p-4 md:p-8 overflow-hidden">
+                        <div class="flex items-center justify-between mb-4 shrink-0">
+                            <h3 class="text-base font-bold text-slate-700 flex items-center gap-2">
+                                <i class="fas fa-pen text-brand-600"></i> 작성 모드
+                            </h3>
+                        </div>
+                        
+                        <input type="hidden" id="editGuideId">
+                        
+                        <div class="flex flex-col h-full gap-3 w-full">
+                            <input type="text" id="editTitle" class="w-full px-4 py-3 text-lg font-bold text-slate-800 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-brand-500 placeholder-slate-300 transition shrink-0" placeholder="제목을 입력하세요">
+                            
+                            <div class="flex-1 bg-white border border-slate-200 rounded-lg flex flex-col overflow-hidden relative">
+                                <div class="flex flex-wrap items-center gap-1 p-2 bg-slate-50 border-b border-slate-200">
+                                    <button type="button" class="wg-editor-btn px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" data-cmd="bold" title="굵게"><i class="fas fa-bold"></i></button>
+                                    <button type="button" class="wg-editor-btn px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" data-cmd="italic" title="기울임"><i class="fas fa-italic"></i></button>
+                                    <button type="button" class="wg-editor-btn px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" data-cmd="underline" title="밑줄"><i class="fas fa-underline"></i></button>
+                                    <span class="h-6 w-px bg-slate-200 mx-1"></span>
+
+                                    <button type="button" class="wg-editor-btn px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" data-align="left" title="왼쪽 정렬"><i class="fas fa-align-left"></i></button>
+                                    <button type="button" class="wg-editor-btn px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" data-align="center" title="가운데 정렬"><i class="fas fa-align-center"></i></button>
+                                    <button type="button" class="wg-editor-btn px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" data-align="right" title="오른쪽 정렬"><i class="fas fa-align-right"></i></button>
+                                    <span class="h-6 w-px bg-slate-200 mx-1"></span>
+
+                                    <button type="button" class="wg-editor-btn px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" data-list="ul" title="글머리"><i class="fas fa-list-ul"></i></button>
+                                    <button type="button" class="wg-editor-btn px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" data-list="ol" title="번호"><i class="fas fa-list-ol"></i></button>
+                                    <span class="h-6 w-px bg-slate-200 mx-1"></span>
+
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[11px] font-bold text-slate-500">크기</span>
+                                        <select id="wg-font-size" class="border border-slate-200 rounded-md px-2 py-1 text-xs bg-white">
+                                            <option value="13">작게</option>
+                                            <option value="14" selected>기본</option>
+                                            <option value="16">크게</option>
+                                            <option value="18">아주 크게</option>
+                                        </select>
+                                    </div>
+
+                                    <button type="button" id="wg-insert-image-btn" class="ml-1 px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" title="이미지 삽입">
+    <i class="fas fa-image mr-1"></i>이미지
+</button>
+<input type="file" id="wg-image-input" accept="image/*" class="hidden" />
+
+<button type="button" id="wg-insert-url-btn" class="ml-1 px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" title="이미지 주소로 삽입">
+    <i class="fas fa-link mr-1"></i>링크삽입
+</button>
+
+
+                                    <button type="button" id="wg-clear-format-btn" class="ml-auto px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold" title="서식 제거">
+                                        <i class="fas fa-eraser mr-1"></i>서식 초기화
+                                    </button>
+                                </div>
+
+                                <div id="wg-content-editor" contenteditable="true"
+                                    class="w-full h-full min-h-[320px] p-4 outline-none bg-white text-slate-900 leading-relaxed overflow-y-auto"
+                                    style="white-space: pre-wrap;"
+                                    data-placeholder="내용을 입력하세요..."></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="px-4 py-4 bg-white border-t border-slate-100 flex justify-end gap-3 shrink-0 pb-safe">
+                        <button onclick="window.cancelEdit()" class="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-500 font-bold hover:bg-slate-50 text-sm">취소</button>
+                        <button onclick="window.saveGuide()" class="px-6 py-2.5 rounded-lg bg-brand-600 text-white font-bold hover:bg-brand-700 transition text-sm">
+                            저장
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // iframe 안에서 열렸는지 확인
+        const isEmbedded = window.self !== window.top || new URLSearchParams(window.location.search).get('embed');
+        
+        // 요소 선택
+        const modalWrap = document.getElementById('workGuideModal');
+        const modalInner = modalWrap ? modalWrap.firstElementChild : null;
+        const closeMobile = document.getElementById('closeGuideMobile');
+        const closeDesktop = document.getElementById('closeGuideDesktop');
+
+        if (isEmbedded && modalWrap && modalInner) {
+            // [중요] 임베드 모드일 때: 이중 테두리/배경 제거
+            
+            // 1. 바깥 감싸는 div의 어두운 배경과 패딩 제거
+            modalWrap.className = 'w-full h-full bg-white flex flex-col'; // fixed inset-0 등 제거
+            
+            // 2. 내부 컨텐츠 박스의 둥근 모서리와 그림자, 높이 제한 제거
+            // (부모 iframe에 꽉 차게 변경)
+            modalInner.className = 'w-full h-full flex flex-col md:flex-row bg-white overflow-hidden';
+            
+            // 3. body 배경색을 흰색으로 변경 (회색 테두리 원인 제거)
+            document.body.classList.remove('bg-gray-100/60');
+            document.body.classList.add('bg-white');
+        }
+
+        // 닫기 버튼 동작 처리
+        const handleClose = (e) => {
+            e.preventDefault();
+            if (isEmbedded) {
+                window.parent.postMessage({ type: 'CLOSE_WORK_GUIDE' }, '*');
+            } else {
+                const goBack = () => window.history.length > 1 ? window.history.back() : window.close();
+                goBack();
+            }
+        };
+
+        if(closeMobile) closeMobile.addEventListener('click', handleClose);
+        if(closeDesktop) closeDesktop.addEventListener('click', handleClose);
+    });
+</script>
+
+<script type="module" src="assets/js/pages/work-guide.js"></script>
+</body>
+</html>

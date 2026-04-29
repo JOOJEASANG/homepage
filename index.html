@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>그린오피스 | Professional Printing Solution</title>
+    <link rel="icon" href="favicon.ico" />
+    <link rel="stylesheet" href="assets/css/tailwind.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Pretendard', sans-serif; background-color: #0a0f1e; color: #e2e8f0; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #0a0f1e; }
+        ::-webkit-scrollbar-thumb { background: #1e3a2f; border-radius: 99px; }
+
+        /* === HERO === */
+        .hero-section {
+            background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(22,163,74,0.22) 0%, transparent 60%),
+                        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(16,185,129,0.10) 0%, transparent 50%),
+                        #0a0f1e;
+        }
+        .hero-grid {
+            background-image:
+                linear-gradient(rgba(22,163,74,0.07) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(22,163,74,0.07) 1px, transparent 1px);
+            background-size: 48px 48px;
+        }
+        .badge-pill {
+            background: rgba(22,163,74,0.12);
+            border: 1px solid rgba(22,163,74,0.25);
+            backdrop-filter: blur(8px);
+        }
+        .hero-cta-primary {
+            background: linear-gradient(135deg, #16a34a 0%, #059669 100%);
+            box-shadow: 0 0 0 0 rgba(22,163,74,0.5);
+            transition: all 0.3s ease;
+        }
+        .hero-cta-primary:hover {
+            box-shadow: 0 8px 30px rgba(22,163,74,0.4);
+            transform: translateY(-2px);
+        }
+        .hero-cta-secondary {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.12);
+            transition: all 0.3s ease;
+        }
+        .hero-cta-secondary:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(22,163,74,0.4);
+            transform: translateY(-2px);
+        }
+        .glass-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(20px);
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+        }
+
+        /* === SERVICE SECTION === */
+        .service-section { background: #ffffff; }
+        .service-card {
+            border: 1.5px solid #e2e8f0;
+            transition: all 0.35s ease;
+        }
+        .service-card:hover {
+            border-color: #16a34a;
+            box-shadow: 0 20px 60px rgba(22,163,74,0.1);
+            transform: translateY(-4px);
+        }
+        .service-icon {
+            background: linear-gradient(135deg, #dcfce7 0%, #d1fae5 100%);
+            color: #15803d;
+        }
+
+        /* === REALTIME SECTION === */
+        .realtime-section { background: #f8fafc; }
+        .panel-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .panel-header {
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 99px; }
+
+        /* Status Badges */
+        .status-badge-waiting { background-color: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; font-size: 10px; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+        .status-badge-process { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: bold; white-space: nowrap; }
+        .status-badge-done { background-color: #eff6ff; color: #1e40af; border: 1px solid #93c5fd; font-size: 10px; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+
+        /* === PORTFOLIO === */
+        .portfolio-section { background: #ffffff; }
+        .portfolio-item {
+            overflow: hidden;
+            border-radius: 12px;
+            cursor: pointer;
+            aspect-ratio: 1 / 1;
+            background: #f1f5f9;
+        }
+        .portfolio-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
+        .portfolio-item:hover img { transform: scale(1.06); }
+
+        /* === FOOTER === */
+        .site-footer { background: #0a0f1e; border-top: 1px solid rgba(255,255,255,0.06); }
+
+        /* === MODAL === */
+        .modal-bg { background: rgba(10,15,30,0.85); backdrop-filter: blur(4px); }
+        #notice-modal-content ul, #notice-popup-content ul { list-style: disc; padding-left: 1.25rem; }
+        #notice-modal-content ol, #notice-popup-content ol { list-style: decimal; padding-left: 1.25rem; }
+        #notice-modal-content a, #notice-popup-content a { color: #16a34a; text-decoration: underline; }
+
+        /* === ANIMATIONS === */
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-16px); } }
+        @keyframes float-slow { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-10px) rotate(3deg); } }
+        @keyframes pulse-green { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes gradient-x { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        @keyframes fade-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slide-up { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        .animate-float { animation: float 7s ease-in-out infinite; }
+        .animate-float-slow { animation: float-slow 10s ease-in-out infinite; }
+        .animate-gradient-x { background-size: 200% 200%; animation: gradient-x 4s ease infinite; }
+        .animate-fade-in { animation: fade-in 0.4s ease forwards; }
+        .animate-slide-up { animation: slide-up 0.5s cubic-bezier(.23,1,.32,1) forwards; }
+        .animate-ping { animation: ping 1.2s cubic-bezier(0, 0, 0.2, 1) infinite; }
+        @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .animate-pulse { animation: pulse-green 2s ease infinite; }
+    </style>
+    <script type="text/javascript" src="//wcs.pstatic.net/wcslog.js"></script>
+    <script type="text/javascript">
+    if(!wcs_add) var wcs_add = {};
+    wcs_add["wa"] = "93643ac58d5";
+    if(window.wcs) { wcs_do(); }
+    </script>
+</head>
+<body class="antialiased flex flex-col min-h-screen">
+
+    <div id="toast-container" class="fixed top-20 right-5 z-[9999] flex flex-col gap-2.5"></div>
+    <div id="loading-overlay" class="fixed inset-0 bg-[#0a0f1e] z-[100] flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="relative w-14 h-14 mb-5">
+            <div class="absolute inset-0 border-[3px] border-emerald-900 rounded-full"></div>
+            <div class="absolute inset-0 border-[3px] border-emerald-500 rounded-full border-t-transparent animate-spin"></div>
+        </div>
+        <p class="text-emerald-400 font-bold tracking-[0.2em] text-sm">LOADING</p>
+    </div>
+
+    <div id="site-header"></div>
+
+    <!-- Mobile Nav Drawer -->
+    <div id="mobileNavModal" class="fixed inset-0 modal-bg hidden items-end justify-center z-[9998] animate-fade-in">
+        <div class="w-full bg-[#111827] rounded-t-2xl shadow-2xl overflow-hidden animate-slide-up border-t border-white/10" onclick="event.stopPropagation()">
+            <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center">
+                <span class="font-bold text-white tracking-tight">메뉴</span>
+                <button id="closeMobileNavBtn" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition" type="button">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-4 flex flex-col gap-2">
+                <a href="index.html" class="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-white/05 hover:bg-white/10 text-slate-200 font-semibold transition">
+                    <i class="fas fa-home text-emerald-500 w-5 text-center"></i> 홈
+                </a>
+                <a href="quote-book.html" class="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-white/05 hover:bg-white/10 text-slate-200 font-semibold transition">
+                    <i class="fas fa-book text-emerald-500 w-5 text-center"></i> 책자/제본 견적
+                </a>
+                <a href="quote-print.html" class="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-white/05 hover:bg-white/10 text-slate-200 font-semibold transition">
+                    <i class="fas fa-print text-emerald-500 w-5 text-center"></i> 디지털 인쇄 견적
+                </a>
+                <a href="qna.html" class="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-white/05 hover:bg-white/10 text-slate-200 font-semibold transition">
+                    <i class="fas fa-headset text-emerald-500 w-5 text-center"></i> 고객센터
+                </a>
+                <div class="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-white/10">
+                    <button id="mobile-mypage-btn" type="button" class="py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition text-sm">접수/주문조회</button>
+                    <button id="mobile-auth-btn" type="button" class="py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold transition text-sm border border-white/15">관리자</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="pt-16 flex-grow">
+
+        <!-- ===== HERO SECTION ===== -->
+        <section class="hero-section relative min-h-[92vh] flex items-center overflow-hidden">
+            <div class="hero-grid absolute inset-0 pointer-events-none"></div>
+
+            <!-- Glow orbs -->
+            <div class="absolute top-[-120px] left-[-80px] w-[480px] h-[480px] rounded-full bg-emerald-500/10 blur-[100px] pointer-events-none animate-float-slow"></div>
+            <div class="absolute bottom-[-60px] right-[-60px] w-[360px] h-[360px] rounded-full bg-teal-400/8 blur-[80px] pointer-events-none animate-float"></div>
+
+            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-20 lg:py-28">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+
+                    <!-- Left: Text -->
+                    <div class="lg:col-span-7 space-y-8">
+                        <div class="inline-flex items-center gap-2.5 badge-pill px-4 py-2 rounded-full">
+                            <span class="relative flex h-2.5 w-2.5">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                            </span>
+                            <span class="text-emerald-400 font-semibold text-xs tracking-widest uppercase">Professional Printing Solution</span>
+                        </div>
+
+                        <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black text-white leading-[1.05] tracking-tight">
+                            디지털 인쇄,<br>
+                            <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 animate-gradient-x">출력/제본</span><br>
+                            <span class="text-white">전문 파트너</span>
+                        </h1>
+
+                        <p class="text-slate-400 text-lg max-w-lg leading-relaxed">
+                            복잡한 과정은 줄이고 <span class="text-white font-semibold">퀄리티는 높였습니다.</span><br>
+                            최고급 장비로 완성되는 압도적인 결과물을 경험해보세요.
+                        </p>
+
+                        <div class="flex flex-col sm:flex-row gap-4 pt-2">
+                            <a href="quote-book.html" class="hero-cta-primary group flex items-center justify-center gap-3 px-8 py-4 rounded-2xl text-white font-bold text-base">
+                                <i class="fas fa-book"></i>
+                                <span>책자 제본 견적</span>
+                                <i class="fas fa-arrow-right text-emerald-300 group-hover:translate-x-1 transition-transform"></i>
+                            </a>
+                            <a href="quote-print.html" class="hero-cta-secondary group flex items-center justify-center gap-3 px-8 py-4 rounded-2xl text-white font-bold text-base">
+                                <i class="fas fa-print text-emerald-400"></i>
+                                <span>디지털 인쇄 견적</span>
+                                <i class="fas fa-arrow-right text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all"></i>
+                            </a>
+                        </div>
+
+                        <!-- Stats -->
+                        <div class="flex flex-wrap gap-6 pt-4 border-t border-white/10">
+                            <div class="stat-card px-5 py-3 rounded-xl">
+                                <div class="text-2xl font-black text-white">15:00</div>
+                                <div class="text-xs text-slate-500 mt-0.5">당일 접수 마감</div>
+                            </div>
+                            <div class="stat-card px-5 py-3 rounded-xl">
+                                <div class="text-2xl font-black text-emerald-400">빠른</div>
+                                <div class="text-xs text-slate-500 mt-0.5">익일 납기 가능</div>
+                            </div>
+                            <div class="stat-card px-5 py-3 rounded-xl">
+                                <div class="text-2xl font-black text-white">A3+</div>
+                                <div class="text-xs text-slate-500 mt-0.5">고해상도 컬러</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Contact Card -->
+                    <div class="lg:col-span-5 animate-float">
+                        <div class="glass-card rounded-3xl p-8 space-y-6">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                                        <i class="fas fa-headset text-emerald-400"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-white text-base">고객센터</div>
+                                        <div class="text-xs text-slate-500">평일 09:00 – 18:00</div>
+                                    </div>
+                                </div>
+                                <span class="flex items-center gap-1.5 bg-rose-500/15 border border-rose-500/25 text-rose-400 text-[11px] font-bold px-3 py-1.5 rounded-lg">
+                                    <span class="relative flex h-1.5 w-1.5">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-rose-500"></span>
+                                    </span>
+                                    마감 15:00
+                                </span>
+                            </div>
+
+                            <div class="text-center py-4 border-y border-white/08">
+                                <p class="text-xs text-slate-500 mb-3">빠르고 친절하게 상담해 드립니다</p>
+                                <a href="tel:041-571-4370" class="block text-4xl lg:text-5xl font-black text-white tracking-tighter hover:text-emerald-400 transition-colors duration-300">
+                                    041-571-4370
+                                </a>
+                                <div class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/05 border border-white/08">
+                                    <i class="fas fa-clock text-amber-400 text-xs"></i>
+                                    <span class="text-slate-400 text-sm">점심 <span class="text-white font-bold">12:00~13:00</span></span>
+                                    <span class="text-rose-400 text-[11px]">(주말/공휴일 휴무)</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <p class="text-xs text-slate-500 text-center mb-3 flex items-center justify-center gap-1.5">
+                                    <i class="fas fa-map-marker-alt text-emerald-500"></i>
+                                    충남 천안시 서북구 쌍용14길 29 1층
+                                </p>
+                                <a href="https://map.naver.com/p/entry/place/13194482" target="_blank"
+                                   class="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-colors">
+                                    <i class="fas fa-map-marked-alt"></i> 오시는 길 확인하기
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Bottom fade -->
+            <div class="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#f8fafc] to-transparent pointer-events-none"></div>
+        </section>
+
+        <!-- ===== SERVICE SECTION ===== -->
+        <section class="service-section py-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-14">
+                    <span class="inline-block text-xs font-bold tracking-widest text-emerald-600 uppercase mb-3">Our Services</span>
+                    <h2 class="text-3xl sm:text-4xl font-black text-slate-900 leading-tight">원하시는 서비스를 선택해 주세요</h2>
+                    <p class="text-slate-500 mt-3 max-w-lg mx-auto">빠른 온라인 견적으로 합리적인 가격을 확인하세요</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <a href="quote-book.html" class="service-card group block rounded-2xl p-7 hover:no-underline">
+                        <div class="service-icon w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-5 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-2">책자 / 제본</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed">보고서, 학원 교재, 제안서, 논문 등<br>다양한 책자 제본 견적을 즉시 확인하세요.</p>
+                        <div class="mt-5 flex items-center gap-1.5 text-emerald-600 font-bold text-sm group-hover:gap-2.5 transition-all">
+                            견적 확인하기 <i class="fas fa-arrow-right text-xs"></i>
+                        </div>
+                    </a>
+
+                    <a href="quote-print.html" class="service-card group block rounded-2xl p-7 hover:no-underline">
+                        <div class="service-icon w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-5 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-print"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-2">디지털 인쇄</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed">리플렛, 전단지, 포스터, 현수막 등<br>고품질 디지털 인쇄 견적을 확인하세요.</p>
+                        <div class="mt-5 flex items-center gap-1.5 text-emerald-600 font-bold text-sm group-hover:gap-2.5 transition-all">
+                            견적 확인하기 <i class="fas fa-arrow-right text-xs"></i>
+                        </div>
+                    </a>
+
+                    <a href="qna.html" class="service-card group block rounded-2xl p-7 hover:no-underline md:col-span-2 lg:col-span-1">
+                        <div class="service-icon w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-5 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-headset"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-2">고객센터 / 문의</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed">견적이 어렵거나 특수한 요구사항이 있으시면<br>게시판이나 전화로 문의해 주세요.</p>
+                        <div class="mt-5 flex items-center gap-1.5 text-emerald-600 font-bold text-sm group-hover:gap-2.5 transition-all">
+                            문의하기 <i class="fas fa-arrow-right text-xs"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== REALTIME SECTION ===== -->
+        <section class="realtime-section py-16 border-t border-slate-100">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <span class="text-xs font-bold tracking-widest text-emerald-600 uppercase">Real-time</span>
+                        <h2 class="text-2xl font-black text-slate-900 mt-1">실시간 현황</h2>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-slate-400">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        실시간 업데이트
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                    <!-- 공지사항 -->
+                    <div class="panel-card rounded-2xl overflow-hidden flex flex-col" style="height: 380px;">
+                        <div class="panel-header px-5 py-3.5 flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center">
+                                <i class="fas fa-bullhorn text-amber-500 text-xs"></i>
+                            </div>
+                            <span class="font-bold text-slate-800 text-sm">공지사항</span>
+                        </div>
+                        <div class="grid grid-cols-12 px-4 py-2 bg-slate-50 text-[10px] font-bold text-slate-400 border-b border-slate-100 text-center">
+                            <div class="col-span-2">구분</div>
+                            <div class="col-span-7">제목</div>
+                            <div class="col-span-3">날짜</div>
+                        </div>
+                        <div class="flex-grow overflow-y-auto custom-scrollbar" id="notice-list-container">
+                            <div class="flex flex-col items-center justify-center h-full text-slate-300 gap-2">
+                                <i class="fas fa-circle-notch fa-spin text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 실시간 접수 현황 -->
+                    <div class="panel-card rounded-2xl overflow-hidden flex flex-col" style="height: 380px;">
+                        <div class="panel-header px-5 py-3.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center">
+                                    <i class="fas fa-tasks text-emerald-500 text-xs"></i>
+                                </div>
+                                <span class="font-bold text-slate-800 text-sm">실시간 접수 현황</span>
+                            </div>
+                            <span class="relative flex h-2 w-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-12 px-4 py-2 bg-slate-50 text-[10px] font-bold text-slate-400 border-b border-slate-100 text-center">
+                            <div class="col-span-3">접수자</div>
+                            <div class="col-span-6">내용</div>
+                            <div class="col-span-3">상태</div>
+                        </div>
+                        <div class="flex-grow overflow-y-auto custom-scrollbar" id="recent-quotes-container">
+                            <div class="flex flex-col items-center justify-center h-full text-slate-300 gap-2">
+                                <i class="fas fa-circle-notch fa-spin text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 문의 게시판 -->
+                    <div class="panel-card rounded-2xl overflow-hidden flex flex-col" style="height: 380px;">
+                        <div class="panel-header px-5 py-3.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+                                    <i class="fas fa-comments text-blue-500 text-xs"></i>
+                                </div>
+                                <span class="font-bold text-slate-800 text-sm">문의 게시판</span>
+                            </div>
+                            <a href="qna.html" class="text-[11px] text-slate-400 hover:text-emerald-600 transition-colors font-medium">더보기 <i class="fas fa-chevron-right text-[9px]"></i></a>
+                        </div>
+                        <div class="grid grid-cols-12 px-4 py-2 bg-slate-50 text-[10px] font-bold text-slate-400 border-b border-slate-100 text-center">
+                            <div class="col-span-2">상태</div>
+                            <div class="col-span-8">제목</div>
+                            <div class="col-span-2">날짜</div>
+                        </div>
+                        <div class="flex-grow overflow-y-auto custom-scrollbar" id="recent-qna-container">
+                            <div class="flex flex-col items-center justify-center h-full text-slate-300 gap-2">
+                                <i class="fas fa-circle-notch fa-spin text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== PORTFOLIO SECTION ===== -->
+        <section class="portfolio-section py-16 border-t border-slate-100">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <span class="text-xs font-bold tracking-widest text-emerald-600 uppercase">Portfolio</span>
+                        <h2 class="text-2xl font-black text-slate-900 mt-1">작업 포트폴리오</h2>
+                    </div>
+                </div>
+                <div id="portfolio-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    <div class="col-span-full py-12 flex flex-col items-center justify-center text-slate-300">
+                        <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
+                        <span class="text-xs">Loading...</span>
+                    </div>
+                </div>
+                <div id="portfolio-page-controls" class="mt-6 flex justify-center gap-2"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="site-footer py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center md:items-start gap-10">
+                <div class="flex flex-col items-center md:items-start">
+                    <a href="index.html" class="flex items-center gap-3 group mb-5">
+                        <div class="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white group-hover:bg-emerald-500 group-hover:rotate-6 transition-all duration-300 shadow-lg shadow-emerald-900/40">
+                            <i class="fas fa-print"></i>
+                        </div>
+                        <div>
+                            <div class="text-xl font-black text-white tracking-tight leading-none">그린오피스</div>
+                            <div class="text-[10px] text-emerald-500 font-bold tracking-widest uppercase mt-0.5">Professional Printing</div>
+                        </div>
+                    </a>
+                    <p class="text-slate-500 text-xs leading-relaxed max-w-xs text-center md:text-left">
+                        최고의 기술과 정성으로 비즈니스의 가치를 출력합니다.<br>디지털 인쇄 및 책자 제본 전문 파트너.
+                    </p>
+                </div>
+
+                <div class="flex flex-col items-center md:items-end gap-3 text-xs text-slate-500">
+                    <div class="flex flex-wrap justify-center md:justify-end gap-x-5 gap-y-1.5">
+                        <span><b class="text-slate-400">대표</b> 주재상</span>
+                        <span><b class="text-slate-400">사업자번호</b> 312-22-73242</span>
+                    </div>
+                    <p class="flex items-center gap-1.5">
+                        <i class="fas fa-map-marker-alt text-emerald-600 text-[10px]"></i>
+                        충남 천안시 서북구 쌍용14길 29 1층
+                    </p>
+                    <p class="flex items-center gap-1.5">
+                        <i class="fas fa-phone text-emerald-600 text-[10px]"></i>
+                        041-571-4370
+                    </p>
+                    <p class="text-slate-600 text-[11px] pt-3 border-t border-white/05 text-center md:text-right">
+                        Copyright © 2026 <span class="text-emerald-500 font-bold">Green Office</span>. All rights reserved.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ===== MODALS ===== -->
+    <div id="notice-modal" class="fixed inset-0 modal-bg z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-slide-up">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h2 class="font-bold text-lg text-slate-800"><i class="fas fa-bullhorn text-emerald-500 mr-2"></i>공지사항</h2>
+                <button id="close-notice-modal-btn" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-8 overflow-y-auto custom-scrollbar">
+                <span id="notice-badge" class="inline-block px-2 py-1 bg-red-50 text-red-600 text-xs font-bold rounded mb-2 border border-red-100 hidden">중요</span>
+                <h3 id="notice-modal-title" class="text-xl font-bold text-slate-900 mb-2"></h3>
+                <p id="notice-modal-date" class="text-xs text-slate-400 mb-6 pb-4 border-b border-slate-100"></p>
+                <div id="notice-modal-content" class="prose prose-sm max-w-none text-slate-600 leading-relaxed"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="portfolio-image-modal" class="fixed inset-0 bg-black/95 z-[130] hidden items-center justify-center p-4">
+        <div class="relative w-full max-w-5xl h-full max-h-[90vh] flex flex-col items-center justify-center">
+            <button id="close-portfolio-image-modal-btn" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition z-50">
+                <i class="fas fa-times"></i>
+            </button>
+            <button id="portfolio-modal-prev" class="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition z-50">
+                <i class="fas fa-chevron-left text-lg"></i>
+            </button>
+            <button id="portfolio-modal-next" class="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition z-50">
+                <i class="fas fa-chevron-right text-lg"></i>
+            </button>
+            <img id="portfolio-image-img" src="" alt="Portfolio" class="max-w-full max-h-full object-contain rounded-xl shadow-2xl">
+            <div class="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
+                <p id="portfolio-image-title" class="text-white font-bold text-lg drop-shadow-md"></p>
+                <p id="portfolio-image-desc" class="text-slate-300 text-sm drop-shadow-md"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="notice-popup-modal" class="fixed inset-0 modal-bg z-[140] hidden items-center justify-center p-4">
+        <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-start">
+                <div>
+                    <span class="text-emerald-600 text-[10px] font-bold border border-emerald-200 px-2 py-0.5 rounded mb-1 inline-block">NOTICE</span>
+                    <h3 id="notice-popup-title" class="text-lg font-bold text-slate-900 leading-snug mt-1"></h3>
+                </div>
+                <button id="notice-popup-close-btn" class="text-slate-400 hover:text-slate-600 mt-1"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="px-6 py-5 max-h-[40vh] overflow-y-auto custom-scrollbar bg-slate-50">
+                <div id="notice-popup-content" class="text-sm text-slate-700 whitespace-pre-line leading-relaxed"></div>
+            </div>
+            <div class="px-5 py-3 bg-white border-t border-slate-100 flex items-center justify-between">
+                <label class="flex items-center gap-2 text-xs text-slate-500 font-bold cursor-pointer hover:text-slate-700">
+                    <input id="notice-popup-hide-today" type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500">
+                    오늘 하루 보지 않기
+                </label>
+                <button id="notice-popup-confirm-btn" class="px-4 py-1.5 rounded-lg bg-slate-900 text-white font-bold text-xs hover:bg-slate-700 transition">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inline auth/nav scripts (unchanged) -->
+    <script>
+    (function(){
+      const CLEAR_KEYS = ['guestLookupKey', 'guestLookupKeyLegacy', 'guestName', 'guestContact', 'guestContactHyphen', 'guestContactRaw', 'guestPwLast4', 'userRole', 'quoteToReload', 'quoteDraft', 'lastQuoteDraft', 'postLoginRedirect', 'temp_quote_print', 'autoSubmitBook', 'notice_popup_hide', 'userName'];
+      function currentFile() { try { return (location.pathname||"").split("/").pop() || "index.html"; } catch(e) { return "index.html"; } }
+      function getGuestKey() { return sessionStorage.getItem("guestLookupKey") || localStorage.getItem("guestLookupKey") || sessionStorage.getItem("guestLookupKeyLegacy") || localStorage.getItem("guestLookupKeyLegacy") || ""; }
+      function getRole() { try { return (localStorage.getItem("userRole")||"").toLowerCase(); } catch(e) { return ""; } }
+      function setRole(role) { try { if (role) localStorage.setItem("userRole", String(role).toLowerCase()); } catch(e) {} }
+      function setPostLoginRedirect(file) { try { localStorage.setItem("postLoginRedirect", file); } catch(e) {} }
+      function clearClientState() { try { sessionStorage.clear(); } catch(e) {} try { CLEAR_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} }); } catch(e) {} }
+      async function firebaseSignOutSafe() { try { if (window.auth && window.signOut) { await window.signOut(window.auth); return; } if (window.auth && typeof window.auth.signOut === "function") { await window.auth.signOut(); return; } if (window.firebase && window.firebase.auth && typeof window.firebase.auth === "function") { await window.firebase.auth().signOut(); return; } if (window.__firebaseAuth && typeof window.__firebaseAuth.signOut === "function") { await window.__firebaseAuth.signOut(); return; } } catch (e) {} }
+      async function hardLogout(target) { clearClientState(); await firebaseSignOutSafe(); try { location.replace(target || "index.html"); location.reload(); } catch(e) { location.href = target || "index.html"; } }
+      window.__hardLogout = () => hardLogout("index.html");
+      function getSessionState() { let guestKey = getGuestKey(); try { const gn = (sessionStorage.getItem("guestName") || localStorage.getItem("guestName") || "").trim(); const gc = (sessionStorage.getItem("guestContact") || localStorage.getItem("guestContact") || "").trim(); if (guestKey && !gn && !gc) { ["guestLookupKey","guestLookupKeyLegacy","guestName","guestContact","guestContactRaw","guestContactHyphen","guestPwLast4"].forEach(k=>{ try{ sessionStorage.removeItem(k);}catch(e){} try{ localStorage.removeItem(k);}catch(e){} }); guestKey = ""; } } catch(e) {} const u = (window.__currentUser || (window.auth && window.auth.currentUser) || null); const isAnon = !!(u && u.isAnonymous); const isLoggedIn = !!(u && u.uid && !u.isAnonymous); const hasSession = !!guestKey || isAnon || isLoggedIn; return { guestKey, isAnon, isLoggedIn, hasSession, user: u }; }
+      window.updateAuthLabels = function() {
+        const st = getSessionState();
+        const btn = document.getElementById("auth-action-btn");
+        const mb = document.getElementById("mobile-auth-btn");
+        const w = document.getElementById("welcome-message");
+        const role = getRole();
+        if (btn) { const showLogout = st.isLoggedIn || !!st.guestKey; if (showLogout) { btn.innerHTML = '<i class="fas fa-sign-out-alt"></i>'; btn.title = "로그아웃"; btn.onclick = (e) => { e.preventDefault(); hardLogout("index.html"); }; } else { btn.innerHTML = '<i class="fas fa-sign-in-alt"></i>'; btn.title = "로그인"; btn.onclick = (e) => { e.preventDefault(); authAction(); }; } }
+        if (mb) mb.textContent = (st.isLoggedIn || !!st.guestKey) ? "로그아웃" : "로그인";
+        if (w) { if (role === "admin") { w.textContent = "관리자"; w.classList.remove("hidden"); } else if (st.isLoggedIn) { const storedName = sessionStorage.getItem('userName'); const dispName = storedName || (st.user && st.user.displayName) || ""; w.textContent = dispName ? dispName + "님" : ""; if (dispName) w.classList.remove("hidden"); else w.classList.add("hidden"); } else if (st.guestKey) { const guestName = sessionStorage.getItem("guestName") || ""; w.textContent = guestName ? guestName + "님" : ""; if (guestName) w.classList.remove("hidden"); else w.classList.add("hidden"); } else { w.textContent = ""; w.classList.add("hidden"); } }
+      }
+      function goMypageOrLogin() { const st = getSessionState(); if (st.guestKey) { location.href = 'mypage.html?guest=1'; } else if (st.isLoggedIn) { location.href = 'mypage.html'; } else { document.getElementById('btn-order-lookup')?.click(); } }
+      async function authAction() { const st = getSessionState(); if (st.isLoggedIn || st.guestKey) await hardLogout("index.html"); else { setPostLoginRedirect(currentFile()); location.href = "login.html"; } }
+      function allowAdminEditHere() { const file = currentFile(); const params = new URLSearchParams(location.search || ""); const flag = (params.get("adminEdit")==="1") || (params.get("admin_edit")==="1"); if (!flag) return false; return (file === "quote-book.html" || file === "quote-print.html"); }
+      function applyRoleGuards() { const file = currentFile(); let role = getRole(); const st = getSessionState(); if (role === "admin" && (!st.user || st.isAnon)) { try { localStorage.removeItem("userRole"); } catch(e) {} try { sessionStorage.removeItem("userRole"); } catch(e) {} role = ""; } if (role === "admin" && file !== "admin.html" && file !== "login.html") { if (!allowAdminEditHere()) { location.replace("admin.html"); return; } } if (file === "admin.html" && role !== "admin") { location.replace("index.html"); return; } if (file === "mypage.html") { if (role === "admin") { location.replace("admin.html"); return; } if (!st.isLoggedIn && !st.guestKey) { location.replace("index.html"); return; } } }
+      document.addEventListener("DOMContentLoaded", () => { const m1 = document.getElementById("mobile-mypage-btn"); if (m1) m1.addEventListener("click", (e)=>{ try{e.preventDefault();}catch(_){} document.getElementById("btn-order-lookup")?.click(); }); const m2 = document.getElementById("mobile-auth-btn"); if (m2) m2.addEventListener("click", (e)=>{ try{e.preventDefault();}catch(_){} document.getElementById("btn-admin-login")?.click(); }); updateAuthLabels(); applyRoleGuards(); });
+      window.__setAuthState = function(user, role) { window.__currentUser = user || null; if (role) setRole(role); updateAuthLabels(); applyRoleGuards(); };
+      setTimeout(() => { try { if (window.onAuthStateChanged && window.auth) { window.onAuthStateChanged(window.auth, (u) => { window.__currentUser = u || null; updateAuthLabels(); applyRoleGuards(); }); } else { updateAuthLabels(); applyRoleGuards(); } } catch(e) { updateAuthLabels(); applyRoleGuards(); } }, 0);
+    })();
+    </script>
+    <script>
+    (function() { try { const path = (location.pathname || "").split("/").pop() || "index.html"; document.querySelectorAll('#main-header a.nav-item').forEach(a => { const href = (a.getAttribute('href') || "").split("/").pop(); if (href && href === path) a.classList.add('active'); else a.classList.remove('active'); }); } catch (e) {} })();
+    </script>
+    <script>
+    (function(){ try { const hasFirebaseUser = !!(window.__currentFirebaseUser && !window.__currentFirebaseUser.isAnonymous); const guestKey = localStorage.getItem('guestLookupKey') || localStorage.getItem('guestLookupKeyLegacy'); const guestName = localStorage.getItem('guestName') || '비회원'; const isGuestSession = !!guestKey; const userMenuStatus = document.getElementById('userMenuStatus'); const btnMyPage = document.getElementById('userMenuGoMyPageBtn'); const btnLogin = document.getElementById('userMenuGoLoginBtn'); const btnLogout = document.getElementById('userMenuLogoutBtn'); const btnGuestLookup = document.getElementById('guest-lookup-open'); const welcomeMsg = document.getElementById('welcome-message'); function safeShow(el){ if(el) el.style.display = 'block'; } function safeHide(el){ if(el) el.style.display = 'none'; } if (isGuestSession && !hasFirebaseUser) { if (userMenuStatus) { userMenuStatus.innerHTML = '<span class="font-bold text-slate-800">' + escapeHtml(guestName) + '</span>님<br><span class="text-xs text-slate-400">비회원 조회 세션이 유지 중입니다.</span>'; } safeHide(btnLogin); safeHide(btnGuestLookup); safeShow(btnMyPage); safeShow(btnLogout); if (btnMyPage) btnMyPage.onclick = () => location.href = 'mypage.html?guest=1'; if (btnLogout) { btnLogout.onclick = async () => { if (typeof window.hardLogout === 'function') { await window.hardLogout(location.pathname.split('/').pop() || 'index.html'); } else { try{ localStorage.removeItem('guestLookupKey'); localStorage.removeItem('guestLookupKeyLegacy'); localStorage.removeItem('guestName'); localStorage.removeItem('guestContact'); localStorage.removeItem('guestPwLast4'); }catch(e){} location.replace('index.html'); } }; } if (welcomeMsg) welcomeMsg.innerHTML = '<span class="font-semibold">' + escapeHtml(guestName) + '</span>님, 환영합니다!'; if (typeof window.updateAuthLabels === 'function') window.updateAuthLabels(); } } catch(e) {} function escapeHtml(str){ return String(str || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;"); } })();
+    </script>
+
+    <div id="workGuideContainer"></div>
+    <script>
+        (function() { fetch('work-guide.html').then(response => { if (!response.ok) throw new Error('404'); return response.text(); }).then(html => { const parser = new DOMParser(); const doc = parser.parseFromString(html, 'text/html'); const modal = doc.getElementById('workGuideModal'); if (modal) { document.body.appendChild(modal); const oldScript = doc.querySelector('script[type="module"]'); if (oldScript) { const newScript = document.createElement('script'); newScript.type = "module"; newScript.textContent = oldScript.textContent; document.body.appendChild(newScript); } } }).catch(()=>{}); })();
+    </script>
+    <script type="module" src="assets/js/pages/index.js"></script>
+</body>
+</html>

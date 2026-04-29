@@ -1,0 +1,207 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /settings/{docId} {
+      allow read: if isAdmin() ||
+        docId in ['unitPriceConfig', 'companyInfo', 'homepageContent', 'imagePreviews', 'print'];
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /users/{uid} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
+    }
+
+    function isMemberQuoteOwner(quote) {
+      return signedIn()
+        && ('userId' in quote.data)
+        && quote.data.userId == request.auth.uid;
+    }
+
+    // ✅ 비회원 읽기 허용
+    // JS 쿼리에서 where("isGuest","==",true) + where("userId","==","guest") 를
+    // 반드시 포함해야 Firestore 정적 분석 통과 → 데이터 조회 가능
+    function canReadGuestQuote(quote) {
+      return signedIn()
+        && quote.data.isGuest == true
+        && quote.data.userId == 'guest';
+    }
+
+    function isGuestQuoteOwnerStrict(quote) {
+      return signedIn()
+        && quote.data.isGuest == true
+        && quote.data.userId == 'guest'
+        && ('guestUid' in quote.data)
+        && quote.data.guestUid == request.auth.uid;
+    }
+
+    function isEditableByCustomer() {
+      return (resource.data.status == '접수완료')
+        && (request.resource.data.status == resource.data.status);
+    }
+
+    function isGuestQuoteOwnerByKey(quote) {
+      return signedIn()
+        && quote.data.isGuest == true
+        && quote.data.userId == 'guest'
+        && ('guestLookupKey' in quote.data)
+        && request.resource.data.guestLookupKey == quote.data.guestLookupKey
+        && ( !('guestPwLast4' in quote.data) || request.resource.data.guestPwLast4 == quote.data.guestPwLast4 );
+    }
+
+    function isGuestOwnerUpdate() {
+      return (isGuestQuoteOwnerStrict(resource) || isGuestQuoteOwnerByKey(resource))
+        && request.resource.data.isGuest == true
+        && request.resource.data.userId == 'guest'
+        && ( !('guestUid' in resource.data) || request.resource.data.guestUid == resource.data.guestUid )
+        && request.resource.data.guestLookupKey == resource.data.guestLookupKey
+        && ( !('guestPwLast4' in resource.data) || request.resource.data.guestPwLast4 == resource.data.guestPwLast4 )
+        && ( !('guestName' in resource.data) || request.resource.data.guestName == resource.data.guestName )
+        && ( !('guestContact' in resource.data) || request.resource.data.guestContact == resource.data.guestContact );
+    }
+
+    function guestImmutableOk() {
+      return request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.productType == resource.data.productType
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.guestLookupKey == resource.data.guestLookupKey
+        && ( !('guestUid' in resource.data) || request.resource.data.guestUid == resource.data.guestUid );
+    }
+
+    // ✅ isEditableByCustomer() 제거: 상태와 무관하게 소유권 이전 허용
+    function isGuestClaimToMember() {
+      return signedIn()
+        && resource.data.isGuest == true
+        && resource.data.userId == 'guest'
+        && request.resource.data.isGuest == false
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.guestLookupKey == resource.data.guestLookupKey
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.productType == resource.data.productType
+        && ( !('guestPwLast4' in resource.data) || request.resource.data.guestPwLast4 == resource.data.guestPwLast4 )
+        && ( !('guestNameNorm' in resource.data) || request.resource.data.guestNameNorm == resource.data.guestNameNorm )
+        && ( !('guestUid' in resource.data) || request.resource.data.guestUid == resource.data.guestUid );
+    }
+
+    function memberImmutableOk() {
+      return request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.userId == resource.data.userId
+        && (!('isGuest' in resource.data) || request.resource.data.isGuest == resource.data.isGuest)
+        && request.resource.data.productType == resource.data.productType;
+    }
+
+    function isChatMetaOnlyUpdate() {
+      return request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.productType == resource.data.productType
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.isGuest == resource.data.isGuest
+        && ( !('guestUid' in resource.data) || request.resource.data.guestUid == resource.data.guestUid )
+        && ( !('guestLookupKey' in resource.data) || request.resource.data.guestLookupKey == resource.data.guestLookupKey )
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'lastMessage', 'lastMessageAt', 'updatedAt',
+          'unreadByAdmin', 'unreadByCustomer',
+          'hasUnreadAdminMessage', 'hasUnreadCustomerMessage'
+        ]);
+    }
+
+    match /quotes/{quoteId} {
+
+      allow read: if isAdmin()
+        || isMemberQuoteOwner(resource)
+        || canReadGuestQuote(resource);
+
+      allow create: if signedIn()
+        && (
+          (request.resource.data.isGuest == true
+            && request.resource.data.userId == 'guest'
+            && request.resource.data.guestUid == request.auth.uid
+            && request.resource.data.guestLookupKey is string
+            && request.resource.data.guestName is string
+            && request.resource.data.guestContact is string
+            && request.resource.data.productType in ['book', 'print']
+          )
+          ||
+          (request.resource.data.isGuest == false
+            && request.resource.data.userId == request.auth.uid
+            && request.resource.data.productType in ['book', 'print']
+          )
+        );
+
+      allow update: if isAdmin()
+        || (isMemberQuoteOwner(resource) && isEditableByCustomer() && memberImmutableOk())
+        || (isGuestOwnerUpdate() && isEditableByCustomer() && guestImmutableOk())
+        || isGuestClaimToMember()
+        || ((isMemberQuoteOwner(resource) || isGuestOwnerUpdate()) && isChatMetaOnlyUpdate());
+
+      allow delete: if isAdmin();
+
+      function quoteDoc() {
+        return get(/databases/$(database)/documents/quotes/$(quoteId));
+      }
+
+      function canAccessThisQuote() {
+        return isAdmin()
+          || isMemberQuoteOwner(quoteDoc())
+          || canReadGuestQuote(quoteDoc());
+      }
+
+      match /messages/{msgId} {
+        allow read: if canAccessThisQuote();
+        allow create: if canAccessThisQuote();
+        allow delete: if isAdmin();
+        allow update: if isAdmin();
+      }
+    }
+
+    match /recent_quotes/{id} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if isAdmin();
+    }
+
+    match /workGuideTabs/{tabId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /work_guides/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /notices/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /faq/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /qna/{id} {
+      allow read: if true;
+      allow create: if signedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    match /cannedResponses/{id} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

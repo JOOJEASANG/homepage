@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고객센터 | 그린오피스</title>
+    <link rel="icon" href="favicon.ico" />
+    <link rel="stylesheet" href="assets/css/tailwind.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; color: #334155; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+
+        .modal-bg { background: rgba(10,15,30,0.75); backdrop-filter: blur(4px); }
+
+        .tab-btn {
+            padding: 0.9rem 0; color: #64748b;
+            border-bottom: 2px solid transparent;
+            font-weight: 700; width: 50%; text-align: center;
+            font-size: 0.95rem; transition: all 0.2s; background: transparent; cursor: pointer;
+        }
+        .tab-btn:hover { color: #16a34a; }
+        .tab-btn.active { color: #15803d; border-bottom-color: #16a34a; }
+
+        .form-input, .form-select, .form-textarea {
+            background: #ffffff; border: 1.5px solid #e2e8f0; color: #1e293b;
+            border-radius: 0.6rem; padding: 0.75rem 1rem; width: 100%;
+            font-family: 'Pretendard', sans-serif; font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none; border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.1);
+        }
+        .form-input::placeholder, .form-textarea::placeholder { color: #94a3b8; }
+
+        .btn { display: inline-flex; align-items: center; justify-content: center; font-weight: 700; padding: 0.75rem 1.5rem; border-radius: 0.6rem; transition: all 0.2s; cursor: pointer; border: 1.5px solid transparent; font-family: 'Pretendard', sans-serif; }
+        .btn:disabled { cursor: not-allowed; opacity: 0.5; }
+        .btn:hover:not(:disabled) { transform: translateY(-1px); }
+        .btn-primary { background: linear-gradient(135deg, #16a34a 0%, #059669 100%); color: #fff; box-shadow: 0 4px 14px rgba(22,163,74,0.25); }
+        .btn-primary:hover:not(:disabled) { box-shadow: 0 8px 24px rgba(22,163,74,0.35); }
+        .btn-secondary { background: #fff; color: #475569; border-color: #cbd5e1; }
+        .btn-secondary:hover:not(:disabled) { background: #f8fafc; border-color: #94a3b8; }
+
+        .panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+
+        @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fade-in 0.35s ease forwards; }
+        .animate-slide-up { animation: slide-up 0.4s ease forwards; }
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div id="toast-container" class="fixed top-20 right-5 z-[9999] flex flex-col gap-2.5"></div>
+    <div id="site-header"></div>
+
+    <!-- Mobile Nav -->
+    <div id="mobileNavModal" class="fixed inset-0 modal-bg hidden items-end justify-center z-[9998] animate-fade-in">
+        <div class="w-full bg-[#111827] rounded-t-2xl shadow-2xl overflow-hidden animate-slide-up border-t border-white/10" onclick="event.stopPropagation()">
+            <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center">
+                <span class="font-bold text-white">메뉴</span>
+                <button id="closeMobileNavBtn" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition" type="button"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-4 flex flex-col gap-2">
+                <a href="index.html" class="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/10 text-slate-200 font-semibold transition"><i class="fas fa-home text-emerald-500 w-5 text-center"></i> 홈</a>
+                <a href="quote-book.html" class="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/10 text-slate-200 font-semibold transition"><i class="fas fa-book text-emerald-500 w-5 text-center"></i> 책자/제본 견적</a>
+                <a href="quote-print.html" class="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/10 text-slate-200 font-semibold transition"><i class="fas fa-print text-emerald-500 w-5 text-center"></i> 디지털 인쇄 견적</a>
+                <a href="qna.html" class="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/10 text-slate-200 font-semibold transition"><i class="fas fa-headset text-emerald-500 w-5 text-center"></i> 고객센터</a>
+                <div class="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-white/10">
+                    <button id="mobile-mypage-btn" type="button" class="py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition text-sm">접수/주문조회</button>
+                    <button id="mobile-auth-btn" type="button" class="py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold transition text-sm border border-white/15">로그인</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page Hero -->
+    <div class="bg-white border-b border-slate-100 pt-24 pb-10">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-headset text-emerald-600 text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black text-slate-900 tracking-tight">고객센터</h1>
+                    <p class="text-slate-500 text-sm mt-0.5">궁금한 점을 확인하거나 1:1 문의를 남겨주세요.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-20">
+
+        <!-- Tabs -->
+        <div class="bg-white rounded-xl border border-slate-200 flex mb-8 sticky top-[64px] z-40 shadow-sm overflow-hidden">
+            <button id="tab-inquiry" class="tab-btn active" onclick="switchTab('inquiry')">
+                <i class="far fa-envelope mr-2"></i>1:1 문의하기
+            </button>
+            <button id="tab-faq" class="tab-btn" onclick="switchTab('faq')">
+                <i class="far fa-question-circle mr-2"></i>자주 묻는 질문
+            </button>
+        </div>
+
+        <!-- Inquiry Tab -->
+        <div id="content-inquiry" class="space-y-6 animate-fade-in">
+
+            <!-- Write Form -->
+            <div class="panel p-6 md:p-8">
+                <h3 class="text-base font-bold mb-6 text-slate-800 flex items-center gap-2.5">
+                    <span class="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center"><i class="fas fa-pen-fancy text-emerald-500 text-sm"></i></span>
+                    문의 내용 작성
+                </h3>
+
+                <div class="space-y-5">
+                    <div class="bg-emerald-50 border border-emerald-100 px-4 py-3 rounded-lg text-sm text-emerald-800 flex items-start gap-2">
+                        <i class="fas fa-info-circle text-emerald-500 mt-0.5 flex-shrink-0"></i>
+                        <span>작성하신 문의 내용은 <strong>작성자 본인(이름+비밀번호)</strong>과 관리자만 확인할 수 있습니다.</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold mb-1.5 text-slate-500 uppercase tracking-wide">이름</label>
+                            <input type="text" id="qnaName" class="form-input" placeholder="이름 입력">
+                        </div>
+                        <div id="qnaPwWrap">
+                            <label class="block text-xs font-bold mb-1.5 text-slate-500 uppercase tracking-wide">비밀번호 <span class="text-[10px] font-normal text-slate-400 ml-1">(조회/삭제용)</span></label>
+                            <input type="password" id="qnaPw" class="form-input" placeholder="4자리 이상">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div class="flex items-center gap-5">
+                            <label class="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                                <input type="radio" name="qnaVisibility" id="qnaPublic" value="public" style="accent-color:#16a34a;"> 공개
+                            </label>
+                            <label class="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                                <input type="radio" name="qnaVisibility" id="qnaSecret" value="secret" style="accent-color:#16a34a;" checked> 비공개
+                            </label>
+                        </div>
+                        <p class="text-xs text-slate-400">비공개는 작성자만 확인 가능하며, 공개 선택 시 비밀번호 입력은 생략됩니다.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold mb-1.5 text-slate-500 uppercase tracking-wide">제목</label>
+                        <input type="text" id="qnaTitle" class="form-input" placeholder="문의 제목을 입력하세요">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold mb-1.5 text-slate-500 uppercase tracking-wide">내용</label>
+                        <textarea id="qnaBody" class="form-textarea h-48 resize-y" placeholder="문의 내용을 자세히 적어주세요."></textarea>
+                        <div class="text-right text-xs text-slate-400 mt-1.5">
+                            <span id="charCount">0</span> / 5000자
+                        </div>
+                    </div>
+
+                    <button id="submitBtn" class="w-full btn btn-primary py-3.5 text-base">
+                        <i class="fas fa-paper-plane mr-2"></i>문의 등록하기
+                    </button>
+                </div>
+            </div>
+
+            <!-- Public QnA List -->
+            <div class="panel p-6 md:p-8">
+                <h3 class="text-base font-bold mb-5 text-slate-800 flex items-center gap-2.5">
+                    <span class="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center"><i class="fas fa-bullhorn text-slate-400 text-sm"></i></span>
+                    공개 문의
+                </h3>
+                <div id="public-qna-list" class="space-y-3">
+                    <div class="text-center py-10 text-slate-400 text-sm"><i class="fas fa-circle-notch fa-spin mr-2"></i>공개 문의를 불러오는 중...</div>
+                </div>
+                <p class="mt-4 text-[11px] text-slate-400">※ 비공개 문의는 공개 목록에 표시되지 않습니다.</p>
+            </div>
+
+            <!-- My QnA Search -->
+            <div class="panel p-6 md:p-8">
+                <h3 class="text-base font-bold mb-5 text-slate-800 flex items-center gap-2.5">
+                    <span class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center"><i class="fas fa-search text-blue-400 text-sm"></i></span>
+                    내 문의 답변 확인
+                </h3>
+                <div class="max-w-2xl">
+                    <div class="flex flex-col md:flex-row gap-3 items-end">
+                        <div class="w-full">
+                            <label class="block text-xs font-bold mb-1.5 text-slate-500 uppercase tracking-wide">작성자 이름</label>
+                            <input type="text" id="searchName" class="form-input" placeholder="작성시 입력한 이름">
+                        </div>
+                        <div class="w-full">
+                            <label class="block text-xs font-bold mb-1.5 text-slate-500 uppercase tracking-wide">비밀번호</label>
+                            <input type="password" id="searchPw" class="form-input" placeholder="작성시 입력한 비밀번호">
+                        </div>
+                        <button id="searchBtn" class="btn btn-secondary w-full md:w-auto whitespace-nowrap" style="height:46px;margin-bottom:1px;">
+                            <i class="fas fa-search mr-1.5"></i> 조회하기
+                        </button>
+                    </div>
+                </div>
+                <div id="search-result-area" class="mt-8 hidden animate-slide-up">
+                    <div class="inline-block px-4 py-1.5 rounded-lg bg-slate-50 border border-slate-100 font-bold text-sm text-slate-700 mb-4">조회 결과</div>
+                    <div id="my-qna-list" class="space-y-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ Tab -->
+        <div id="content-faq" class="hidden animate-fade-in">
+            <div class="panel overflow-hidden">
+                <div class="px-8 py-7 bg-gradient-to-br from-emerald-600 to-teal-600 text-center">
+                    <div class="text-3xl font-black text-white mb-1">FAQ</div>
+                    <p class="text-emerald-100 text-sm">고객님들이 자주 묻는 질문들을 모았습니다.</p>
+                </div>
+                <div id="faq-list" class="divide-y divide-slate-100">
+                    <div class="p-12 text-center text-slate-400">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>데이터를 불러오는 중...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+<script>
+(function(){
+  const CLEAR_KEYS = ['guestLookupKey', 'guestLookupKeyLegacy', 'guestName', 'guestContact', 'guestContactHyphen', 'guestContactRaw', 'guestPwLast4', 'userRole', 'quoteToReload', 'quoteDraft', 'lastQuoteDraft', 'postLoginRedirect', 'temp_quote_print', 'autoSubmitBook', 'notice_popup_hide', 'userName'];
+  function currentFile() { try { const p = (location.pathname||"").split("/").pop(); return p || "index.html"; } catch(e) { return "index.html"; } }
+  function getGuestKey() { return sessionStorage.getItem("guestLookupKey") || localStorage.getItem("guestLookupKey") || sessionStorage.getItem("guestLookupKeyLegacy") || localStorage.getItem("guestLookupKeyLegacy") || ""; }
+  function getRole() { try { return (localStorage.getItem("userRole")||"").toLowerCase(); } catch(e) { return ""; } }
+  function setRole(role) { try { if (!role) return; localStorage.setItem("userRole", String(role).toLowerCase()); } catch(e) {} }
+  function setPostLoginRedirect(file) { try { localStorage.setItem("postLoginRedirect", file); } catch(e) {} }
+  function clearClientState() { try { sessionStorage.clear(); } catch(e) {} try { CLEAR_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} }); } catch(e) {} }
+  async function firebaseSignOutSafe() { try { if (window.auth && window.signOut) { await window.signOut(window.auth); return; } if (window.auth && typeof window.auth.signOut === "function") { await window.auth.signOut(); return; } if (window.firebase && window.firebase.auth && typeof window.firebase.auth === "function") { await window.firebase.auth().signOut(); return; } if (window.__firebaseAuth && typeof window.__firebaseAuth.signOut === "function") { await window.__firebaseAuth.signOut(); return; } } catch (e) {} }
+  async function hardLogout(target) { clearClientState(); await firebaseSignOutSafe(); try { location.replace(target || "index.html"); location.reload(); } catch(e) { location.href = target || "index.html"; } }
+  window.__hardLogout = () => hardLogout("index.html");
+  function getSessionState() { let guestKey = getGuestKey(); try { const gn = (sessionStorage.getItem("guestName") || localStorage.getItem("guestName") || "").trim(); const gc = (sessionStorage.getItem("guestContact") || localStorage.getItem("guestContact") || "").trim(); if (guestKey && !gn && !gc) { ["guestLookupKey","guestLookupKeyLegacy","guestName","guestContact","guestContactRaw","guestContactHyphen","guestPwLast4"].forEach(k=>{ try{ sessionStorage.removeItem(k);}catch(e){} try{ localStorage.removeItem(k);}catch(e){} }); guestKey = ""; } } catch(e) {} const u = (window.__currentUser || (window.auth && window.auth.currentUser) || null); const isAnon = !!(u && u.isAnonymous); const isLoggedIn = !!(u && u.uid && !u.isAnonymous); const hasSession = !!guestKey || isAnon || isLoggedIn; return { guestKey, isAnon, isLoggedIn, hasSession, user: u }; }
+  window.updateAuthLabels = function() {
+    const st = getSessionState(); const btn = document.getElementById("auth-action-btn"); const mb = document.getElementById("mobile-auth-btn"); const w = document.getElementById("welcome-message"); const role = getRole();
+    if (btn) { const showLogout = st.isLoggedIn || !!st.guestKey; if (showLogout) { btn.innerHTML = '<i class="fas fa-sign-out-alt"></i>'; btn.title = "로그아웃"; btn.onclick = (e) => { e.preventDefault(); hardLogout("index.html"); }; } else { btn.innerHTML = '<i class="fas fa-sign-in-alt"></i>'; btn.title = "로그인"; btn.onclick = (e) => { e.preventDefault(); authAction(); }; } }
+    if (mb) { const showLogout = st.isLoggedIn || !!st.guestKey; mb.textContent = showLogout ? "로그아웃" : "로그인"; }
+    if (w) { if (role === "admin") { w.textContent = "관리자"; w.classList.remove("hidden"); } else if (st.isLoggedIn) { const storedName = sessionStorage.getItem('userName'); const dispName = storedName || (st.user && st.user.displayName) || "회원"; w.textContent = dispName + "님"; w.classList.remove("hidden"); } else if (st.guestKey) { const guestName = sessionStorage.getItem("guestName") || "비회원"; w.textContent = guestName + "님 (비회원)"; w.classList.remove("hidden"); } else { w.textContent = ""; w.classList.add("hidden"); } }
+  }
+  function goMypageOrLogin() { const st = getSessionState(); if (st.guestKey) location.href = "mypage.html?guest=1"; else if (st.isLoggedIn) location.href = "mypage.html"; else { setPostLoginRedirect("mypage.html"); location.href = "login.html"; } }
+  async function authAction() { const st = getSessionState(); if (st.isLoggedIn || st.guestKey) await hardLogout("index.html"); else { setPostLoginRedirect(currentFile()); location.href = "login.html"; } }
+  function allowAdminEditHere() { const file = currentFile(); const params = new URLSearchParams(location.search || ""); const flag = (params.get("adminEdit")==="1") || (params.get("admin_edit")==="1"); if (!flag) return false; return (file === "quote-book.html" || file === "quote-print.html"); }
+  function applyRoleGuards() { const file = currentFile(); const role = getRole(); const st = getSessionState(); if (role === "admin" && file !== "admin.html" && file !== "login.html") { if (!allowAdminEditHere()) { location.replace("admin.html"); return; } } if (file === "admin.html") { if (role !== "admin") { location.replace("index.html"); return; } } if (file === "mypage.html") { if (role === "admin") { location.replace("admin.html"); return; } if (!st.isLoggedIn && !st.guestKey) { location.replace("index.html"); return; } } }
+  document.addEventListener("DOMContentLoaded", () => {
+    const m1 = document.getElementById("mobile-mypage-btn"); if (m1) m1.addEventListener("click", (e)=>{ try{e.preventDefault();}catch(_){} goMypageOrLogin(); });
+    const m2 = document.getElementById("mobile-auth-btn"); if (m2) m2.addEventListener("click", (e)=>{ try{e.preventDefault();}catch(_){} authAction(); });
+    updateAuthLabels(); applyRoleGuards();
+  });
+  window.__setAuthState = function(user, role) { window.__currentUser = user || null; if (role) setRole(role); updateAuthLabels(); applyRoleGuards(); };
+  setTimeout(() => { try { if (window.onAuthStateChanged && window.auth) { window.onAuthStateChanged(window.auth, (u) => { window.__currentUser = u || null; updateAuthLabels(); applyRoleGuards(); }); } else { updateAuthLabels(); applyRoleGuards(); } } catch(e) { updateAuthLabels(); applyRoleGuards(); } }, 0);
+})();
+</script>
+<script>
+(function() { try { const path = (location.pathname || "").split("/").pop() || "index.html"; document.querySelectorAll('#main-header a.nav-item').forEach(a => { const href = (a.getAttribute('href') || "").split("/").pop(); if (href && href === path) a.classList.add('active'); else a.classList.remove('active'); }); } catch (e) {} })();
+</script>
+<script>
+(function(){ try { const hasFirebaseUser = !!(window.__currentFirebaseUser && !window.__currentFirebaseUser.isAnonymous); const guestKey = localStorage.getItem('guestLookupKey') || localStorage.getItem('guestLookupKeyLegacy'); const guestName = localStorage.getItem('guestName') || '비회원'; const isGuestSession = !!guestKey; const userMenuStatus = document.getElementById('userMenuStatus'); const btnMyPage = document.getElementById('userMenuGoMyPageBtn'); const btnLogin = document.getElementById('userMenuGoLoginBtn'); const btnLogout = document.getElementById('userMenuLogoutBtn'); const btnGuestLookup = document.getElementById('guest-lookup-open'); const welcomeMsg = document.getElementById('welcome-message'); function safeShow(el){ if(el) el.style.display = 'block'; } function safeHide(el){ if(el) el.style.display = 'none'; } if (isGuestSession && !hasFirebaseUser) { if (userMenuStatus) { userMenuStatus.innerHTML = '<span class="font-bold text-slate-800">' + escapeHtml(guestName) + '</span>님<br><span class="text-xs text-slate-400">비회원 조회 세션이 유지 중입니다.</span>'; } safeHide(btnLogin); safeHide(btnGuestLookup); safeShow(btnMyPage); safeShow(btnLogout); if (btnMyPage) btnMyPage.onclick = () => { const _k = localStorage.getItem('guestLookupKey') || sessionStorage.getItem('guestLookupKey') || localStorage.getItem('guestLookupKeyLegacy') || ''; location.href = _k ? 'mypage.html?guest=1' : 'mypage.html'; }; if (btnLogout) { btnLogout.onclick = async () => { if (typeof window.hardLogout === 'function') { await window.hardLogout(location.pathname.split('/').pop() || 'index.html'); } else { try{ localStorage.removeItem('guestLookupKey'); localStorage.removeItem('guestLookupKeyLegacy'); localStorage.removeItem('guestName'); localStorage.removeItem('guestContact'); localStorage.removeItem('guestPwLast4'); }catch(e){} location.replace('index.html'); } }; } if (welcomeMsg) { welcomeMsg.innerHTML = '<span class="font-semibold">' + escapeHtml(guestName) + '</span>님, 환영합니다!'; } if (typeof window.updateAuthLabels === 'function') window.updateAuthLabels(); } } catch(e) {} function escapeHtml(str){ return String(str || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;"); } })();
+</script>
+
+<div id="workGuideContainer"></div>
+<script>
+(function() {
+    fetch('work-guide.html').then(r => { if (!r.ok) throw new Error('404'); return r.text(); }).then(html => {
+        const parser = new DOMParser(); const doc = parser.parseFromString(html, 'text/html');
+        const modal = doc.getElementById('workGuideModal');
+        if (modal) { document.body.appendChild(modal); const oldScript = doc.querySelector('script[type="module"]'); if (oldScript) { const newScript = document.createElement('script'); newScript.type = "module"; newScript.textContent = oldScript.textContent; document.body.appendChild(newScript); } }
+    }).catch(()=>{});
+})();
+</script>
+<script type="module" src="assets/js/pages/qna.js"></script>
+</body>
+</html>

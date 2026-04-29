@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>단가관리 | 디지털 인쇄(기준단가)</title>
+  <link rel="icon" href="favicon.ico" />
+
+  <link rel="stylesheet" href="assets/css/tailwind.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body { font-family: 'Pretendard', sans-serif; background:#f8fafc; color:#334155; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius: 4px; }
+  
+    /* 뷰어 스타일 (가이드안내 에디터와 동일) */
+    .ql-view-content h1 { font-size: 1.6em; font-weight: 800; color: #1e293b; margin: 0.8em 0 0.5em; line-height: 1.3; }
+    .ql-view-content h2 { font-size: 1.3em; font-weight: 700; color: #334155; margin: 1em 0 0.5em; border-left: 4px solid #16a34a; padding-left: 10px; }
+    .ql-view-content p { margin-bottom: 0.8em; line-height: 1.7; color: #475569; word-break: keep-all; }
+    .ql-view-content ul, .ql-view-content ol { padding-left: 1.4em; margin-bottom: 1em; color: #475569; }
+    .ql-view-content ul { list-style-type: disc; }
+    .ql-view-content ol { list-style-type: decimal; }
+    .ql-view-content img { border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 100%; margin: 1rem 0; }
+    .ql-view-content blockquote { border-left: 3px solid #cbd5e1; background: #f8fafc; padding: 0.8rem; margin: 1rem 0; color: #64748b; font-size: 0.95em; }
+    .ql-view-content strong { color: #0f172a; font-weight: 700; }
+
+    /* 에디터 placeholder */
+    #wg-content-editor:empty:before { content: attr(data-placeholder); color: #cbd5e1; }
+    #wg-content-editor ul { list-style: disc; padding-left: 1.25rem; }
+    #wg-content-editor ol { list-style: decimal; padding-left: 1.25rem; }
+    #wg-content-editor img { max-width: 100%; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin: 0.75rem 0; }
+
+    /* ✅ 안내문 에디터 UX 개선
+       - 긴 글 작성 시 에디터가 페이지 전체를 밀어내지 않도록 max-height 부여(내부 스크롤)
+       - 툴바는 스크롤해도 상단에 고정(sticky)
+       - 전체화면 편집 모드 지원
+    */
+    #wg-content-editor { max-height: 520px; overflow-y: auto; }
+    @media (max-width: 640px){
+      #wg-content-editor { max-height: 420px; }
+    }
+    .wg-editor-toolbar { position: sticky; top: 0; z-index: 50; background: rgba(248,250,252,0.95); backdrop-filter: blur(6px); }
+
+    /* 전체화면 모드 */
+    body.wg-fullscreen { overflow: hidden; }
+    body.wg-fullscreen #guideEditorWrap { position: fixed; inset: 0; z-index: 9999; background: #ffffff; padding: 16px; overflow: auto; }
+    body.wg-fullscreen #guideEditorWrap .wg-fullscreen-card { max-width: 1100px; margin: 0 auto; }
+    body.wg-fullscreen #wg-content-editor {
+      max-height: none;
+      height: calc(100vh - 240px);
+      min-height: 320px;
+      overflow-y: auto;
+    }
+    @media (max-width: 640px){
+      body.wg-fullscreen #wg-content-editor { height: calc(100vh - 260px); }
+    }
+
+  </style>
+    <script type="text/javascript" src="//wcs.pstatic.net/wcslog.js"></script>
+    <script type="text/javascript">
+    if(!wcs_add) var wcs_add = {};
+    wcs_add["wa"] = "93643ac58d5";
+    if(window.wcs) {
+    wcs_do();
+    }
+    </script>
+</head>
+<body class="antialiased">
+  <div class="max-w-6xl mx-auto px-4 py-6">
+    <div class="flex items-center justify-between gap-3 mb-5">
+      <div>
+        <h1 class="text-xl font-extrabold text-slate-800">디지털 인쇄 단가관리</h1>
+        <p class="text-sm text-slate-500 mt-1">기준단가: <b>A4 · 1면 · 200g</b> / 자동계산: 두께계수 + 사이즈계수(하한 포함) + 단면·양면</p>
+      </div>
+      <div class="flex gap-2">
+        <button id="reloadBtn" class="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-50">
+          <i class="fa-solid fa-rotate-right mr-1"></i>불러오기
+        </button>
+        <button id="addTierBtn" class="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-50">
+          <i class="fa-solid fa-plus mr-1"></i>매수 추가
+        </button>
+        <button id="saveBtn" class="px-4 py-2 rounded-lg bg-brand-600 text-white font-extrabold hover:bg-brand-700">
+          <i class="fa-solid fa-floppy-disk mr-1"></i>저장
+        </button>
+      </div>
+    </div>
+
+    <div id="adminWarn" class="hidden mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm font-bold">
+      관리자 권한이 필요한 페이지입니다.
+    </div>
+
+    <!-- 기준 출력단가 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-base font-extrabold text-slate-800"><span class="text-brand-600">스노우지</span> 200g 기준 출력단가</h2>
+          <span class="text-xs text-slate-400">A4 · 1면</span>
+        </div>
+        <div id="snowBaseWrap" class="space-y-2"></div>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-base font-extrabold text-slate-800"><span class="text-brand-600">아르떼</span> 200g 기준 출력단가</h2>
+          <span class="text-xs text-slate-400">A4 · 1면</span>
+        </div>
+        <div id="arteBaseWrap" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <!-- 보정계수 & 오시 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 lg:col-span-2">
+        <h2 class="text-base font-extrabold text-slate-800 mb-3">두께(평량) 보정계수 <span class="text-xs text-slate-400 font-semibold ml-1">(200g = 1.00)</span></h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="border border-slate-200 rounded-xl p-4">
+            <div class="font-extrabold text-slate-800 mb-3">스노우지</div>
+            <div id="snowFactorWrap" class="space-y-2"></div>
+          </div>
+          <div class="border border-slate-200 rounded-xl p-4">
+            <div class="font-extrabold text-slate-800 mb-3">아르떼지</div>
+            <div id="arteFactorWrap" class="space-y-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+        <h2 class="text-base font-extrabold text-slate-800 mb-3">사이즈 / 오시</h2>
+
+        <div class="border border-slate-200 rounded-xl p-4 mb-4">
+          <div class="font-bold text-slate-700 mb-2">사이즈 계수</div>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="text-xs text-slate-500 font-bold">A3</label>
+            <input id="mulA3" type="number" step="0.01" class="w-full px-3 py-2 border border-slate-200 rounded-lg" />
+            <label class="text-xs text-slate-500 font-bold">A4</label>
+            <input id="mulA4" type="number" step="0.01" class="w-full px-3 py-2 border border-slate-200 rounded-lg" />
+            <label class="text-xs text-slate-500 font-bold">A5</label>
+            <input id="mulA5" type="number" step="0.01" class="w-full px-3 py-2 border border-slate-200 rounded-lg" />
+            <label class="text-xs text-slate-500 font-bold">B5</label>
+            <input id="mulB5" type="number" step="0.01" class="w-full px-3 py-2 border border-slate-200 rounded-lg" />
+            <label class="text-xs text-slate-500 font-bold">최소계수</label>
+            <input id="minMul" type="number" step="0.01" class="w-full px-3 py-2 border border-slate-200 rounded-lg" />
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2">커스텀 사이즈는 면적비례로 계산 후, 최소계수 적용됩니다.</p>
+        </div>
+
+        <div class="border border-slate-200 rounded-xl p-4">
+          <div class="font-bold text-slate-700 mb-2">오시 단가 (리플렛/카탈로그)</div>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="text-xs text-slate-500 font-bold">1줄</label>
+            <input id="oshiOne" type="number" step="1" class="w-full px-3 py-2 border border-slate-200 rounded-lg" />
+            <label class="text-xs text-slate-500 font-bold">2줄</label>
+            <input id="oshiTwo" type="number" step="1" class="w-full px-3 py-2 border border-slate-200 rounded-lg" />
+          
+            <label class="text-xs text-slate-500 font-bold">3줄</label>
+            <input id="oshiThree" type="number" step="1" class="w-full px-3 py-2 border border-slate-200 rounded-lg" />
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2">장당 추가 비용(원). 사이즈계수만큼 자동 반영됩니다.</p>
+        </div>
+      </div>
+    </div>
+    <!-- 디지털 인쇄 안내문 (모두 열람 / 관리자만 편집) -->
+    <div class="mt-6 bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base md:text-lg font-extrabold text-slate-800">
+            <i class="fa-solid fa-circle-info text-brand-600 mr-2"></i>디지털 인쇄 안내문
+          </h2>
+          <p class="text-xs text-slate-500 mt-1">디지털 인쇄 견적 페이지에 모두에게 표시됩니다. (수정은 관리자만)</p>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <div class="text-xs font-extrabold text-slate-500 mb-2">미리보기</div>
+        <div id="guidePreview" class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-sm leading-relaxed min-h-[120px] ql-view-content"></div>
+      </div>
+
+      <div id="guideEditorWrap" class="mt-4 hidden">
+        <div class="text-xs font-extrabold text-slate-500 mb-2">관리자 편집</div>
+
+        <div class="bg-white border border-slate-200 rounded-xl overflow-hidden wg-fullscreen-card">
+          <div class="wg-editor-toolbar flex flex-wrap items-center gap-1 p-2 bg-slate-50 border-b border-slate-200">
+            <button type="button" class="wg-editor-btn px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" data-cmd="bold" title="굵게"><i class="fas fa-bold"></i></button>
+            <button type="button" class="wg-editor-btn px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" data-cmd="italic" title="기울임"><i class="fas fa-italic"></i></button>
+            <button type="button" class="wg-editor-btn px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" data-cmd="underline" title="밑줄"><i class="fas fa-underline"></i></button>
+            <span class="h-6 w-px bg-slate-200 mx-1"></span>
+
+            <button type="button" class="wg-editor-btn px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" data-align="left" title="왼쪽 정렬"><i class="fas fa-align-left"></i></button>
+            <button type="button" class="wg-editor-btn px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" data-align="center" title="가운데 정렬"><i class="fas fa-align-center"></i></button>
+            <button type="button" class="wg-editor-btn px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" data-align="right" title="오른쪽 정렬"><i class="fas fa-align-right"></i></button>
+            <span class="h-6 w-px bg-slate-200 mx-1"></span>
+
+            <button type="button" class="wg-editor-btn px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" data-list="ul" title="글머리"><i class="fas fa-list-ul"></i></button>
+            <button type="button" class="wg-editor-btn px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" data-list="ol" title="번호"><i class="fas fa-list-ol"></i></button>
+            <span class="h-6 w-px bg-slate-200 mx-1"></span>
+
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-bold text-slate-500">크기</span>
+              <select id="wg-font-size" class="border border-slate-200 rounded-md px-2 py-1 text-xs bg-white">
+                <option value="13">작게</option>
+                <option value="14" selected>기본</option>
+                <option value="16">크게</option>
+                <option value="18">아주 크게</option>
+              </select>
+            </div>
+
+            <button type="button" id="wg-insert-image-btn" class="ml-1 px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" title="이미지 삽입">
+              <i class="fas fa-image mr-1"></i>이미지
+            </button>
+            <input type="file" id="wg-image-input" accept="image/*" class="hidden" />
+
+            <button type="button" id="wg-insert-url-btn" class="ml-1 px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" title="이미지 주소로 삽입">
+              <i class="fas fa-link mr-1"></i>링크삽입
+            </button>
+
+            <button type="button" id="wg-fullscreen-btn" class="ml-1 px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700" title="전체화면 편집">
+              <i class="fas fa-up-right-and-down-left-from-center mr-1"></i>전체화면
+            </button>
+
+            <button type="button" id="wg-clear-format-btn" class="ml-auto px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold" title="서식 제거">
+              <i class="fas fa-eraser mr-1"></i>서식 초기화
+            </button>
+          </div>
+
+          <div id="wg-content-editor" contenteditable="true"
+            class="w-full min-h-[260px] p-4 outline-none bg-white text-slate-900 leading-relaxed overflow-y-auto"
+            style="white-space: pre-wrap;"
+            data-placeholder="안내문을 작성하세요..."></div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2 mt-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="guideRewriteBtn" type="button" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 font-extrabold hover:bg-slate-50">
+              <i class="fa-solid fa-pen-to-square mr-1"></i>재작성
+            </button>
+            <button id="guideLoadSavedBtn" type="button" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 font-extrabold hover:bg-slate-50">
+              <i class="fa-solid fa-rotate mr-1"></i>수정
+            </button>
+            <button id="guideTempSaveBtn" type="button" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 font-extrabold hover:bg-slate-50">
+              <i class="fa-solid fa-box-archive mr-1"></i>임시저장
+            </button>
+          </div>
+
+          <button id="saveGuideBtn" class="px-4 py-2 rounded-lg bg-brand-600 text-white font-extrabold hover:bg-brand-700">
+            <i class="fa-solid fa-floppy-disk mr-1"></i>안내문 저장
+          </button>
+        </div>
+      </div>
+
+      <div id="guideEditHint" class="mt-3 text-[11px] text-slate-400 hidden">
+        * 관리자 편집은 주소 뒤에 <span class="font-bold">?adminEdit=1</span> 로 접속하면 활성화됩니다.
+      </div>
+    </div>
+
+
+    <div class="mt-6 text-xs text-slate-400">
+      <div>※ 저장 위치: Firestore <code class="px-1 py-0.5 bg-slate-100 rounded">settings/unitPriceConfig</code></div>
+      <div>※ 디지털 인쇄 견적은 <b>총비용(부가세 포함)</b>을 <b>천원단위 반올림</b>하여 표시합니다.</div>
+    </div>
+  </div>
+
+
+
+<script>
+/** 권한/보안 흐름 고정 v5 (수정5차)
+ * - admin은 기본적으로 admin.html로 강제 유도
+ * - 단, 견적 수정 목적의 adminEdit/admin_edit 플래그가 있으면 quote-book/quote-print 접근 허용
+ * - mypage는 회원/비회원 세션만 허용, admin은 admin으로
+ * - 헤더/모바일 UX 통일 + 완전 로그아웃(비회원 조회키 포함)
+ */
+(function(){
+  const CLEAR_KEYS = ['guestLookupKey', 'guestLookupKeyLegacy', 'guestName', 'guestContact', 'guestContactHyphen', 'guestContactRaw', 'guestPwLast4', 'userRole', 'quoteToReload', 'quoteDraft', 'lastQuoteDraft', 'postLoginRedirect', 'temp_quote_print', 'autoSubmitBook', 'notice_popup_hide'];
+
+  function currentFile() {
+    try {
+      const p = (location.pathname||"").split("/").pop();
+      return p || "index.html";
+    } catch(e) { return "index.html"; }
+  }
+
+  function getGuestKey() {
+    return sessionStorage.getItem("guestLookupKey")
+        || localStorage.getItem("guestLookupKey")
+        || sessionStorage.getItem("guestLookupKeyLegacy")
+        || localStorage.getItem("guestLookupKeyLegacy")
+        || "";
+  }
+
+  function getRole() {
+    try { return (localStorage.getItem("userRole")||"").toLowerCase(); }
+    catch(e) { return ""; }
+  }
+
+  function setRole(role) {
+    try {
+      if (!role) return;
+      localStorage.setItem("userRole", String(role).toLowerCase());
+    } catch(e) {}
+  }
+
+  function setPostLoginRedirect(file) {
+    try { sessionStorage.setItem("postLoginRedirect", file); } catch(e) {}
+  }
+
+  function clearClientState() {
+    try { sessionStorage.clear(); } catch(e) {}
+    try {
+      CLEAR_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+    } catch(e) {}
+  }
+
+  async function firebaseSignOutSafe() {
+    try {
+      if (window.auth && window.signOut) {
+        await window.signOut(window.auth);
+        return;
+      }
+      if (window.__firebaseAuth && window.__firebaseAuth.signOut) {
+        await window.__firebaseAuth.signOut();
+        return;
+      }
+    } catch(e) {}
+  }
+
+  async function hardLogout(redirectUrl = 'index.html') {
+  // Clear UI/session state
+  try { sessionStorage.clear(); } catch (e) {}
+  try {
+    // Role / user
+    localStorage.removeItem('userRole');
+    sessionStorage.removeItem('userRole');
+    localStorage.removeItem('userName');
+    sessionStorage.removeItem('userName');
+
+    // Quote draft / routing
+    localStorage.removeItem('quoteToReload');
+    localStorage.removeItem('quoteDraft');
+    localStorage.removeItem('lastQuoteDraft');
+    localStorage.removeItem('postLoginRedirect');
+
+    // Guest lookup keys
+    localStorage.removeItem('guestLookupKey');
+    localStorage.removeItem('guestLookupKeyLegacy');
+    localStorage.removeItem('guestName');
+    localStorage.removeItem('guestContact');
+    localStorage.removeItem('guestContactRaw');
+    localStorage.removeItem('guestContactHyphen');
+    localStorage.removeItem('guestPwLast4');
+  } catch (e) {}
+
+  // Optional: clear last quote cache keys when present
+  try {
+    if (typeof __LAST_QUOTE_CACHE_KEY_BOOK !== 'undefined') {
+      try { sessionStorage.removeItem(__LAST_QUOTE_CACHE_KEY_BOOK); } catch (e) {}
+      try { localStorage.removeItem(__LAST_QUOTE_CACHE_KEY_BOOK); } catch (e) {}
+    }
+    if (typeof __LAST_QUOTE_CACHE_KEY_PRINT !== 'undefined') {
+      try { sessionStorage.removeItem(__LAST_QUOTE_CACHE_KEY_PRINT); } catch (e) {}
+      try { localStorage.removeItem(__LAST_QUOTE_CACHE_KEY_PRINT); } catch (e) {}
+    }
+  } catch (e) {}
+
+  // Optional: unsubscribe snapshot listeners if present (mypage 등)
+  try { if (typeof unsubscribeQuotesSnapshot === 'function') unsubscribeQuotesSnapshot(); } catch (e) {}
+  try { if (typeof unsubscribeQuotesSnapshot !== 'undefined') unsubscribeQuotesSnapshot = null; } catch (e) {}
+
+  // Admin safety: 관리자에서 로그아웃한 직후 메인에서 1회 익명로그인 억제
+  try {
+    const p = (location && location.pathname ? location.pathname : '').toLowerCase();
+    if (p.endsWith('/admin.html') || p.endsWith('admin.html')) {
+      sessionStorage.setItem('suppressAnonOnce', '1');
+    }
+  } catch (e) {}
+
+  // Firebase sign out (module auth or window.auth)
+  try {
+    if (typeof auth !== 'undefined' && auth && typeof signOut === 'function') {
+      await signOut(auth);
+    } else if (window.auth && typeof window.auth.signOut === 'function') {
+      await window.auth.signOut();
+    }
+  } catch (e) {
+    console.warn('signOut failed:', e);
+  }
+
+  location.replace(redirectUrl || 'index.html');
+}
+  window.__hardLogout = () => hardLogout("index.html");
+
+  function getSessionState() {
+    const guestKey = getGuestKey();
+    const u = window.__currentUser || null;
+    const isAnon = !!(u && u.isAnonymous);
+    const isLoggedIn = !!(u && u.uid && !u.isAnonymous);
+    const hasSession = !!guestKey || isAnon || isLoggedIn;
+    return { guestKey, isAnon, isLoggedIn, hasSession, user:u };
+  }
+
+  function updateAuthLabels() {
+    const st = getSessionState();
+    const label = st.hasSession ? "로그아웃" : "로그인";
+    const btn = document.getElementById("auth-action-btn");
+    const mb = document.getElementById("mobile-auth-btn");
+    if (btn) btn.textContent = label;
+    if (mb) mb.textContent = label;
+
+    const role = getRole();
+    const w = document.getElementById("welcome-message");
+    if (w) {
+      if (role === "admin") { w.textContent = "관리자"; w.classList.remove("hidden"); }
+      else if (st.isLoggedIn) { w.textContent = (st.user && st.user.email) ? st.user.email : "회원"; w.classList.remove("hidden"); }
+      else if (st.guestKey) { w.textContent = "비회원"; w.classList.remove("hidden"); }
+      else { w.textContent = ""; w.classList.add("hidden"); }
+    }
+  }
+
+  function goMypageOrLogin() {
+    const st = getSessionState();
+    if (st.guestKey) location.href = "mypage.html?guest=1";
+    else if (st.isLoggedIn) location.href = "mypage.html";
+    else {
+      setPostLoginRedirect("mypage.html");
+      location.href = "login.html";
+    }
+  }
+
+  async function authAction() {
+    const st = getSessionState();
+    if (st.hasSession) await hardLogout("index.html");
+    else {
+      setPostLoginRedirect(currentFile());
+      location.href = "login.html";
+    }
+  }
+
+  function bindClickOverride(id, handler) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("click", (e) => {
+      try {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+      } catch(_) {}
+      handler();
+    }, true);
+  }
+
+  function allowAdminEditHere() {
+    const file = currentFile();
+    const params = new URLSearchParams(location.search || "");
+    const flag = (params.get("adminEdit")==="1") || (params.get("admin_edit")==="1");
+    if (!flag) return false;
+    return (file === "quote-book.html" || file === "quote-print.html" || file === "quote-book-price.html" || file === "quote-print-price.html");
+  }
+
+  function applyRoleGuards() {
+    const file = currentFile();
+    const role = getRole();
+    const st = getSessionState();
+
+    if (role === "admin" && file !== "admin.html" && file !== "login.html") {
+      if (!allowAdminEditHere()) {
+        location.replace("admin.html");
+        return;
+      }
+    }
+
+    if (file === "admin.html") {
+      if (role !== "admin") {
+        location.replace("index.html");
+        return;
+      }
+    }
+
+    if (file === "mypage.html") {
+      if (role === "admin") {
+        location.replace("admin.html");
+        return;
+      }
+      if (!st.hasSession) {
+        location.replace("index.html");
+        return;
+      }
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    bindClickOverride("user-menu-btn", goMypageOrLogin);
+    const authBtn = document.getElementById("auth-action-btn");
+    if (authBtn) authBtn.addEventListener("click", (e) => { try{e.preventDefault();}catch(_){} authAction(); });
+    const m1 = document.getElementById("mobile-mypage-btn");
+    if (m1) m1.addEventListener("click", (e)=>{ try{e.preventDefault();}catch(_){} goMypageOrLogin(); });
+    const m2 = document.getElementById("mobile-auth-btn");
+    if (m2) m2.addEventListener("click", (e)=>{ try{e.preventDefault();}catch(_){} authAction(); });
+
+    updateAuthLabels();
+    applyRoleGuards();
+  });
+
+  window.__setAuthState = function(user, role) {
+    window.__currentUser = user || null;
+    if (role) setRole(role);
+    updateAuthLabels();
+    applyRoleGuards();
+  };
+
+  setTimeout(() => {
+    try {
+      if (window.onAuthStateChanged && window.auth) {
+        window.onAuthStateChanged(window.auth, (u) => {
+          window.__currentUser = u || null;
+          updateAuthLabels();
+          applyRoleGuards();
+        });
+      } else {
+        updateAuthLabels();
+        applyRoleGuards();
+      }
+    } catch(e) {
+      updateAuthLabels();
+      applyRoleGuards();
+    }
+  }, 0);
+})();
+</script>
+
+<!-- AUTH_SYNC_V2 -->
+<script>
+(function(){
+  try {
+    const hasFirebaseUser = !!(window.__currentFirebaseUser && !window.__currentFirebaseUser.isAnonymous);
+    const guestKey = localStorage.getItem('guestLookupKey') || localStorage.getItem('guestLookupKeyLegacy');
+    const guestName = localStorage.getItem('guestName') || '비회원';
+    const isGuestSession = !!guestKey;
+
+    const userMenuStatus = document.getElementById('userMenuStatus');
+    const btnMyPage = document.getElementById('userMenuGoMyPageBtn');
+    const btnLogin = document.getElementById('userMenuGoLoginBtn');
+    const btnLogout = document.getElementById('userMenuLogoutBtn');
+    const btnGuestLookup = document.getElementById('guest-lookup-open');
+    const welcomeMsg = document.getElementById('welcome-message');
+
+    function safeShow(el){ if(el) el.style.display = 'block'; }
+    function safeHide(el){ if(el) el.style.display = 'none'; }
+
+    if (isGuestSession && !hasFirebaseUser) {
+      if (userMenuStatus) {
+        userMenuStatus.innerHTML =
+          '<span class="font-bold text-slate-800">' + escapeHtml(guestName) + '</span>님<br>' +
+          '<span class="text-xs text-slate-400">비회원 조회 세션이 유지 중입니다.</span>';
+      }
+      safeHide(btnLogin);
+      safeHide(btnGuestLookup);
+      safeShow(btnMyPage);
+      safeShow(btnLogout);
+
+      if (btnMyPage) btnMyPage.onclick = () => { const _k = localStorage.getItem('guestLookupKey') || sessionStorage.getItem('guestLookupKey') || localStorage.getItem('guestLookupKeyLegacy') || ''; location.href = _k ? 'mypage.html?guest=1' : 'mypage.html'; };
+
+      if (btnLogout) {
+        btnLogout.onclick = async () => {
+          if (typeof window.hardLogout === 'function') {
+            await window.hardLogout(location.pathname.split('/').pop() || 'index.html');
+          } else {
+            try{
+              localStorage.removeItem('guestLookupKey');
+              localStorage.removeItem('guestLookupKeyLegacy');
+              localStorage.removeItem('guestName');
+              localStorage.removeItem('guestContact');
+              localStorage.removeItem('guestPwLast4');
+            }catch(e){}
+            location.replace('index.html');
+          }
+        };
+      }
+
+      if (welcomeMsg) {
+        welcomeMsg.innerHTML = '<span class="font-semibold">' + escapeHtml(guestName) + '</span>님, 환영합니다!';
+      }
+
+      if (typeof window.updateAuthLabels === 'function') window.updateAuthLabels();
+    }
+  } catch(e) {
+    console.warn('AUTH_SYNC_V2 failed:', e);
+  }
+
+  function escapeHtml(str){
+    return String(str || '')
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'","&#039;");
+  }
+})();
+</script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script type="module" src="assets/js/pages/quote-print-price.js"></script>
+</body>
+</html>
