@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => { try { syncQnaVisibilityUI(
                 // Member
                 const storedName = sessionStorage.getItem('userName');
                 const dispName = storedName || user.displayName || user.email || '회원';
-                userMenuStatus.innerHTML = `<span class="font-bold text-brand-600">${dispName}</span>님<br><span class="text-xs text-slate-400">오늘도 좋은 하루 되세요!</span>`;
+                userMenuStatus.innerHTML = `<span class="font-bold text-brand-600">${sanitizeHTML(dispName)}</span>님<br><span class="text-xs text-slate-400">오늘도 좋은 하루 되세요!</span>`;
                 
                 userMenuGoMyPageBtn?.classList.remove('hidden');
                 userMenuEditInfoBtn?.classList.add('hidden');
@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => { try { syncQnaVisibilityUI(
                 // Guest or Visitor
                 const guestName = sessionStorage.getItem('guestName');
                 if (guestName) {
-                    userMenuStatus.innerHTML = `<span class="font-bold text-slate-800">${guestName}</span>님 (비회원)<br><span class="text-xs text-slate-400">주문 조회 중입니다.</span>`;
+                    userMenuStatus.innerHTML = `<span class="font-bold text-slate-800">${sanitizeHTML(guestName)}</span>님 (비회원)<br><span class="text-xs text-slate-400">주문 조회 중입니다.</span>`;
                 } else {
                     userMenuStatus.innerHTML = '<span class="font-bold text-slate-800">방문자</span>님 환영합니다.<br><span class="text-xs text-slate-400">로그인 후 더 많은 기능을 이용해보세요.</span>';
                 }
@@ -350,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => { try { syncQnaVisibilityUI(
             // Theme colors
             const colors = { success: 'bg-green-600', error: 'bg-red-500', info: 'bg-slate-700' };
             toast.className = `${colors[type] || 'bg-slate-700'} text-white px-6 py-4 rounded-lg shadow-xl transform transition-all duration-300 translate-x-full flex items-center font-medium mb-2`;
-            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-3"></i>${message}`;
+            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-3"></i>${sanitizeHTML(message)}`;
             container.appendChild(toast);
             requestAnimationFrame(() => toast.classList.remove('translate-x-full'));
             setTimeout(() => {
@@ -408,13 +408,13 @@ document.addEventListener('DOMContentLoaded', () => { try { syncQnaVisibilityUI(
                         <button class="w-full px-8 py-5 text-left flex justify-between items-center focus:outline-none hover:bg-slate-50 transition-colors group">
                             <span class="font-bold text-slate-700 group-hover:text-brand-600 text-base flex items-center">
                                 <span class="bg-brand-100 text-brand-600 text-xs font-extrabold px-2 py-1 rounded mr-3">Q</span>
-                                ${data.question}
+                                ${sanitizeHTML(data.question)}
                             </span>
                             <i class="fas fa-chevron-down text-slate-300 group-hover:text-brand-600 transition-transform duration-200"></i>
                         </button>
                         <div class="faq-answer bg-slate-50 border-t border-slate-100">
                             <div class="px-8 py-6 text-slate-600 leading-relaxed whitespace-pre-wrap pl-16 text-sm">
-                                <span class="font-bold text-slate-800 mr-2 text-base">A.</span> ${data.answer}
+                                <span class="font-bold text-slate-800 mr-2 text-base">A.</span> ${sanitizeHTML(data.answer)}
                             </div>
                         </div>
                     `;
@@ -631,8 +631,8 @@ document.addEventListener('DOMContentLoaded', () => { try { syncQnaVisibilityUI(
                                     </span>
                                     <span class="text-xs text-slate-400">${formatDate(data.createdAt)}</span>
                                 </div>
-                                <h4 class="font-bold text-sm text-slate-800 mb-3">${data.title}</h4>
-                                <div class="bg-slate-50 p-4 rounded-lg text-slate-600 whitespace-pre-wrap text-sm border border-slate-100 mb-4">${data.body}</div>
+                                <h4 class="font-bold text-sm text-slate-800 mb-3">${sanitizeHTML(data.title)}</h4>
+                                <div class="bg-slate-50 p-4 rounded-lg text-slate-600 whitespace-pre-wrap text-sm border border-slate-100 mb-4">${sanitizeHTML(data.body)}</div>
                                 
                                 ${isAnswered && data.answer ? `
                                 <div class="mt-4 pt-4 border-t border-slate-100">
@@ -643,7 +643,7 @@ document.addEventListener('DOMContentLoaded', () => { try { syncQnaVisibilityUI(
                                         <div class="w-full">
                                             <p class="font-bold text-brand-700 mb-1 text-sm">관리자 답변</p>
                                             <div class="text-slate-800 whitespace-pre-wrap leading-relaxed bg-brand-50 p-4 rounded-lg border border-brand-100 text-sm">
-                                                ${data.answer}
+                                                ${sanitizeHTML(data.answer)}
                                             </div>
                                             ${data.answeredAt ? `<p class="text-right text-xs text-slate-400 mt-2">${formatDate(data.answeredAt)} 답변됨</p>` : ''}
                                         </div>
