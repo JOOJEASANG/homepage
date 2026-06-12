@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>그린오피스 | Professional Printing Solution</title>
+    <meta name="description" content="그린오피스 — 디지털 인쇄·출력·제본 전문. 온라인 즉시 견적, 당일 접수 15시 마감, 익일 납기 가능. 충남 천안 서북구.">
+    <meta property="og:title" content="그린오피스 | 디지털 인쇄·출력·제본 전문">
+    <meta property="og:description" content="온라인 즉시 견적 · 빠른 납기 · 합리적인 가격. 책자, 리플렛, 포스터, 전단지 등 모든 인쇄를 한 번에.">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="ko_KR">
+    <title>그린오피스 | 디지털 인쇄·출력·제본 전문</title>
     <link rel="icon" href="favicon.ico" />
     <link rel="stylesheet" href="assets/css/tailwind.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
@@ -169,8 +174,8 @@
         <div class="w-full bg-[#111827] rounded-t-2xl shadow-2xl overflow-hidden animate-slide-up border-t border-white/10" onclick="event.stopPropagation()">
             <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center">
                 <span class="font-bold text-white tracking-tight">메뉴</span>
-                <button id="closeMobileNavBtn" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition" type="button">
-                    <i class="fas fa-times"></i>
+                <button id="closeMobileNavBtn" aria-label="메뉴 닫기" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition" type="button">
+                    <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="p-4 flex flex-col gap-2">
@@ -297,9 +302,9 @@
                                     <i class="fas fa-map-marker-alt text-emerald-500"></i>
                                     충남 천안시 서북구 쌍용14길 29 1층
                                 </p>
-                                <a href="https://map.naver.com/p/entry/place/13194482" target="_blank"
+                                <a href="https://map.naver.com/p/entry/place/13194482" target="_blank" rel="noopener noreferrer"
                                    class="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-colors">
-                                    <i class="fas fa-map-marked-alt"></i> 오시는 길 확인하기
+                                    <i class="fas fa-map-marked-alt" aria-hidden="true"></i> 오시는 길 확인하기
                                 </a>
                             </div>
                         </div>
@@ -514,8 +519,8 @@
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-slide-up">
             <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
                 <h2 class="font-bold text-lg text-slate-800"><i class="fas fa-bullhorn text-emerald-500 mr-2"></i>공지사항</h2>
-                <button id="close-notice-modal-btn" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition">
-                    <i class="fas fa-times"></i>
+                <button id="close-notice-modal-btn" aria-label="공지사항 닫기" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition">
+                    <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="p-8 overflow-y-auto custom-scrollbar">
@@ -529,14 +534,14 @@
 
     <div id="portfolio-image-modal" class="fixed inset-0 bg-black/95 z-[130] hidden items-center justify-center p-4">
         <div class="relative w-full max-w-5xl h-full max-h-[90vh] flex flex-col items-center justify-center">
-            <button id="close-portfolio-image-modal-btn" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition z-50">
-                <i class="fas fa-times"></i>
+            <button id="close-portfolio-image-modal-btn" aria-label="이미지 닫기" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition z-50">
+                <i class="fas fa-times" aria-hidden="true"></i>
             </button>
-            <button id="portfolio-modal-prev" class="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition z-50">
-                <i class="fas fa-chevron-left text-lg"></i>
+            <button id="portfolio-modal-prev" aria-label="이전 이미지" class="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition z-50">
+                <i class="fas fa-chevron-left text-lg" aria-hidden="true"></i>
             </button>
-            <button id="portfolio-modal-next" class="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition z-50">
-                <i class="fas fa-chevron-right text-lg"></i>
+            <button id="portfolio-modal-next" aria-label="다음 이미지" class="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition z-50">
+                <i class="fas fa-chevron-right text-lg" aria-hidden="true"></i>
             </button>
             <img id="portfolio-image-img" src="" alt="Portfolio" class="max-w-full max-h-full object-contain rounded-xl shadow-2xl">
             <div class="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
