@@ -12,7 +12,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
     <script>
 // 10원 단위 절삭
-function cut10(v){ v = Number(v)||0; return Math.round(v/100)*100; }
+function cut10(v){ v = Number(v)||0; return Math.floor(v/10)*10; }
 
 
 // ✅ 관리자 표시 강제(요청: 책/인쇄 모두 '관리자'로 표시)
