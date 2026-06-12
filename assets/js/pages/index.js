@@ -198,7 +198,7 @@ onAuthStateChanged(auth, async user => {
   if (!user || user.isAnonymous) {
     if (hasGuestSession) {
       const guestName = sessionStorage.getItem('guestName') || '비회원';
-      if (userMenuStatus) userMenuStatus.innerHTML = `<span class="font-bold text-slate-800">${guestName}</span>님<br><span class="text-xs text-slate-400">조회 세션 유효함</span>`;
+      if (userMenuStatus) userMenuStatus.innerHTML = `<span class="font-bold text-slate-800">${sanitizeHTML(guestName)}</span>님<br><span class="text-xs text-slate-400">조회 세션 유효함</span>`;
       if (btnMyPage) { btnMyPage.style.display = 'block'; btnMyPage.onclick = () => { location.href = 'mypage.html?guest=1'; }; }
       if (btnLogout) btnLogout.style.display = 'block';
     } else {
@@ -218,7 +218,7 @@ onAuthStateChanged(auth, async user => {
         sessionStorage.setItem('userName', userName);
       }
     } catch {}
-    if (userMenuStatus) userMenuStatus.innerHTML = `<span class="font-bold text-brand-700">${userName}</span>님<br><span class="text-xs text-slate-400">${isAdmin ? '관리자 계정' : ''}</span>`;
+    if (userMenuStatus) userMenuStatus.innerHTML = `<span class="font-bold text-brand-700">${sanitizeHTML(userName)}</span>님<br><span class="text-xs text-slate-400">${isAdmin ? '관리자 계정' : ''}</span>`;
     if (isAdmin) { await redirectIfAdmin(user); return; }
     if (btnMyPage) { btnMyPage.style.display = 'block'; btnMyPage.onclick = () => { location.href = 'mypage.html'; }; }
     if (btnLogout) btnLogout.style.display = 'block';

@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>로그인 | 그린오피스</title>
+    <meta name="description" content="그린오피스 주문 조회 및 관리자 로그인 페이지.">
+    <title>주문 조회 | 그린오피스</title>
     <link rel="icon" href="favicon.ico" />
     <link rel="stylesheet" href="assets/css/tailwind.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
@@ -149,16 +150,16 @@
             </div>
             <form id="guest-lookup-form">
                 <div class="input-group">
-                    <label class="input-label">주문자 이름</label>
+                    <label for="guest-name" class="input-label">주문자 이름</label>
                     <input type="text" id="guest-name" class="input-field" placeholder="이름" required autocomplete="name">
                 </div>
                 <div class="input-group">
-                    <label class="input-label">연락처</label>
+                    <label for="guest-contact" class="input-label">연락처</label>
                     <input type="tel" id="guest-contact" class="input-field" placeholder="010-0000-0000" required autocomplete="tel">
                 </div>
                 <div class="input-group">
-                    <label class="input-label">비밀번호</label>
-                    <input type="password" id="guest-pw" class="input-field" placeholder="연락처 끝 4자리" required>
+                    <label for="guest-pw" class="input-label">비밀번호</label>
+                    <input type="password" id="guest-pw" class="input-field" placeholder="연락처 끝 4자리" required autocomplete="current-password">
                 </div>
                 <div class="error-msg" id="guest-error"></div>
                 <button type="submit" class="btn-primary">내역 조회하기</button>
@@ -169,11 +170,11 @@
         <div id="login-container" class="view-section hidden">
             <form id="login-form">
                 <div class="input-group">
-                    <label class="input-label">이메일</label>
+                    <label for="login-email" class="input-label">이메일</label>
                     <input type="email" id="login-email" class="input-field" placeholder="example@email.com" required autocomplete="email">
                 </div>
                 <div class="input-group">
-                    <label class="input-label">비밀번호</label>
+                    <label for="login-pw" class="input-label">비밀번호</label>
                     <input type="password" id="login-pw" class="input-field" placeholder="비밀번호 입력" required autocomplete="current-password">
                 </div>
                 <div class="flex items-center justify-between mb-2">
@@ -201,7 +202,7 @@
             </div>
             <form id="reset-password-form">
                 <div class="input-group">
-                    <label class="input-label">가입 이메일</label>
+                    <label for="reset-email" class="input-label">가입 이메일</label>
                     <input type="email" id="reset-email" class="input-field" placeholder="example@email.com" required autocomplete="email">
                 </div>
                 <button type="submit" class="btn-primary">재설정 메일 보내기</button>

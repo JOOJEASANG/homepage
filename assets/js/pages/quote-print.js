@@ -20,6 +20,13 @@ import "../session.js";
 // 페이지 로드 시 공통 헤더 렌더링
 document.addEventListener("DOMContentLoaded", () => initHeader("print"));
 
+// XSS 방지용 문자열 이스케이프
+function sanitizeHTML(str) {
+  if (!str) return '';
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+  return String(str).replace(/[&<>"']/g, (m) => map[m]);
+}
+
 // ── 폼 데이터 임시 저장 ──────────────────────────────────────
 // 견적 페이지를 벗어나기 전에 입력 내용을 localStorage에 보존합니다.
 // 다시 돌아왔을 때 loadTempFormData()로 복구됩니다.
@@ -67,7 +74,7 @@ function updateUserMenuUI() {
     const dispName = storedName || name;
     
     // 모달 내부 텍스트 업데이트
-    userMenuStatus.innerHTML = `<span class="font-bold text-brand-600">${(__isAdminEditMode() ? '관리자' : dispName)}</span>님<br><span class="text-xs text-slate-400">오늘도 좋은 하루 되세요!</span>`;
+    userMenuStatus.innerHTML = `<span class="font-bold text-brand-600">${sanitizeHTML(__isAdminEditMode() ? '관리자' : dispName)}</span>님<br><span class="text-xs text-slate-400">오늘도 좋은 하루 되세요!</span>`;
     
     // 버튼 상태 변경
     userMenuGoMyPageBtn?.classList.remove('hidden');
@@ -93,7 +100,7 @@ function updateUserMenuUI() {
 
     
     if (guestName) {
-        userMenuStatus.innerHTML = `<span class="font-bold text-slate-800">${guestName}</span>님 (비회원)<br><span class="text-xs text-slate-400">주문 조회 중입니다.</span>`;
+        userMenuStatus.innerHTML = `<span class="font-bold text-slate-800">${sanitizeHTML(guestName)}</span>님 (비회원)<br><span class="text-xs text-slate-400">주문 조회 중입니다.</span>`;
     } else {
         userMenuStatus.innerHTML = '<span class="font-bold text-slate-800">방문자</span>님 환영합니다.<br><span class="text-xs text-slate-400">로그인 후 더 많은 기능을 이용해보세요.</span>';
     }

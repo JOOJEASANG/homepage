@@ -1906,7 +1906,7 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
 
             if (hasGuestSession) {
                 userMenuStatus.innerHTML = guestName
-                    ? `<span class="font-bold text-slate-800">${guestName}</span>님 (비회원)<br><span class="text-xs text-slate-400">주문 조회 중입니다.</span>`
+                    ? `<span class="font-bold text-slate-800">${sanitizeHTML(guestName)}</span>님 (비회원)<br><span class="text-xs text-slate-400">주문 조회 중입니다.</span>`
                     : '<span class="font-bold text-slate-800">비회원</span>으로 이용 중입니다.<br><span class="text-xs text-slate-400">주문 조회/접수 세션이 유지되고 있어요.</span>';
 
                 userMenuGoMyPageBtn?.classList.remove('hidden');
