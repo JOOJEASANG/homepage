@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>잠시 점검 중입니다 | 그린오피스</title>
+    <meta name="description" content="홈페이지 점검 중입니다. 잠시 후 다시 이용해 주세요.">
+    <link rel="icon" href="favicon.ico" />
+    <link rel="stylesheet" href="assets/css/tailwind.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% -10%, rgba(22,163,74,0.18) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 80%, rgba(16,185,129,0.10) 0%, transparent 50%),
+                #0a0f1e;
+            color: #fff;
+            min-height: 100vh;
+        }
+        .glow {
+            position: absolute; pointer-events: none;
+            border-radius: 9999px; filter: blur(80px);
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50%      { transform: translateY(-10px); }
+        }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+    </style>
+</head>
+<body class="relative overflow-hidden">
+    <div class="glow w-[480px] h-[480px] bg-emerald-500/15 top-[-120px] left-[-80px]"></div>
+    <div class="glow w-[360px] h-[360px] bg-teal-400/10 bottom-[-60px] right-[-60px]"></div>
+
+    <main class="relative z-10 min-h-screen flex items-center justify-center px-4 py-10">
+        <div class="max-w-xl w-full text-center animate-float">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-emerald-500/15 border border-emerald-400/30 mb-7">
+                <i class="fas fa-tools text-emerald-400 text-3xl"></i>
+            </div>
+
+            <h1 class="text-3xl sm:text-4xl font-black tracking-tight mb-4">
+                홈페이지 점검 중입니다
+            </h1>
+
+            <p id="maintenance-message" class="text-slate-300 text-base leading-relaxed mb-8">
+                보다 나은 서비스 제공을 위해 잠시 점검 중입니다.<br>
+                불편을 드려 죄송하며, 빠른 시간 내에 정상화하겠습니다.
+            </p>
+
+            <div class="bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl p-6 mb-7">
+                <div class="flex items-center justify-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                        <i class="fas fa-headset text-emerald-400"></i>
+                    </div>
+                    <div class="text-left">
+                        <div class="text-xs text-slate-400">긴급 문의</div>
+                        <div class="text-lg font-bold">고객센터</div>
+                    </div>
+                </div>
+                <a href="tel:041-571-4370" class="block text-3xl sm:text-4xl font-black text-white tracking-tight hover:text-emerald-400 transition-colors">
+                    041-571-4370
+                </a>
+                <div class="mt-3 inline-flex items-center gap-1.5 text-xs text-slate-400">
+                    <i class="fas fa-clock text-amber-400"></i>
+                    평일 09:00–18:00 (점심 12:00–13:00 / 주말·공휴일 휴무)
+                </div>
+            </div>
+
+            <div class="text-xs text-slate-500">
+                <i class="fas fa-info-circle mr-1"></i>
+                점검 완료 후 자동으로 정상 페이지가 표시됩니다.
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { app, db, doc, getDoc } from "./assets/js/firebase.js";
+
+        (async () => {
+            try {
+                const snap = await getDoc(doc(db, "settings", "site"));
+                if (!snap.exists()) return;
+                const data = snap.data() || {};
+
+                if (data.maintenance !== true) {
+                    const ret = sessionStorage.getItem('maintenanceReturnUrl') || 'index.html';
+                    try { sessionStorage.removeItem('maintenanceReturnUrl'); } catch(e) {}
+                    location.replace(ret);
+                    return;
+                }
+
+                const msg = (data.maintenanceMessage || '').trim();
+                if (msg) {
+                    const el = document.getElementById('maintenance-message');
+                    el.textContent = '';
+                    msg.split(/\n/).forEach((line, i, arr) => {
+                        el.appendChild(document.createTextNode(line));
+                        if (i < arr.length - 1) el.appendChild(document.createElement('br'));
+                    });
+                }
+            } catch (e) {
+                console.warn('site settings load failed:', e);
+            }
+        })();
+    </script>
+</body>
+</html>

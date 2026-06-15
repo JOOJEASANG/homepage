@@ -3585,6 +3585,7 @@ DOMElements.quoteListBody.addEventListener('click', (e) => {
             document.getElementById('company-info-btn').onclick = openCompanyInfoModal;
             document.getElementById('image-management-btn').onclick = () => { setAdminNavActive('image-management-btn'); DOMElements.imageManagementModal.classList.remove('hidden'); };
             document.getElementById('homepage-management-btn').onclick = () => { setAdminNavActive('homepage-management-btn'); DOMElements.homepageManagementModal.classList.remove('hidden'); };
+            document.getElementById('maintenance-mode-btn')?.addEventListener('click', openMaintenanceModal);
 
             // 3. [모바일 메뉴 버튼 연결]
             document.getElementById('m-book-price-btn')?.addEventListener('click', () => openIframeModal('quote-book-price.html?adminEdit=1'));
@@ -3592,6 +3593,81 @@ DOMElements.quoteListBody.addEventListener('click', (e) => {
             document.getElementById('m-company-btn')?.addEventListener('click', openCompanyInfoModal);
             document.getElementById('m-image-btn')?.addEventListener('click', () => DOMElements.imageManagementModal.classList.remove('hidden'));
             document.getElementById('m-home-btn')?.addEventListener('click', () => DOMElements.homepageManagementModal.classList.remove('hidden'));
+
+            // 4. [공사중 모드 모달 로직]
+            const maintenanceModal = document.getElementById('maintenanceModal');
+            const maintenanceToggle = document.getElementById('maintenanceToggle');
+            const maintenanceMessageInput = document.getElementById('maintenanceMessageInput');
+            const closeMaintenanceModalBtn = document.getElementById('closeMaintenanceModalBtn');
+            const cancelMaintenanceBtn = document.getElementById('cancelMaintenanceBtn');
+            const saveMaintenanceBtn = document.getElementById('saveMaintenanceBtn');
+            const pcStatusPill = document.getElementById('maintenance-status-pill');
+            const mobileStatusPill = document.getElementById('m-maintenance-status-pill');
+
+            function updateMaintenancePill(isOn) {
+                [pcStatusPill, mobileStatusPill].forEach((pill) => {
+                    if (!pill) return;
+                    pill.textContent = isOn ? 'ON' : 'OFF';
+                    pill.classList.remove('bg-slate-100', 'text-slate-500', 'bg-emerald-100', 'text-emerald-700');
+                    if (isOn) pill.classList.add('bg-emerald-100', 'text-emerald-700');
+                    else pill.classList.add('bg-slate-100', 'text-slate-500');
+                });
+            }
+
+            async function openMaintenanceModal() {
+                try { document.activeElement && document.activeElement.blur && document.activeElement.blur(); } catch(e) {}
+                try {
+                    const snap = await getDoc(doc(db, 'settings', 'site'));
+                    const data = snap.exists() ? (snap.data() || {}) : {};
+                    maintenanceToggle.checked = data.maintenance === true;
+                    maintenanceMessageInput.value = data.maintenanceMessage || '';
+                } catch (e) {
+                    maintenanceToggle.checked = false;
+                    maintenanceMessageInput.value = '';
+                }
+                maintenanceModal.style.display = 'flex';
+                maintenanceModal.classList.remove('hidden');
+            }
+
+            function closeMaintenanceModal() {
+                maintenanceModal.classList.add('hidden');
+                maintenanceModal.style.display = 'none';
+            }
+
+            closeMaintenanceModalBtn?.addEventListener('click', closeMaintenanceModal);
+            cancelMaintenanceBtn?.addEventListener('click', closeMaintenanceModal);
+            maintenanceModal?.addEventListener('click', (e) => { if (e.target === maintenanceModal) closeMaintenanceModal(); });
+
+            saveMaintenanceBtn?.addEventListener('click', async () => {
+                const isOn = !!maintenanceToggle.checked;
+                const message = (maintenanceMessageInput.value || '').trim().slice(0, 300);
+                saveMaintenanceBtn.disabled = true;
+                const original = saveMaintenanceBtn.textContent;
+                saveMaintenanceBtn.textContent = '저장 중...';
+                try {
+                    await setDoc(doc(db, 'settings', 'site'), {
+                        maintenance: isOn,
+                        maintenanceMessage: message,
+                        updatedAt: serverTimestamp()
+                    }, { merge: true });
+                    updateMaintenancePill(isOn);
+                    showToast(isOn ? '공사중 모드를 활성화했습니다.' : '공사중 모드를 해제했습니다.', 'success');
+                    closeMaintenanceModal();
+                } catch (e) {
+                    console.error(e);
+                    showToast('저장 중 오류가 발생했습니다.', 'error');
+                } finally {
+                    saveMaintenanceBtn.disabled = false;
+                    saveMaintenanceBtn.textContent = original;
+                }
+            });
+
+            (async () => {
+                try {
+                    const snap = await getDoc(doc(db, 'settings', 'site'));
+                    updateMaintenancePill(snap.exists() && snap.data()?.maintenance === true);
+                } catch (e) { updateMaintenancePill(false); }
+            })();
         }
 
         onAuthStateChanged(auth, async (user) => { try { window.__currentFirebaseUser = user; } catch(e) {}

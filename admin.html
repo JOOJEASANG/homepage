@@ -544,6 +544,11 @@
                     <button id="homepage-management-btn" class="dropdown-item">
                         <i class="fas fa-desktop text-slate-400"></i> 홈페이지 콘텐츠
                     </button>
+                    <div class="h-px bg-slate-100 my-1"></div>
+                    <button id="maintenance-mode-btn" class="dropdown-item">
+                        <i class="fas fa-tools text-slate-400"></i> 공사중 모드
+                        <span id="maintenance-status-pill" class="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">OFF</span>
+                    </button>
                 </div>
             </div>
 
@@ -624,6 +629,10 @@
       </button>
       <button class="mobile-menu-item" data-click="#homepage-management-btn">
         <i class="fas fa-desktop text-slate-400"></i> 홈페이지 콘텐츠
+      </button>
+      <button class="mobile-menu-item" data-click="#maintenance-mode-btn">
+        <i class="fas fa-tools text-slate-400"></i> 공사중 모드
+        <span id="m-maintenance-status-pill" class="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">OFF</span>
       </button>
     </div>
 
@@ -1218,6 +1227,46 @@
     </div>
 
     
+<!-- 공사중 모드 모달 -->
+<div id="maintenanceModal" class="fixed inset-0 modal-bg items-center justify-center p-4 hidden z-[95]" style="display:none;">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+        <button id="closeMaintenanceModalBtn" type="button" class="absolute top-3 right-3 w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="flex items-center gap-3 mb-5">
+            <div class="w-11 h-11 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center">
+                <i class="fas fa-tools text-amber-500"></i>
+            </div>
+            <div>
+                <div class="text-lg font-bold text-slate-900">공사중 모드</div>
+                <div class="text-xs text-slate-500">활성화 시 일반 방문자는 점검 안내 페이지로 자동 이동됩니다.</div>
+            </div>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center justify-between mb-5">
+            <div>
+                <div class="text-sm font-bold text-slate-800">홈페이지 점검 모드</div>
+                <div class="text-xs text-slate-500 mt-0.5">관리자 본인은 영향을 받지 않습니다.</div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="maintenanceToggle" class="sr-only peer">
+                <div class="w-12 h-7 bg-slate-200 peer-checked:bg-emerald-500 rounded-full transition relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition peer-checked:after:translate-x-5"></div>
+            </label>
+        </div>
+
+        <div class="mb-2">
+            <label for="maintenanceMessageInput" class="block text-xs font-bold text-slate-500 mb-1">방문자에게 보여줄 안내문 (선택)</label>
+            <textarea id="maintenanceMessageInput" rows="3" maxlength="300" placeholder="비워두면 기본 안내문이 표시됩니다." class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none resize-none"></textarea>
+            <div class="text-[10px] text-slate-400 text-right mt-1">최대 300자</div>
+        </div>
+
+        <div class="flex items-center gap-2 mt-4">
+            <button id="cancelMaintenanceBtn" type="button" class="flex-1 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold">취소</button>
+            <button id="saveMaintenanceBtn" type="button" class="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold">저장</button>
+        </div>
+    </div>
+</div>
+
 <div id="iframeModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-[90]">
     <div class="bg-white shadow-2xl w-full max-w-7xl h-[95vh] flex flex-col rounded-2xl overflow-hidden relative">
         <button id="closeIframeModalBtn" class="absolute top-4 right-6 z-50 w-10 h-10 rounded-full bg-white shadow-lg hover:bg-slate-100 flex items-center justify-center text-slate-500 transition-colors border border-slate-200">
