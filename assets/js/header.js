@@ -202,9 +202,11 @@ export function renderHeader(activeKey = "") {
       <i class="fas fa-magnifying-glass text-[13px]"></i>
       ${lookupLabel}
     </button>
-    <button id="btn-admin-login" type="button" title="관리자"
-      class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg text-slate-300 hover:text-slate-500 hover:bg-slate-100 transition">
-      <i class="fas fa-shield-halved text-[14px] sm:text-[15px]"></i>
+    <button id="btn-admin-login" type="button" title="관리자 로그인"
+      class="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 text-[13px] sm:text-[14px] font-semibold rounded-lg
+             text-slate-500 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 transition">
+      <i class="fas fa-shield-halved text-[12px] sm:text-[13px]"></i>
+      <span class="hidden sm:inline">관리자</span>
     </button>
   `;
 
