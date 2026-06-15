@@ -108,14 +108,24 @@
     .nav-divider-vertical { width: 1px; height: 20px; background: rgba(255,255,255,0.1); margin: 0 4px; }
 
     .nav-group { position: relative; display: inline-flex; align-items: center; }
-    .nav-group:hover .nav-dropdown-menu { opacity: 1; visibility: visible; transform: translateY(0); }
+    .nav-group::after {
+        content: ''; position: absolute; top: 100%; left: 0; right: 0; height: 10px;
+        background: transparent; pointer-events: none;
+    }
+    .nav-group:hover::after { pointer-events: auto; }
+    .nav-group:hover .nav-dropdown-menu,
+    .nav-group:focus-within .nav-dropdown-menu { opacity: 1; visibility: visible; transform: translateY(0); pointer-events: auto; }
     .nav-dropdown-menu {
-        position: absolute; top: calc(100% + 6px); left: 0;
+        position: absolute; top: 100%; left: 0; margin-top: 6px;
         background: var(--surface); border: 1px solid var(--border);
         border-radius: var(--radius); box-shadow: var(--shadow-md);
         min-width: 180px; z-index: 100; padding: 6px;
         opacity: 0; visibility: hidden; transform: translateY(-4px);
-        transition: all 0.15s;
+        pointer-events: none;
+        transition: opacity 0.15s, transform 0.15s, visibility 0.15s;
+    }
+    .nav-dropdown-menu::before {
+        content: ''; position: absolute; bottom: 100%; left: 0; right: 0; height: 10px;
     }
     .dropdown-item {
         display: flex; align-items: center; gap: 8px;

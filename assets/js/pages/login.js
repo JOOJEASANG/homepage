@@ -35,6 +35,17 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch(e) {}
 });
 
+// bfcache 복원 시(뒤로가기 등) 모든 submit 버튼의 disabled/스피너 상태 초기화
+window.addEventListener('pageshow', (e) => {
+    if (!e.persisted) return;
+    document.querySelectorAll('form button[type="submit"], form button:not([type])').forEach((btn) => {
+        if (btn.dataset.originalHtml) {
+            btn.innerHTML = btn.dataset.originalHtml;
+            btn.disabled = false;
+        }
+    });
+});
+
 // 인라인 스크립트에서 Firebase Auth 접근 가능하도록 전역 등록
         try {
             window.auth = auth;
@@ -191,6 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const isKeepLogin = document.getElementById('keep-login').checked;
             const btn = e.target.querySelector('button');
             const originalHTML = btn.innerHTML;
+            if (!btn.dataset.originalHtml) btn.dataset.originalHtml = originalHTML;
 
             btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 로그인 중...';
 
