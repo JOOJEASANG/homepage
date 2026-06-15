@@ -682,6 +682,8 @@ loadEditPayloadIfAny();
       html += `<div class="flex justify-between"><span class="text-slate-500">사이즈 계수</span><span class="font-bold">${mul.toFixed(3)} <span class="text-[11px] text-slate-400">(${sizeLabel}, ${mulPct}%)</span></span></div>`;
       html += `<div class="flex justify-between"><span class="text-slate-500">인쇄면</span><span class="font-bold">${sides === 1 ? '단면(1면)' : '양면(2면)'}</span></div>`;
       html += `<div class="flex justify-between"><span class="text-slate-500">용지</span><span class="font-bold">${paperType === 'snow' ? '스노우지' : '아르떼'} ${weight}g</span></div><div class="flex justify-between"><span class="text-slate-500">두께 계수</span><span class="font-bold">${wFactor.toFixed(2)} <span class="text-[11px] text-slate-400">(200g 기준)</span></span></div>`;
+      html += `<div class="flex justify-between text-[11px] text-slate-400 pt-1"><span>= ${Math.round(unit.price).toLocaleString()} × ${qty.toLocaleString()}매 × ${sides}면 × ${mul.toFixed(3)} × ${wFactor.toFixed(2)}</span></div>`;
+      html += `<div class="flex justify-between"><span class="text-slate-500">기본 인쇄비</span><span class="font-extrabold text-slate-800">${Math.round(basePrint).toLocaleString()}원</span></div>`;
       if (oshiLines > 0){
         const oshiUnit = getOshiPrice(oshiLines);
         html += `<div class="flex justify-between"><span class="text-slate-500">오시(${oshiLines}줄)</span><span class="font-bold">${Math.round(oshiUnit).toLocaleString()}원/매 × ${qty.toLocaleString()}매 × ${mul.toFixed(3)}</span></div>`;
