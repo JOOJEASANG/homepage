@@ -155,12 +155,12 @@
 <body class="antialiased flex flex-col min-h-screen">
 
     <div id="toast-container" class="fixed top-20 right-5 z-[9999] flex flex-col gap-2.5"></div>
-    <div id="loading-overlay" style="position:fixed;inset:0;background:#0a0f1e;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.5s;">
+    <div id="loading-overlay" style="position:fixed;inset:0;background:#f8fafc;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.5s;">
         <div style="position:relative;width:56px;height:56px;margin-bottom:20px;">
-            <div style="position:absolute;inset:0;border:3px solid #064e3b;border-radius:50%;"></div>
-            <div style="position:absolute;inset:0;border:3px solid #10b981;border-radius:50%;border-top-color:transparent;animation:spin 1s linear infinite;"></div>
+            <div style="position:absolute;inset:0;border:3px solid #d1fae5;border-radius:50%;"></div>
+            <div style="position:absolute;inset:0;border:3px solid #16a34a;border-radius:50%;border-top-color:transparent;animation:spin 1s linear infinite;"></div>
         </div>
-        <p style="color:#34d399;font-weight:700;letter-spacing:0.2em;font-size:0.875rem;">LOADING</p>
+        <p style="color:#16a34a;font-weight:700;letter-spacing:0.2em;font-size:0.875rem;">LOADING</p>
     </div>
     <script>
     (function(){
@@ -177,29 +177,29 @@
 
     <!-- Mobile Nav Drawer -->
     <div id="mobileNavModal" class="fixed inset-0 modal-bg hidden items-end justify-center z-[9998] animate-fade-in">
-        <div class="w-full bg-[#111827] rounded-t-2xl shadow-2xl overflow-hidden animate-slide-up border-t border-white/10" onclick="event.stopPropagation()">
-            <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center">
-                <span class="font-bold text-white tracking-tight">메뉴</span>
-                <button id="closeMobileNavBtn" aria-label="메뉴 닫기" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition" type="button">
+        <div class="w-full bg-white rounded-t-2xl shadow-2xl overflow-hidden animate-slide-up border-t border-slate-200" onclick="event.stopPropagation()">
+            <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+                <span class="font-bold text-slate-900 tracking-tight">메뉴</span>
+                <button id="closeMobileNavBtn" aria-label="메뉴 닫기" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition" type="button">
                     <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="p-4 flex flex-col gap-2">
-                <a href="index.html" class="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-white/05 hover:bg-white/10 text-slate-200 font-semibold transition">
-                    <i class="fas fa-home text-emerald-500 w-5 text-center"></i> 홈
+                <a href="index.html" class="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 font-semibold transition">
+                    <i class="fas fa-home text-emerald-600 w-5 text-center"></i> 홈
                 </a>
-                <a href="quote-book.html" class="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-white/05 hover:bg-white/10 text-slate-200 font-semibold transition">
-                    <i class="fas fa-book text-emerald-500 w-5 text-center"></i> 책자/제본 견적
+                <a href="quote-book.html" class="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 font-semibold transition">
+                    <i class="fas fa-book text-emerald-600 w-5 text-center"></i> 책자/제본 견적
                 </a>
-                <a href="quote-print.html" class="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-white/05 hover:bg-white/10 text-slate-200 font-semibold transition">
-                    <i class="fas fa-print text-emerald-500 w-5 text-center"></i> 디지털 인쇄 견적
+                <a href="quote-print.html" class="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 font-semibold transition">
+                    <i class="fas fa-print text-emerald-600 w-5 text-center"></i> 디지털 인쇄 견적
                 </a>
-                <a href="qna.html" class="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-white/05 hover:bg-white/10 text-slate-200 font-semibold transition">
-                    <i class="fas fa-headset text-emerald-500 w-5 text-center"></i> 고객센터
+                <a href="qna.html" class="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 font-semibold transition">
+                    <i class="fas fa-headset text-emerald-600 w-5 text-center"></i> 고객센터
                 </a>
-                <div class="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-white/10">
+                <div class="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
                     <button id="mobile-mypage-btn" type="button" class="py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition text-sm">접수/주문조회</button>
-                    <button id="mobile-auth-btn" type="button" class="py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold transition text-sm border border-white/15">관리자</button>
+                    <button id="mobile-auth-btn" type="button" class="py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold transition text-sm border border-slate-200">관리자</button>
                 </div>
             </div>
         </div>
