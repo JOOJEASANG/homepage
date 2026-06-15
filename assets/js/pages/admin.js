@@ -3543,6 +3543,8 @@ DOMElements.quoteListBody.addEventListener('click', (e) => {
             const closeIframeBtn = document.getElementById('closeIframeModalBtn');
 
             function openIframeModal(url) {
+                // 드롭다운 호버 상태를 즉시 풀어 메뉴가 닫히도록 포커스 해제
+                try { document.activeElement && document.activeElement.blur && document.activeElement.blur(); } catch(e) {}
                 // Defer opening to avoid the same click event immediately closing the modal
                 // (backdrop appears under cursor and receives the click).
                 contentIframe.src = url;
