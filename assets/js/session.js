@@ -10,6 +10,12 @@
 
 import { auth, signOut, onAuthStateChanged } from "./firebase.js";
 
+// 관리자페이지 메뉴에 AI 상담 관리 항목을 보정 추가합니다.
+try {
+  const currentFile = ((location.pathname || '').split('/').pop() || '');
+  if (currentFile === 'admin.html') import('./admin-ai-menu.js').catch(() => null);
+} catch (e) {}
+
 // ── 스토리지 안전 헬퍼 ──────────────────────────────────────
 // try/catch로 감싸 개인정보 보호 모드 등 스토리지 차단 환경에서도 안전하게 동작
 
