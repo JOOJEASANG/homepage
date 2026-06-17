@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420">
+  <rect width="900" height="420" rx="28" fill="#f8fafc"/>
+  <rect x="120" y="105" width="660" height="190" rx="24" fill="#ffffff" stroke="#cbd5e1" stroke-width="5"/>
+  <rect x="195" y="45" width="510" height="120" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="4"/>
+  <rect x="210" y="64" width="480" height="82" rx="8" fill="#ecfdf5"/>
+  <rect x="220" y="250" width="460" height="110" rx="10" fill="#ffffff" stroke="#16a34a" stroke-width="5"/>
+  <rect x="160" y="150" width="120" height="42" rx="10" fill="#16a34a"/>
+  <text x="184" y="179" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#fff">PRINT</text>
+  <circle cx="690" cy="200" r="18" fill="#16a34a"/>
+  <text x="230" y="310" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#0f172a">흑백 / 컬러 · 단면 / 양면 · 용지 선택</text>
+</svg>
