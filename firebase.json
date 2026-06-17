@@ -1,4 +1,10 @@
 {
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default"
+    }
+  ],
   "hosting": {
     "public": ".",
     "ignore": [
@@ -7,6 +13,7 @@
       ".gitignore",
       "**/node_modules/**",
       "**/.git/**",
+      "functions/**",
       "assets/css/input.css",
       "tailwind.config.js",
       "package.json",
