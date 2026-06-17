@@ -351,6 +351,40 @@ function __bindAdminContactUnmask() {
 
 try { __bindAdminContactUnmask(); } catch (e) {}
 
+// ── 관리자 접수목록 검색박스 아이콘/글자 겹침 보정 ───────────────
+function __fixAdminSearchBoxPadding() {
+  try {
+    const current = ((location.pathname || '').split('/').pop() || '');
+    if (current !== 'admin.html') return;
+    if (document.getElementById('admin-searchbox-padding-fix')) return;
+    const style = document.createElement('style');
+    style.id = 'admin-searchbox-padding-fix';
+    style.textContent = `
+      #searchInput {
+        padding-left: 2.75rem !important;
+        text-indent: 0 !important;
+      }
+      #searchInput::placeholder {
+        color: #94a3b8;
+        opacity: 1;
+      }
+      #searchInput + .fa-search,
+      #searchInput ~ .fa-search {
+        pointer-events: none;
+      }
+      #reception-management-content .relative > .fa-search {
+        left: 0.95rem !important;
+        width: 1rem;
+        text-align: center;
+        pointer-events: none;
+      }
+    `;
+    document.head.appendChild(style);
+  } catch (e) {}
+}
+
+try { __fixAdminSearchBoxPadding(); } catch (e) {}
+
 // ── 하위 모듈 함수 재내보내기 ────────────────────────────────
 // 각 페이지에서 firebase.js 하나만 import 하면 모든 함수 사용 가능
 export {
