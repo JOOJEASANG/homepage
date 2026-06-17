@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420">
+  <rect width="900" height="420" rx="28" fill="#f8fafc"/>
+  <g transform="translate(70 70)">
+    <rect x="0" y="0" width="190" height="260" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="4"/>
+    <rect x="0" y="0" width="28" height="260" rx="12" fill="#16a34a"/>
+    <text x="42" y="130" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">무선</text>
+    <text x="34" y="170" font-family="Arial, sans-serif" font-size="20" fill="#64748b">책등 필요</text>
+  </g>
+  <g transform="translate(355 70)">
+    <rect x="0" y="0" width="190" height="260" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="4"/>
+    <path d="M95 0v260" stroke="#16a34a" stroke-width="5" stroke-dasharray="10 10"/>
+    <circle cx="95" cy="80" r="10" fill="#16a34a"/><circle cx="95" cy="130" r="10" fill="#16a34a"/><circle cx="95" cy="180" r="10" fill="#16a34a"/>
+    <text x="50" y="130" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">중철</text>
+    <text x="38" y="170" font-family="Arial, sans-serif" font-size="20" fill="#64748b">4페이지 단위</text>
+  </g>
+  <g transform="translate(640 70)">
+    <rect x="0" y="0" width="190" height="260" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="4"/>
+    <g fill="none" stroke="#16a34a" stroke-width="5"><path d="M20 35c25 0 25 28 0 28"/><path d="M20 85c25 0 25 28 0 28"/><path d="M20 135c25 0 25 28 0 28"/><path d="M20 185c25 0 25 28 0 28"/></g>
+    <text x="58" y="130" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">와이어</text>
+    <text x="52" y="170" font-family="Arial, sans-serif" font-size="20" fill="#64748b">타공 여백</text>
+  </g>
+</svg>
