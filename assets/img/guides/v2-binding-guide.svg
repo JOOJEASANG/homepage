@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#f0fdf4"/></linearGradient><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#16a34a"/><stop offset="1" stop-color="#059669"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#0f172a" flood-opacity=".13"/></filter></defs>
+  <rect width="1200" height="620" rx="36" fill="url(#bg)"/>
+  <text x="60" y="72" font-family="Arial,sans-serif" font-size="34" font-weight="800" fill="#0f172a">제본 방식별 핵심 차이</text>
+  <text x="60" y="108" font-family="Arial,sans-serif" font-size="18" fill="#64748b">무선제본은 책등, 중철은 4페이지 단위, 와이어는 타공 여백을 확인합니다.</text>
+  <g transform="translate(60 155)" filter="url(#s)">
+    <rect width="330" height="365" rx="28" fill="#fff"/>
+    <rect x="50" y="62" width="155" height="225" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="4"/>
+    <rect x="50" y="62" width="28" height="225" rx="12" fill="url(#g)"/>
+    <rect x="85" y="86" width="92" height="13" rx="6" fill="#d1fae5"/><rect x="85" y="118" width="82" height="13" rx="6" fill="#e2e8f0"/><rect x="85" y="150" width="102" height="13" rx="6" fill="#e2e8f0"/>
+    <text x="46" y="330" font-family="Arial,sans-serif" font-size="28" font-weight="900" fill="#0f172a">무선제본</text><text x="45" y="357" font-family="Arial,sans-serif" font-size="16" fill="#64748b">책등 폭·안쪽 여백 확인</text>
+  </g>
+  <g transform="translate(435 155)" filter="url(#s)">
+    <rect width="330" height="365" rx="28" fill="#fff"/>
+    <rect x="63" y="62" width="200" height="225" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="4"/>
+    <path d="M163 62v225" stroke="#16a34a" stroke-width="5" stroke-dasharray="12 11"/>
+    <circle cx="163" cy="120" r="10" fill="#16a34a"/><circle cx="163" cy="175" r="10" fill="#16a34a"/><circle cx="163" cy="230" r="10" fill="#16a34a"/>
+    <text x="70" y="330" font-family="Arial,sans-serif" font-size="28" font-weight="900" fill="#0f172a">중철제본</text><text x="61" y="357" font-family="Arial,sans-serif" font-size="16" fill="#64748b">전체 페이지 4의 배수 권장</text>
+  </g>
+  <g transform="translate(810 155)" filter="url(#s)">
+    <rect width="330" height="365" rx="28" fill="#fff"/>
+    <rect x="70" y="62" width="190" height="225" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="4"/>
+    <g fill="none" stroke="#16a34a" stroke-width="5"><path d="M72 96c30 0 30 28 0 28"/><path d="M72 144c30 0 30 28 0 28"/><path d="M72 192c30 0 30 28 0 28"/><path d="M72 240c30 0 30 28 0 28"/></g>
+    <path d="M112 62v225" stroke="#e2e8f0" stroke-width="3" stroke-dasharray="8 8"/>
+    <text x="67" y="330" font-family="Arial,sans-serif" font-size="28" font-weight="900" fill="#0f172a">와이어제본</text><text x="61" y="357" font-family="Arial,sans-serif" font-size="16" fill="#64748b">타공 쪽 여백 10mm 이상 권장</text>
+  </g>
+</svg>
