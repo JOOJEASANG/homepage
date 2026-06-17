@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#eef2ff"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#0f172a" flood-opacity=".12"/></filter></defs>
+  <rect width="1200" height="620" rx="36" fill="url(#bg)"/>
+  <text x="60" y="70" font-family="Arial,sans-serif" font-size="34" font-weight="800" fill="#0f172a">재단선 · 도련 · 안전영역</text>
+  <text x="60" y="105" font-family="Arial,sans-serif" font-size="18" fill="#64748b">배경은 바깥까지, 중요한 글자는 안쪽 안전영역에 배치합니다.</text>
+  <g transform="translate(95 145)" filter="url(#s)">
+    <rect x="0" y="0" width="560" height="380" rx="28" fill="#fff"/>
+    <rect x="65" y="45" width="430" height="290" rx="14" fill="#dcfce7" stroke="#16a34a" stroke-width="5" stroke-dasharray="16 12"/>
+    <rect x="105" y="85" width="350" height="210" rx="10" fill="#fff" stroke="#94a3b8" stroke-width="4"/>
+    <rect x="145" y="125" width="270" height="130" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="3"/>
+    <text x="208" y="198" font-family="Arial,sans-serif" font-size="30" font-weight="800" fill="#0f172a">안전영역</text>
+    <text x="70" y="32" font-family="Arial,sans-serif" font-size="18" font-weight="800" fill="#16a34a">도련 3mm</text>
+    <path d="M120 38L95 58" stroke="#16a34a" stroke-width="4"/>
+    <text x="420" y="360" font-family="Arial,sans-serif" font-size="18" font-weight="800" fill="#64748b">재단선</text>
+    <path d="M450 330L485 352" stroke="#64748b" stroke-width="4"/>
+  </g>
+  <g transform="translate(720 150)">
+    <rect x="0" y="0" width="390" height="380" rx="28" fill="#fff" filter="url(#s)"/>
+    <text x="32" y="55" font-family="Arial,sans-serif" font-size="25" font-weight="800" fill="#0f172a">작업 기준</text>
+    <g font-family="Arial,sans-serif" font-size="20" fill="#334155">
+      <rect x="32" y="85" width="326" height="62" rx="16" fill="#ecfdf5"/><text x="58" y="123">배경: 재단선 밖 3mm까지 확장</text>
+      <rect x="32" y="165" width="326" height="62" rx="16" fill="#f8fafc"/><text x="58" y="203">글자: 재단선 안쪽 5mm 이상</text>
+      <rect x="32" y="245" width="326" height="62" rx="16" fill="#f8fafc"/><text x="58" y="283">테두리: 재단 오차가 보일 수 있음</text>
+    </g>
+    <text x="34" y="345" font-family="Arial,sans-serif" font-size="16" fill="#64748b">권장: 디자인 배경은 끝까지, 중요한 요소는 중앙으로</text>
+  </g>
+</svg>
