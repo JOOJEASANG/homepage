@@ -53,13 +53,16 @@ function hasMaintenanceFlag(data) {
     if (!data || typeof data !== 'object') return false;
 
     // 관리자 화면에서 필드명이 바뀌어도 점검모드가 누락되지 않도록 대표 후보를 모두 확인합니다.
+    // 단, 일반적인 enabled 필드는 팝업/콘텐츠 설정에도 쓰일 수 있어 점검모드 판단에서 제외합니다.
     const directFlags = [
         data.maintenance,
         data.maintenanceMode,
         data.isMaintenance,
         data.isMaintenanceMode,
         data.siteMaintenance,
-        data.enabled,
+        data.siteMaintenanceMode,
+        data.homepageMaintenance,
+        data.homepageMaintenanceMode,
     ];
     if (directFlags.some(v => v === true || v === 'true' || v === 1 || v === '1')) return true;
 
