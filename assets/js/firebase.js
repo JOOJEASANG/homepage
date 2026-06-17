@@ -72,7 +72,7 @@ function __maintenanceFlagFromData(data) {
     data.homepageMaintenance,
     data.homepageMaintenanceMode,
   ];
-  if (flags.some(v => v === true || v === 'true' || v === 1 || v === '1')) return true;
+  if (flags.some(v => v === true || v === 'true' || v === 1 || v === '1' || v === 'on' || v === 'ON')) return true;
   const nested = data.site || data.homepage || data.settings || null;
   return !!(nested && typeof nested === 'object' && __maintenanceFlagFromData(nested));
 }
@@ -90,8 +90,11 @@ function __renderMaintenanceModePills(on) {
 
 async function __getMaintenanceModeState() {
   try {
-    const snap = await getDoc(doc(db, 'settings', 'site'));
-    return snap.exists() && __maintenanceFlagFromData(snap.data());
+    const snaps = await Promise.all([
+      getDoc(doc(db, 'settings', 'site')).catch(() => null),
+      getDoc(doc(db, 'settings', 'homepageContent')).catch(() => null),
+    ]);
+    return snaps.some(snap => snap && snap.exists() && __maintenanceFlagFromData(snap.data()));
   } catch (e) {
     console.warn('[maintenance-admin] read failed:', e);
     return false;
@@ -116,60 +119,87 @@ function __toastMaintenance(message, type = 'info') {
   } catch (e) {}
 }
 
+function __markMaintenanceBusy(busy) {
+  ['maintenance-mode-btn', 'm-maintenance-status-pill'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if ('disabled' in el) el.disabled = !!busy;
+  });
+}
+
+async function __setMaintenanceMode(next) {
+  const user = auth.currentUser;
+  const okAdmin = await __ensureAdminForMaintenance(user);
+  if (!okAdmin) throw new Error('관리자 권한 확인 실패');
+
+  const payload = {
+    maintenance: next,
+    maintenanceMode: next,
+    siteMaintenance: next,
+    siteMaintenanceMode: next,
+    homepageMaintenance: next,
+    homepageMaintenanceMode: next,
+    updatedAt: serverTimestamp(),
+    updatedBy: user.uid,
+  };
+
+  // 방문자 체크와 관리자 UI가 같은 값을 보도록 두 문서에 같이 저장합니다.
+  await Promise.all([
+    setDoc(doc(db, 'settings', 'site'), payload, { merge: true }),
+    setDoc(doc(db, 'settings', 'homepageContent'), payload, { merge: true }),
+  ]);
+
+  try { localStorage.setItem('maintenanceModeLastSet', next ? '1' : '0'); } catch (e) {}
+}
+
 function __bindAdminMaintenanceModeToggle() {
   if (!__isAdminPageForMaintenance()) return;
 
+  let currentState = false;
+  let busy = false;
+
+  const refresh = async () => {
+    currentState = await __getMaintenanceModeState();
+    __renderMaintenanceModePills(currentState);
+  };
+
   const bind = () => {
-    const btn = document.getElementById('maintenance-mode-btn');
-    if (!btn || btn.dataset.maintenanceBound === '1') return;
-    btn.dataset.maintenanceBound = '1';
+    // 이벤트 위임으로 처리: 기존 버튼이 늦게 렌더링되거나 모바일 메뉴에서 클릭을 넘겨도 안정적으로 동작합니다.
+    if (document.body?.dataset.maintenanceDelegateBound !== '1') {
+      document.body.dataset.maintenanceDelegateBound = '1';
+      document.addEventListener('click', async (e) => {
+        const btn = e.target?.closest?.('#maintenance-mode-btn');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation?.();
+        if (busy) return;
+        busy = true;
+        __markMaintenanceBusy(true);
 
-    let currentState = false;
-    let busy = false;
+        const oldHtml = btn.innerHTML;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin text-slate-400"></i> 처리중...`;
 
-    const refresh = async () => {
-      currentState = await __getMaintenanceModeState();
-      __renderMaintenanceModePills(currentState);
-    };
-
-    btn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (busy) return;
-      busy = true;
-
-      const next = !currentState;
-      const oldHtml = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = `<i class="fas fa-spinner fa-spin text-slate-400"></i> 처리중...`;
-
-      try {
-        const user = auth.currentUser;
-        const okAdmin = await __ensureAdminForMaintenance(user);
-        if (!okAdmin) throw new Error('관리자 권한 확인 실패');
-
-        await setDoc(doc(db, 'settings', 'site'), {
-          maintenance: next,
-          maintenanceMode: next,
-          siteMaintenance: next,
-          updatedAt: serverTimestamp(),
-          updatedBy: user.uid,
-        }, { merge: true });
-
-        currentState = next;
-        __renderMaintenanceModePills(currentState);
-        __toastMaintenance(next ? '홈페이지 점검모드가 ON 되었습니다.' : '홈페이지 점검모드가 OFF 되었습니다.', next ? 'warning' : 'success');
-      } catch (err) {
-        console.warn('[maintenance-admin] toggle failed:', err);
-        __toastMaintenance('점검모드 변경에 실패했습니다. 권한 또는 네트워크를 확인하세요.', 'error');
-        await refresh();
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = oldHtml;
-        __renderMaintenanceModePills(currentState);
-        busy = false;
-      }
-    }, true);
+        try {
+          // 클릭 직전 최신 상태를 다시 읽어서 ON/OFF 반전 오류를 막습니다.
+          currentState = await __getMaintenanceModeState();
+          const next = !currentState;
+          await __setMaintenanceMode(next);
+          currentState = next;
+          __renderMaintenanceModePills(currentState);
+          __toastMaintenance(next ? '홈페이지 점검모드가 ON 되었습니다.' : '홈페이지 점검모드가 OFF 되었습니다.', next ? 'warning' : 'success');
+        } catch (err) {
+          console.warn('[maintenance-admin] toggle failed:', err);
+          __toastMaintenance('점검모드 변경에 실패했습니다. 권한 또는 네트워크를 확인하세요.', 'error');
+          await refresh();
+        } finally {
+          btn.innerHTML = oldHtml;
+          __renderMaintenanceModePills(currentState);
+          __markMaintenanceBusy(false);
+          busy = false;
+        }
+      }, true);
+    }
 
     refresh();
   };
@@ -178,6 +208,7 @@ function __bindAdminMaintenanceModeToggle() {
   else bind();
   setTimeout(bind, 500);
   setTimeout(bind, 1500);
+  setTimeout(bind, 3000);
 }
 
 try {
