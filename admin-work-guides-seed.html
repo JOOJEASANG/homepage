@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>작업가이드 기본 데이터 생성 | 그린오피스</title>
+  <title>작업가이드 데이터 업그레이드 | 그린오피스</title>
   <link rel="stylesheet" href="assets/css/tailwind.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
   <style>body{font-family:Pretendard,sans-serif}</style>
@@ -12,38 +12,42 @@
   <main class="min-h-screen flex items-center justify-center p-4">
     <section class="w-full max-w-2xl bg-white border border-slate-200 rounded-2xl shadow-xl p-8">
       <p class="text-xs font-black tracking-[0.2em] text-emerald-600 uppercase mb-2">Admin Seed</p>
-      <h1 class="text-2xl font-black mb-3">작업가이드 기본 데이터 생성</h1>
-      <p class="text-sm text-slate-500 leading-7 mb-6">관리자 로그인 상태에서만 실행됩니다. 버튼을 누르면 출력·제본·디지털인쇄용 기본 가이드가 <b>work_guides</b> 컬렉션에 추가됩니다. 관련 안내 이미지도 함께 삽입됩니다. 이미 같은 제목이 있으면 중복 등록하지 않습니다.</p>
+      <h1 class="text-2xl font-black mb-3">작업가이드 데이터 업그레이드</h1>
+      <p class="text-sm text-slate-500 leading-7 mb-6">관리자 로그인 상태에서 실행됩니다. 버튼을 누르면 출력·제본·디지털인쇄 작업가이드가 세련된 설명 이미지와 보강된 내용으로 업데이트됩니다. 같은 제목이 있으면 내용을 교체하고, 없으면 새로 추가합니다.</p>
       <div id="seed-status" class="rounded-xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-500 mb-5">로그인 상태를 확인하는 중입니다.</div>
       <div class="flex flex-col sm:flex-row gap-3">
-        <button id="seed-btn" disabled class="flex-1 px-5 py-3 rounded-xl bg-emerald-600 text-white font-black disabled:opacity-40 disabled:cursor-not-allowed">이미지 포함 기본 작업가이드 생성</button>
-        <a href="admin.html" class="px-5 py-3 rounded-xl border border-slate-300 text-slate-600 font-bold text-center">관리자페이지로 이동</a>
+        <button id="seed-btn" disabled class="flex-1 px-5 py-3 rounded-xl bg-emerald-600 text-white font-black disabled:opacity-40 disabled:cursor-not-allowed">이미지/내용 업그레이드 실행</button>
+        <a href="work-guide.html" class="px-5 py-3 rounded-xl border border-slate-300 text-slate-600 font-bold text-center">작업가이드 보기</a>
+        <a href="admin.html" class="px-5 py-3 rounded-xl border border-slate-300 text-slate-600 font-bold text-center">관리자</a>
       </div>
     </section>
   </main>
 
   <script type="module">
-    import { auth, db, onAuthStateChanged, collection, addDoc, getDocs, doc, getDoc, serverTimestamp } from './assets/js/firebase.js';
+    import { auth, db, onAuthStateChanged, collection, addDoc, getDocs, doc, getDoc, updateDoc, serverTimestamp } from './assets/js/firebase.js';
 
     const statusEl = document.getElementById('seed-status');
     const seedBtn = document.getElementById('seed-btn');
     let adminUser = null;
 
-    const img = (src, alt) => `<figure style="margin:16px 0 20px"><img src="${src}" alt="${alt}" style="width:100%;max-width:720px;border:1px solid #e2e8f0;border-radius:14px;background:#f8fafc"><figcaption style="font-size:12px;color:#64748b;margin-top:6px">${alt}</figcaption></figure>`;
+    const fig = (src, alt) => `<figure style="margin:18px 0 22px"><img src="${src}" alt="${alt}" style="width:100%;max-width:860px;border:1px solid #dbe3ea;border-radius:18px;background:#f8fafc;box-shadow:0 12px 30px rgba(15,23,42,.08)"><figcaption style="font-size:12px;color:#64748b;margin-top:8px">${alt}</figcaption></figure>`;
+    const box = (title, body) => `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;margin:14px 0"><b style="color:#0f172a">${title}</b><div style="margin-top:6px;color:#475569;line-height:1.75">${body}</div></div>`;
+    const ul = arr => `<ul>${arr.map(x => `<li>${x}</li>`).join('')}</ul>`;
+    const html = (g) => `<h2>${g.h}</h2>${fig(g.img,g.alt)}<p>${g.lead}</p>${box('작업 기준', ul(g.std))}${box('접수 시 확인할 내용', ul(g.check))}${box('자주 생기는 문제', ul(g.warn))}<p><strong>안내:</strong> 자동 견적과 실제 제작 가능 여부는 파일 확인 후 달라질 수 있으며, 최종 금액과 납기는 관리자 확인 후 확정됩니다.</p>`;
 
     const guides = [
-      ['01. 파일 접수 기본 안내', '<h2>파일 접수 전 확인</h2>'+img('assets/img/guides/file-check.svg','파일 접수 체크리스트')+'<p>인쇄용 파일은 PDF 접수를 권장합니다. 파일명에는 작업명, 수량, 사이즈를 구분해서 적어주시면 확인이 빠릅니다.</p><ul><li>PDF 권장</li><li>페이지 순서 확인</li><li>오탈자 확인</li><li>재단 사이즈 확인</li><li>연락처 확인</li></ul>'],
-      ['02. PDF 저장 및 글꼴 깨짐 방지', '<h2>PDF 저장 안내</h2>'+img('assets/img/guides/file-check.svg','PDF 저장 및 글꼴 확인')+'<p>문서 프로그램에서 PDF로 저장할 때 글꼴 포함 옵션을 사용해 주세요. 일러스트 파일은 글자를 아웃라인 처리하면 글꼴 깨짐을 줄일 수 있습니다.</p><ul><li>PDF 저장 권장</li><li>글꼴 포함 또는 아웃라인 처리</li><li>이미지 누락 여부 확인</li></ul>'],
-      ['03. 이미지 해상도 안내', '<h2>해상도 기준</h2>'+img('assets/img/guides/file-check.svg','이미지 품질 확인')+'<p>선명한 출력물을 위해 이미지는 300dpi 기준을 권장합니다. 화면 캡처 이미지는 확대 출력 시 흐리게 보일 수 있습니다.</p><ul><li>사진·이미지 300dpi 권장</li><li>카카오톡·문자 전달 이미지 주의</li><li>작은 이미지를 억지로 키우면 품질이 떨어질 수 있음</li></ul>'],
-      ['04. 여백·도련·재단선 안내', '<h2>재단 여백 안내</h2>'+img('assets/img/guides/bleed-margin.svg','도련·재단선·안전영역 안내')+'<p>재단 과정에서 1~2mm 정도 오차가 생길 수 있습니다. 배경이 끝까지 들어가는 디자인은 사방 3mm 도련을 추가하는 것이 좋습니다.</p><ul><li>중요 글자는 재단선 안쪽으로 배치</li><li>배경은 도련까지 확장</li><li>테두리 디자인은 재단 오차가 눈에 띌 수 있음</li></ul>'],
-      ['05. 책자·제본 기본 안내', '<h2>책자 제작 기본</h2>'+img('assets/img/guides/binding-types.svg','제본 방식 기본 안내')+'<p>책자 제작 시 표지, 내지, 페이지 수, 제본 방향을 확인해야 합니다. 페이지 수는 표지 포함 여부에 따라 견적이 달라질 수 있습니다.</p><ul><li>표지 별도 여부 확인</li><li>내지 페이지 수 확인</li><li>좌철·상철 방향 확인</li><li>단면·양면 인쇄 확인</li></ul>'],
-      ['06. 무선제본 작업 안내', '<h2>무선제본 안내</h2>'+img('assets/img/guides/binding-types.svg','무선제본 책등 안내')+'<p>무선제본은 책등이 생기는 제본 방식입니다. 페이지 수와 종이 두께에 따라 책등 폭이 달라집니다.</p><ul><li>표지는 앞표지·책등·뒷표지를 한 장으로 제작</li><li>책등 폭은 최종 페이지 수 확인 후 결정</li><li>본문 안쪽 여백을 충분히 확보</li></ul>'],
-      ['07. 중철제본 작업 안내', '<h2>중철제본 안내</h2>'+img('assets/img/guides/binding-types.svg','중철제본 4페이지 단위 안내')+'<p>중철제본은 가운데를 접어 스테이플러로 고정하는 방식입니다. 전체 페이지 수는 4페이지 단위가 가장 안정적입니다.</p><ul><li>4페이지 단위 권장</li><li>페이지 순서는 작업자가 제본 순서에 맞게 확인</li><li>두꺼운 책자는 중철이 어려울 수 있음</li></ul>'],
-      ['08. 와이어·스프링 제본 안내', '<h2>와이어·스프링 제본 안내</h2>'+img('assets/img/guides/binding-types.svg','와이어·스프링 타공 여백 안내')+'<p>타공이 들어가는 제본은 구멍 위치 때문에 안쪽 여백이 필요합니다. 좌철, 상철 방향을 접수 시 선택해 주세요.</p><ul><li>타공 여백 확보</li><li>좌철·상철 확인</li><li>표지 재질과 투명표지 여부 확인</li></ul>'],
-      ['09. 디지털 인쇄 기본 안내', '<h2>디지털 인쇄 안내</h2>'+img('assets/img/guides/digital-print.svg','디지털 인쇄 선택 항목')+'<p>소량 인쇄, 빠른 출력, 다양한 용지 선택에 적합합니다. 흑백/컬러, 단면/양면, 용지 종류에 따라 금액이 달라집니다.</p><ul><li>흑백 또는 컬러 선택</li><li>단면 또는 양면 선택</li><li>용지 평량과 종류 확인</li><li>수량 확인</li></ul>'],
-      ['10. 리플렛·전단·포스터 안내', '<h2>홍보물 제작 안내</h2>'+img('assets/img/guides/bleed-margin.svg','홍보물 재단·접지 확인')+'<p>리플렛, 전단, 포스터는 재단 사이즈와 접지 여부가 중요합니다. 접지가 있는 경우 접히는 위치에 중요한 글자가 걸리지 않게 배치해 주세요.</p><ul><li>완성 사이즈 확인</li><li>접지 방식 확인</li><li>코팅 여부 확인</li><li>재단 여백 확인</li></ul>'],
-      ['11. 후가공 안내', '<h2>후가공 종류</h2>'+img('assets/img/guides/digital-print.svg','후가공 선택 안내')+'<p>코팅, 오시, 접지, 타공, 라미네이팅 등 후가공은 제작 기간과 금액에 영향을 줄 수 있습니다.</p><ul><li>코팅: 표면 보호 및 질감 개선</li><li>오시: 접히는 선 작업</li><li>접지: 리플렛 접는 작업</li><li>타공: 바인더 또는 제본용 구멍</li></ul>'],
-      ['12. 접수 전 최종 체크리스트', '<h2>최종 체크리스트</h2>'+img('assets/img/guides/file-check.svg','접수 전 최종 체크리스트')+'<ul><li>파일이 최종본인지 확인</li><li>오탈자 확인</li><li>페이지 순서 확인</li><li>사이즈와 수량 확인</li><li>제본 방향 확인</li><li>연락처 확인</li><li>희망 납기 확인</li></ul>']
+      { title:'01. 파일 접수 기본 안내', img:'assets/img/guides/v2-preflight.svg', alt:'파일 접수 전 프리플라이트 체크', h:'파일 접수 기본 안내', lead:'정확한 제작을 위해 접수 파일은 최종본 기준으로 보내주세요. 파일명, 페이지 순서, 제작 수량, 연락처가 명확하면 확인 시간이 줄어듭니다.', std:['PDF 파일 접수를 가장 권장합니다.','파일명에는 작업명, 사이즈, 수량을 함께 적어주세요.','여러 파일은 압축파일로 묶고 순서를 알 수 있게 번호를 붙여주세요.'], check:['오탈자와 페이지 누락 여부 확인','최종 파일인지 확인','제작 수량과 납기 요청사항 기재','연락 가능한 전화번호 확인'], warn:['수정 전 파일과 최종 파일이 섞여 접수되는 경우','페이지 순서가 파일명과 다른 경우','파일 확인 중 연락이 되지 않아 제작이 지연되는 경우'], category:'파일접수', tags:['PDF','접수','체크리스트'] },
+      { title:'02. PDF 저장 및 글꼴 깨짐 방지', img:'assets/img/guides/v2-preflight.svg', alt:'PDF 저장 및 글꼴 확인', h:'PDF 저장 및 글꼴 깨짐 방지', lead:'문서 프로그램이나 디자인 프로그램에서 만든 원본 파일은 다른 PC에서 글꼴이 깨질 수 있습니다. 인쇄용 PDF로 변환해 접수하는 것이 가장 안전합니다.', std:['한글, 워드, 파워포인트는 PDF 저장 후 접수 권장','일러스트 파일은 글자 아웃라인 처리 권장','이미지 링크 누락이 없는지 확인'], check:['PDF에서 글자가 깨지지 않는지 열어서 확인','특수 글꼴 사용 시 PDF 글꼴 포함 여부 확인','검정 글자가 흐리게 보이지 않는지 확인'], warn:['다른 컴퓨터에서 글꼴이 대체되는 문제','이미지가 빠진 상태로 PDF가 저장되는 문제','투명 효과나 그림자가 의도와 다르게 출력되는 문제'], category:'파일접수', tags:['PDF','폰트','아웃라인'] },
+      { title:'03. 이미지 해상도 안내', img:'assets/img/guides/v2-preflight.svg', alt:'이미지 품질과 해상도 확인', h:'이미지 해상도 안내', lead:'인쇄 품질은 원본 이미지 해상도에 영향을 많이 받습니다. 화면에서는 괜찮아 보여도 출력하면 흐리거나 계단 현상이 보일 수 있습니다.', std:['사진과 이미지 파일은 300dpi 권장','카카오톡, 문자로 받은 이미지는 압축되어 품질이 낮을 수 있음','작은 이미지를 크게 확대하면 선명도가 떨어짐'], check:['원본 이미지 크기 확인','캡처 이미지 사용 여부 확인','로고나 도표는 가능하면 벡터 또는 고해상도 파일 사용'], warn:['웹에서 저장한 작은 이미지를 크게 사용하는 경우','저해상도 로고가 흐리게 출력되는 경우','어두운 사진이 인쇄에서 더 탁하게 보이는 경우'], category:'파일접수', tags:['해상도','이미지','300dpi'] },
+      { title:'04. 여백·도련·재단선 안내', img:'assets/img/guides/v2-bleed-guide.svg', alt:'도련·재단선·안전영역 상세 안내', h:'여백·도련·재단선 안내', lead:'재단 과정에는 미세한 오차가 생길 수 있습니다. 배경은 바깥까지 확장하고, 글자와 로고는 안쪽 안전영역에 배치해야 안정적입니다.', std:['배경이 끝까지 들어가는 디자인은 사방 3mm 도련 권장','중요 글자와 로고는 재단선 안쪽 5mm 이상 권장','테두리 디자인은 재단 오차가 눈에 띌 수 있음'], check:['완성 사이즈와 작업 사이즈 구분','도련 포함 여부 확인','중요 요소가 가장자리와 너무 가깝지 않은지 확인'], warn:['흰 여백이 생기는 문제','테두리 두께가 한쪽으로 치우쳐 보이는 문제','재단선 가까운 글자가 잘리는 문제'], category:'재단', tags:['도련','재단선','안전영역'] },
+      { title:'05. 책자·제본 기본 안내', img:'assets/img/guides/v2-binding-guide.svg', alt:'제본 방식별 핵심 차이', h:'책자·제본 기본 안내', lead:'책자 제작은 표지, 내지, 페이지 수, 제본 방식에 따라 견적과 제작 방식이 달라집니다. 접수 전 표지 포함 여부와 제본 방향을 확인해주세요.', std:['표지와 내지를 구분해서 접수','좌철, 상철 등 제본 방향 확인','단면, 양면 인쇄 여부 확인','표지 코팅 여부 확인'], check:['표지 포함 총 페이지 수인지 확인','내지 흑백/컬러 구분','제본 방식 선택','완성 사이즈 확인'], warn:['표지 페이지를 내지 페이지 수에 잘못 포함하는 경우','좌철/상철 방향이 반대로 지정되는 경우','양면 인쇄에서 빈 페이지가 누락되는 경우'], category:'제본', tags:['책자','제본','표지'] },
+      { title:'06. 무선제본 작업 안내', img:'assets/img/guides/v2-binding-guide.svg', alt:'무선제본 책등과 안쪽 여백 안내', h:'무선제본 작업 안내', lead:'무선제본은 책등이 생기는 고급 제본 방식입니다. 페이지 수와 종이 두께에 따라 책등 폭이 달라지며, 본문 안쪽 여백이 중요합니다.', std:['표지는 앞표지, 책등, 뒷표지를 하나로 구성','책등 폭은 최종 페이지 수와 용지 두께 확인 후 결정','본문 안쪽 여백은 일반 문서보다 넉넉하게 설정'], check:['책등 제목 필요 여부','표지 코팅 여부','내지 용지 종류와 페이지 수','본문 안쪽 글자 잘림 여부'], warn:['책등 폭이 맞지 않아 제목이 밀리는 문제','본문 안쪽 글자가 제본부에 가려지는 문제','페이지 수 변경 후 표지 책등을 수정하지 않는 문제'], category:'제본', tags:['무선제본','책등','표지'] },
+      { title:'07. 중철제본 작업 안내', img:'assets/img/guides/v2-binding-guide.svg', alt:'중철제본 페이지 단위 안내', h:'중철제본 작업 안내', lead:'중철제본은 가운데를 접고 철심으로 고정하는 방식입니다. 책을 펼쳤을 때 가운데가 잘 보이고, 비교적 얇은 책자에 적합합니다.', std:['전체 페이지는 4페이지 단위 권장','너무 두꺼운 책자는 중철이 어려울 수 있음','가운데 접힘 위치에 중요한 글자 배치 주의'], check:['총 페이지 수가 4의 배수인지 확인','표지 포함 여부 확인','펼침면 이미지가 접힘선에 걸리는지 확인'], warn:['페이지 수가 맞지 않아 빈 페이지가 추가되는 경우','가운데 접힘선에 글자가 걸리는 경우','두꺼워서 철심 고정이 불안정한 경우'], category:'제본', tags:['중철','4페이지','책자'] },
+      { title:'08. 와이어·스프링 제본 안내', img:'assets/img/guides/v2-binding-guide.svg', alt:'와이어·스프링 타공 여백 안내', h:'와이어·스프링 제본 안내', lead:'와이어와 스프링 제본은 타공 후 링으로 고정하는 방식입니다. 문서가 잘 펼쳐지고 교재, 매뉴얼, 제안서에 많이 사용됩니다.', std:['타공 쪽 안쪽 여백 10mm 이상 권장','좌철, 상철 방향 확인','투명표지, 색지표지, 코팅표지 선택 가능'], check:['타공 위치에 글자나 표가 걸리지 않는지 확인','제본 방향 확인','표지 재질 선택','내지 매수 확인'], warn:['타공 구멍에 글자나 표가 겹치는 문제','상철/좌철 선택 오류','두꺼운 문서에서 링 규격이 달라지는 문제'], category:'제본', tags:['와이어','스프링','타공'] },
+      { title:'09. 디지털 인쇄 기본 안내', img:'assets/img/guides/v2-digital-print.svg', alt:'디지털 인쇄 사양 선택 안내', h:'디지털 인쇄 기본 안내', lead:'디지털 인쇄는 소량, 빠른 납기, 다양한 용지 선택에 적합합니다. 흑백/컬러, 단면/양면, 용지 종류와 수량에 따라 금액이 달라집니다.', std:['흑백과 컬러 페이지를 구분하면 견적이 정확해짐','단면/양면 여부 확인','용지 평량과 종류 선택','재단, 코팅, 접지 등 후가공 여부 확인'], check:['인쇄 컬러 구분','용지 사이즈와 재질','수량과 부수','후가공 필요 여부'], warn:['컬러 페이지를 흑백으로 잘못 선택하는 문제','양면 인쇄에서 방향이 뒤집히는 문제','용지 두께 선택에 따라 제본 가능 여부가 달라지는 문제'], category:'디지털인쇄', tags:['디지털인쇄','컬러','용지'] },
+      { title:'10. 리플렛·전단·포스터 안내', img:'assets/img/guides/v2-bleed-guide.svg', alt:'홍보물 재단·접지 확인', h:'리플렛·전단·포스터 안내', lead:'홍보물은 완성 사이즈, 재단 여백, 접지 방식이 중요합니다. 접히는 위치에 중요한 글자나 로고가 걸리지 않도록 배치해야 합니다.', std:['배경 있는 디자인은 도련 3mm 권장','접지 리플렛은 접히는 위치 확인','포스터는 해상도와 원본 크기 확인','코팅 여부에 따라 질감과 납기 차이 발생'], check:['완성 사이즈','접지 방식','코팅 여부','재단 여백','이미지 해상도'], warn:['접힘선에 글자가 걸리는 문제','포스터 이미지가 흐리게 출력되는 문제','테두리 디자인이 재단 후 비대칭으로 보이는 문제'], category:'디지털인쇄', tags:['리플렛','전단','포스터'] },
+      { title:'11. 후가공 안내', img:'assets/img/guides/v2-finishing.svg', alt:'후가공 공정별 선택 안내', h:'후가공 안내', lead:'후가공은 인쇄 후 품질과 사용성을 높이는 작업입니다. 코팅, 오시, 접지, 타공, 라미네이팅 등은 제작 기간과 금액에 영향을 줍니다.', std:['코팅은 표면 보호와 질감 개선에 적합','오시는 두꺼운 종이를 접을 때 필요','접지는 리플렛 형태 제작에 사용','타공은 바인더나 제본 구멍 작업에 사용','라미네이팅은 두꺼운 보호가 필요한 출력물에 사용'], check:['후가공 종류','용지 두께','수량','납기 가능 여부','후가공 위치'], warn:['오시 없이 두꺼운 종이를 접어 갈라지는 문제','타공 위치가 글자와 겹치는 문제','코팅 후 색감이 약간 달라지는 문제'], category:'후가공', tags:['코팅','오시','접지','타공'] },
+      { title:'12. 접수 전 최종 체크리스트', img:'assets/img/guides/v2-final-check.svg', alt:'접수 전 최종 체크리스트', h:'접수 전 최종 체크리스트', lead:'접수 전 최종 확인을 하면 제작 지연과 재작업을 줄일 수 있습니다. 최종본 여부와 제작 사양을 한 번 더 확인해주세요.', std:['최종 파일인지 확인','오탈자와 페이지 순서 확인','사이즈, 수량, 제본 방향 확인','도련과 안전여백 확인','연락처와 희망 납기 입력'], check:['파일 최종본','페이지 순서','오탈자','사이즈와 수량','제본 방식','후가공','연락처'], warn:['수정 전 파일을 접수하는 경우','수량이나 제본 방향을 잘못 입력하는 경우','제작 시작 후 파일 변경을 요청하는 경우'], category:'체크리스트', tags:['최종확인','접수','체크리스트'] }
     ];
 
     function setStatus(msg, tone='info') {
@@ -62,28 +66,30 @@
       try {
         const ok = await checkAdmin(user);
         if (!ok) { adminUser = null; seedBtn.disabled = true; setStatus('관리자 로그인이 필요합니다. 먼저 관리자페이지에서 로그인한 뒤 다시 열어주세요.', 'error'); return; }
-        adminUser = user; seedBtn.disabled = false; setStatus('관리자 확인 완료. 이미지 포함 기본 작업가이드 데이터를 생성할 수 있습니다.');
+        adminUser = user; seedBtn.disabled = false; setStatus('관리자 확인 완료. 기존 가이드를 업그레이드하거나 새로 추가할 수 있습니다.');
       } catch (e) { seedBtn.disabled = true; setStatus('관리자 권한 확인 중 오류가 발생했습니다.', 'error'); }
     });
 
     seedBtn.addEventListener('click', async () => {
       if (!adminUser) return;
-      if (!confirm('이미지 포함 출력/제본/디지털인쇄 기본 작업가이드를 생성할까요?')) return;
+      if (!confirm('작업가이드를 세련된 이미지와 보강된 내용으로 업그레이드할까요?')) return;
       seedBtn.disabled = true;
       setStatus('기존 가이드 확인 중입니다.');
       try {
         const snap = await getDocs(collection(db, 'work_guides'));
-        const existingTitles = new Set(snap.docs.map(d => String(d.data().title || '').trim()));
-        let added = 0;
+        const existing = new Map(snap.docs.map(d => [String(d.data().title || '').trim(), { id:d.id, data:d.data() }]));
+        let added = 0, updated = 0;
         let orderBase = snap.size;
-        for (const [title, contentHtml] of guides) {
-          if (existingTitles.has(title)) continue;
+        for (const g of guides) {
+          const contentHtml = html(g);
           const content = contentHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-          await addDoc(collection(db, 'work_guides'), { title, content, contentHtml, order: ++orderBase, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-          added++;
+          const payload = { title:g.title, content, contentHtml, category:g.category, tags:g.tags, updatedAt:serverTimestamp(), guideVersion:2 };
+          const hit = existing.get(g.title);
+          if (hit) { await updateDoc(doc(db, 'work_guides', hit.id), payload); updated++; }
+          else { await addDoc(collection(db, 'work_guides'), { ...payload, order:++orderBase, createdAt:serverTimestamp() }); added++; }
         }
-        setStatus(`완료: ${added}개 가이드가 추가되었습니다. 기존 제목은 중복 등록하지 않았습니다.`, 'success');
-      } catch (e) { console.error(e); setStatus('가이드 생성 실패: 권한 또는 네트워크를 확인하세요.', 'error'); }
+        setStatus(`완료: ${updated}개 업데이트, ${added}개 신규 추가되었습니다.`, 'success');
+      } catch (e) { console.error(e); setStatus('가이드 업그레이드 실패: 권한 또는 네트워크를 확인하세요.', 'error'); }
       finally { seedBtn.disabled = false; }
     });
   </script>
