@@ -14,6 +14,9 @@ const CURRENT_FILE = (() => {
 const IS_MAINTENANCE_PAGE = CURRENT_FILE === "maintenance.html";
 const IS_ADMIN_PAGE = CURRENT_FILE === "admin.html";
 
+// 이용안내 / 개인정보처리방침 / 이용약관 레이어 모달 로드
+import('./legal-modal.js').catch(e => console.warn('[legal] modal load failed:', e));
+
 function getAuthUserOnce(timeoutMs = 1200) {
     return new Promise((resolve) => {
         let done = false;
