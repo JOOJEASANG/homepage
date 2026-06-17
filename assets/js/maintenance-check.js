@@ -164,6 +164,36 @@ function normalizeHomeHeader() {
 }
 normalizeHomeHeader();
 
+// 메인페이지 푸터에 이용안내 / 개인정보처리방침 / 이용약관 링크를 보정 표시합니다.
+function initFooterLegalLinks() {
+    const run = () => {
+        try {
+            const footer = document.querySelector('.site-footer') || document.querySelector('footer');
+            if (!footer || footer.dataset.legalLinksReady === '1') return;
+            footer.dataset.legalLinksReady = '1';
+
+            const links = document.createElement('div');
+            links.className = 'flex flex-wrap justify-center md:justify-end gap-x-5 gap-y-1.5 text-xs font-bold mb-2';
+            links.innerHTML = `
+                <a href="guide.html" class="text-slate-400 hover:text-white transition">이용안내</a>
+                <a href="personal-info.html" class="text-slate-400 hover:text-white transition">개인정보처리방침</a>
+                <a href="terms.html" class="text-slate-400 hover:text-white transition">이용약관</a>
+            `;
+
+            const rightCol = footer.querySelector('.flex.flex-col.items-center.md\\:items-end') || footer.querySelector('.flex.flex-col.items-center') || footer;
+            rightCol.insertBefore(links, rightCol.firstChild);
+        } catch (e) {
+            console.warn('[footer] legal links inject failed:', e);
+        }
+    };
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once: true });
+    else run();
+    setTimeout(run, 500);
+    setTimeout(run, 1500);
+}
+initFooterLegalLinks();
+
 // 메인 공지사항 로딩 보정.
 // 기존 index.js는 일반 공지와 팝업 공지를 Promise.all로 묶어 한쪽 쿼리가 실패하면 전체 공지가 안 뜰 수 있습니다.
 function escapeNoticeText(str) {
