@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420">
+  <rect width="900" height="420" rx="28" fill="#f8fafc"/>
+  <rect x="160" y="50" width="580" height="320" rx="12" fill="#dcfce7" stroke="#16a34a" stroke-width="5" stroke-dasharray="14 12"/>
+  <rect x="205" y="95" width="490" height="230" rx="10" fill="#ffffff" stroke="#94a3b8" stroke-width="4"/>
+  <rect x="250" y="140" width="400" height="140" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="3"/>
+  <text x="315" y="213" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#0f172a">안전영역</text>
+  <text x="118" y="42" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#16a34a">도련 3mm</text>
+  <path d="M155 55l45 38" stroke="#16a34a" stroke-width="5" stroke-linecap="round"/>
+  <text x="705" y="350" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#64748b">재단선</text>
+  <path d="M690 326l48 36" stroke="#64748b" stroke-width="5" stroke-linecap="round"/>
+  <text x="270" y="388" font-family="Arial, sans-serif" font-size="22" fill="#475569">중요 글자는 안쪽에, 배경은 바깥까지 확장</text>
+</svg>
