@@ -1,6 +1,6 @@
 // 사이트 점검 모드 체크 + 공통 UI 보정
 // settings/site 또는 settings/homepageContent 문서의 점검 플래그가 true이면 관리자가 아닌 사용자를 maintenance.html로 리다이렉트.
-import { auth, db, doc, getDoc, onAuthStateChanged } from "./firebase.js";
+import { auth, db, doc, getDoc, onAuthStateChanged, onSnapshot } from "./firebase.js";
 
 const CURRENT_FILE = (() => {
     try { return (location.pathname || "").split("/").pop() || "index.html"; }
@@ -52,8 +52,6 @@ async function isVerifiedAdmin() {
 function hasMaintenanceFlag(data) {
     if (!data || typeof data !== 'object') return false;
 
-    // 관리자 화면에서 필드명이 바뀌어도 점검모드가 누락되지 않도록 대표 후보를 모두 확인합니다.
-    // 단, 일반적인 enabled 필드는 팝업/콘텐츠 설정에도 쓰일 수 있어 점검모드 판단에서 제외합니다.
     const directFlags = [
         data.maintenance,
         data.maintenanceMode,
@@ -64,7 +62,7 @@ function hasMaintenanceFlag(data) {
         data.homepageMaintenance,
         data.homepageMaintenanceMode,
     ];
-    if (directFlags.some(v => v === true || v === 'true' || v === 1 || v === '1')) return true;
+    if (directFlags.some(v => v === true || v === 'true' || v === 1 || v === '1' || v === 'on' || v === 'ON')) return true;
 
     const nested = data.site || data.homepage || data.settings || null;
     if (nested && typeof nested === 'object') {
@@ -73,13 +71,13 @@ function hasMaintenanceFlag(data) {
     return false;
 }
 
-async function readMaintenanceState() {
-    const candidates = [
-        ["settings", "site"],
-        ["settings", "homepageContent"],
-    ];
+const MAINTENANCE_DOCS = [
+    ["settings", "site"],
+    ["settings", "homepageContent"],
+];
 
-    for (const [col, id] of candidates) {
+async function readMaintenanceState() {
+    for (const [col, id] of MAINTENANCE_DOCS) {
         try {
             const snap = await getDoc(doc(db, col, id));
             if (snap.exists() && hasMaintenanceFlag(snap.data())) return true;
@@ -91,16 +89,48 @@ async function readMaintenanceState() {
 }
 
 function redirectToMaintenance() {
+    if (IS_MAINTENANCE_PAGE) return;
     try { sessionStorage.setItem('maintenanceReturnUrl', location.pathname + location.search); } catch (e) {}
     try { document.documentElement.style.background = '#0f172a'; document.body.style.visibility = 'hidden'; } catch (e) {}
     location.replace('maintenance.html');
+}
+
+function startMaintenanceWatch() {
+    let states = new Map();
+    let redirected = false;
+
+    const evaluate = () => {
+        if (redirected) return;
+        const anyOn = Array.from(states.values()).some(Boolean);
+        if (anyOn) {
+            redirected = true;
+            redirectToMaintenance();
+        }
+    };
+
+    MAINTENANCE_DOCS.forEach(([col, id]) => {
+        try {
+            onSnapshot(doc(db, col, id), (snap) => {
+                states.set(`${col}/${id}`, snap.exists() && hasMaintenanceFlag(snap.data()));
+                evaluate();
+            }, (e) => {
+                console.warn(`[maintenance] realtime watch failed ${col}/${id}:`, e);
+            });
+        } catch (e) {
+            console.warn(`[maintenance] watch setup failed ${col}/${id}:`, e);
+        }
+    });
 }
 
 (async () => {
     try {
         if (IS_MAINTENANCE_PAGE || IS_ADMIN_PAGE) return;
         if (await isVerifiedAdmin()) return;
-        if (await readMaintenanceState()) redirectToMaintenance();
+        if (await readMaintenanceState()) {
+            redirectToMaintenance();
+            return;
+        }
+        startMaintenanceWatch();
     } catch (e) {
         console.warn('maintenance check skipped:', e);
     }
@@ -147,7 +177,6 @@ function initAdminLoginLoadingGuard() {
     document.addEventListener('click', (e) => {
         const btn = e.target?.closest?.('#hdr-admin-submit');
         if (!btn) return;
-        // 정상 로그인은 admin.html로 이동하지만, 브라우저/인증 상태 재렌더링으로 같은 화면에 남는 경우 스피너를 복구합니다.
         setTimeout(() => {
             if (!CURRENT_FILE.endsWith('admin.html')) resetAdminLoginButton();
         }, 3500);
