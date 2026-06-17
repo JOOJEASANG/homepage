@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#eff6ff"/></linearGradient><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#16a34a"/><stop offset="1" stop-color="#2563eb"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#0f172a" flood-opacity=".12"/></filter></defs>
+  <rect width="1200" height="620" rx="36" fill="url(#bg)"/>
+  <text x="60" y="72" font-family="Arial,sans-serif" font-size="34" font-weight="800" fill="#0f172a">디지털 인쇄 사양 선택</text>
+  <text x="60" y="108" font-family="Arial,sans-serif" font-size="18" fill="#64748b">컬러/흑백, 단면/양면, 용지, 수량에 따라 금액과 제작 방식이 달라집니다.</text>
+  <g transform="translate(70 155)" filter="url(#s)">
+    <rect width="515" height="365" rx="30" fill="#fff"/>
+    <rect x="78" y="105" width="360" height="150" rx="24" fill="#fff" stroke="#cbd5e1" stroke-width="5"/>
+    <rect x="135" y="55" width="250" height="95" rx="14" fill="#f8fafc" stroke="#cbd5e1" stroke-width="4"/>
+    <rect x="165" y="242" width="190" height="72" rx="12" fill="#ecfdf5" stroke="#16a34a" stroke-width="4"/>
+    <rect x="114" y="142" width="118" height="40" rx="10" fill="url(#g)"/>
+    <text x="135" y="169" font-family="Arial,sans-serif" font-size="21" font-weight="800" fill="#fff">PRINT</text>
+    <circle cx="405" cy="178" r="16" fill="#16a34a"/>
+    <text x="146" y="290" font-family="Arial,sans-serif" font-size="21" font-weight="800" fill="#0f172a">A4 / 100부</text>
+  </g>
+  <g transform="translate(640 155)">
+    <rect width="485" height="365" rx="30" fill="#fff" filter="url(#s)"/>
+    <text x="35" y="55" font-family="Arial,sans-serif" font-size="26" font-weight="800" fill="#0f172a">주문 사양 체크</text>
+    <g font-family="Arial,sans-serif" font-size="20" fill="#334155">
+      <rect x="35" y="90" width="190" height="58" rx="16" fill="#ecfdf5"/><text x="64" y="126">컬러 / 흑백</text>
+      <rect x="255" y="90" width="190" height="58" rx="16" fill="#f8fafc"/><text x="284" y="126">단면 / 양면</text>
+      <rect x="35" y="170" width="190" height="58" rx="16" fill="#f8fafc"/><text x="64" y="206">용지 종류</text>
+      <rect x="255" y="170" width="190" height="58" rx="16" fill="#ecfdf5"/><text x="284" y="206">수량 / 부수</text>
+      <rect x="35" y="250" width="410" height="58" rx="16" fill="#eff6ff"/><text x="64" y="286">코팅·재단·접지 등 후가공 여부</text>
+    </g>
+    <text x="35" y="340" font-family="Arial,sans-serif" font-size="16" fill="#64748b">최종 견적은 파일 상태와 후가공 조건 확인 후 확정됩니다.</text>
+  </g>
+</svg>
