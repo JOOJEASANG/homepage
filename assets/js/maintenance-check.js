@@ -17,6 +17,11 @@ const IS_ADMIN_PAGE = CURRENT_FILE === "admin.html";
 // 이용안내 / 개인정보처리방침 / 이용약관 레이어 모달 로드
 import('./legal-modal.js').catch(e => console.warn('[legal] modal load failed:', e));
 
+// 메인페이지 AI 상담 위젯 로드
+if (CURRENT_FILE === 'index.html') {
+    import('./ai-chat.js').catch(e => console.warn('[ai-chat] widget load failed:', e));
+}
+
 function getAuthUserOnce(timeoutMs = 1200) {
     return new Promise((resolve) => {
         let done = false;
