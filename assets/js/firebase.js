@@ -216,6 +216,141 @@ try {
   __bindAdminMaintenanceModeToggle();
 } catch (e) {}
 
+// ── 관리자 연락처 전체 표시 보정 ─────────────────────────────
+// admin.js에는 비회원 연락처 뒤 4자리를 숨기는 레거시 로직이 있어, 관리자 화면에서는 원본 번호로 다시 표시합니다.
+function __isAdminPageForContactUnmask() {
+  try { return ((location.pathname || '').split('/').pop() || '') === 'admin.html'; }
+  catch (e) { return false; }
+}
+
+function __formatAdminPhone(phone) {
+  if (!phone) return '';
+  const raw = String(phone).trim();
+  const numbers = raw.replace(/[^0-9]/g, '');
+  if (numbers.length === 11) return numbers.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+  if (numbers.length === 10) return numbers.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+  return raw;
+}
+
+function __pickAdminContact(q, userMap) {
+  if (!q || typeof q !== 'object') return '';
+  const user = q.userId ? (userMap.get(q.userId) || {}) : {};
+  return __formatAdminPhone(
+    q.guestContact ||
+    q.guestContactRaw ||
+    q.ordererContact ||
+    q.userContact ||
+    q.contact ||
+    q.phone ||
+    user.contact ||
+    user.phone ||
+    ''
+  );
+}
+
+function __bindAdminContactUnmask() {
+  if (!__isAdminPageForContactUnmask()) return;
+
+  let quoteContactMap = new Map();
+  let userMap = new Map();
+  let initialized = false;
+  let renderTimer = null;
+  let unsubQuotes = null;
+  let unsubUsers = null;
+
+  const renderFullContacts = () => {
+    if (renderTimer) return;
+    renderTimer = setTimeout(() => {
+      renderTimer = null;
+
+      // 접수 목록 연락처: 행 안의 상세보기 버튼 data-id로 원본 연락처를 찾아 표시합니다.
+      document.querySelectorAll('#quote-list-body tr').forEach(row => {
+        const id = row.querySelector('.view-details-btn[data-id], .admin-edit-quote-btn[data-id], .delete-quote-btn[data-id]')?.dataset?.id;
+        const full = id ? quoteContactMap.get(id) : '';
+        if (!full) return;
+
+        const customerCell = row.children && row.children[3] ? row.children[3] : null;
+        if (!customerCell) return;
+
+        const spans = Array.from(customerCell.querySelectorAll('span'));
+        const contactSpan = spans.find(el => /땡땡|\d{2,3}-\d{3,4}-\d{4}|\d{10,11}/.test(el.textContent || '')) || spans[spans.length - 1];
+        if (contactSpan) {
+          contactSpan.textContent = full;
+          contactSpan.title = full;
+          contactSpan.classList.add('font-medium');
+        }
+      });
+
+      // 상세 모달 연락처: 기존 '번호보기' 토글 없이 바로 전체 번호를 표시합니다.
+      const detailDisplay = document.getElementById('guest-phone-display');
+      const detailToggle = document.getElementById('guest-phone-toggle');
+      const fullFromToggle = detailToggle?.dataset?.full || '';
+      if (detailDisplay && fullFromToggle) {
+        detailDisplay.textContent = fullFromToggle;
+        detailDisplay.title = fullFromToggle;
+        detailDisplay.classList.add('font-medium');
+        if (detailToggle) detailToggle.classList.add('hidden');
+      }
+    }, 40);
+  };
+
+  const rebuildQuoteContactMap = (quoteDocs) => {
+    const next = new Map();
+    quoteDocs.forEach(d => {
+      const data = d.data ? d.data() : d;
+      const id = d.id || data.id;
+      const contact = __pickAdminContact(data, userMap);
+      if (id && contact) next.set(id, contact);
+    });
+    quoteContactMap = next;
+    renderFullContacts();
+  };
+
+  const start = async (user) => {
+    if (initialized) return;
+    if (!await __ensureAdminForMaintenance(user)) return;
+    initialized = true;
+
+    try {
+      unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
+        userMap = new Map();
+        snap.docs.forEach(d => userMap.set(d.id, d.data() || {}));
+        renderFullContacts();
+      }, (e) => console.warn('[admin-contact] users watch failed:', e));
+    } catch (e) {
+      console.warn('[admin-contact] users watch setup failed:', e);
+    }
+
+    try {
+      unsubQuotes = onSnapshot(collection(db, 'quotes'), (snap) => {
+        rebuildQuoteContactMap(snap.docs);
+      }, (e) => console.warn('[admin-contact] quotes watch failed:', e));
+    } catch (e) {
+      console.warn('[admin-contact] quotes watch setup failed:', e);
+    }
+
+    const observerTarget = document.body || document.documentElement;
+    if (observerTarget && observerTarget.dataset.contactUnmaskObserver !== '1') {
+      observerTarget.dataset.contactUnmaskObserver = '1';
+      const observer = new MutationObserver(renderFullContacts);
+      observer.observe(observerTarget, { childList: true, subtree: true, characterData: true });
+    }
+
+    window.addEventListener('pageshow', renderFullContacts);
+    setTimeout(renderFullContacts, 300);
+    setTimeout(renderFullContacts, 1000);
+  };
+
+  try {
+    onAuthStateChanged(auth, (user) => start(user));
+    if (auth.currentUser) start(auth.currentUser);
+  } catch (e) {
+    console.warn('[admin-contact] init failed:', e);
+  }
+}
+
+try { __bindAdminContactUnmask(); } catch (e) {}
+
 // ── 하위 모듈 함수 재내보내기 ────────────────────────────────
 // 각 페이지에서 firebase.js 하나만 import 하면 모든 함수 사용 가능
 export {
