@@ -49,6 +49,35 @@ function faqExamplesText(items) {
   return rows.join('\n\n').slice(0, 9000);
 }
 
+function normalizePublicAiConfig(data) {
+  const d = data && typeof data === 'object' ? data : {};
+  return {
+    enabled: d.enabled === true,
+    defaultMode: ['lite', 'flash'].includes(d.defaultMode) ? d.defaultMode : 'lite',
+    showModeSelector: d.showModeSelector !== false,
+    dailyClientLimit: num(d.dailyClientLimit, 5, 1, 100),
+    buttonLabel: text(d.buttonLabel || 'AI 상담', 24),
+    widgetTitle: text(d.widgetTitle || '그린오피스 AI 상담', 60),
+    widgetSubtitle: text(d.widgetSubtitle || '출력 · 제본 · 디지털인쇄 안내', 90),
+    welcomeMessage: text(d.welcomeMessage || '안녕하세요. 출력, 제본, 책자 제작, 디지털 인쇄 중 어떤 작업을 준비 중이신가요?', 500),
+    usageNote: text(d.usageNote || 'AI 상담은 참고 안내입니다. 최종 견적금액, 제작 가능 여부, 납기, 환불 여부는 관리자 확인 후 확정됩니다.', 500),
+    inputPlaceholder: text(d.inputPlaceholder || '예: A4 40페이지 책자 30부 무선제본 가능할까요?', 120),
+    quickPrompts: Array.isArray(d.quickPrompts) ? d.quickPrompts.map(x => text(x, 80)).filter(Boolean).slice(0, 6) : ['책자 제본 견적은 어떻게 넣나요?', 'PDF 파일 준비 기준 알려줘', '무선제본 납기 문의'],
+  };
+}
+
+async function readPublicAiConfig() {
+  try {
+    const pub = await db.doc('settings/aiChatPublic').get();
+    if (pub.exists) return normalizePublicAiConfig(pub.data());
+  } catch (e) {}
+  try {
+    const priv = await db.doc('settings/aiChat').get();
+    if (priv.exists) return normalizePublicAiConfig(priv.data());
+  } catch (e) {}
+  return normalizePublicAiConfig({ enabled: false });
+}
+
 async function aiConfig() {
   const fallback = {
     enabled: true,
@@ -158,6 +187,16 @@ async function gemini(apiKey, model, message, cfg, context, history) {
   if (!r.ok) throw new Error(j && j.error && j.error.message ? j.error.message : 'model error');
   return (((j.candidates || [])[0] || {}).content?.parts || []).map(p => p.text || '').join('').trim().slice(0, 1800);
 }
+
+exports.aiChatConfig = onRequest({ region: 'asia-northeast3', cors: true, timeoutSeconds: 10, memory: '128MiB', maxInstances: 2 }, async (req, res) => {
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ ok: false, error: 'GET only' });
+  try {
+    return res.json({ ok: true, config: await readPublicAiConfig() });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: 'AI 설정을 불러오지 못했습니다.' });
+  }
+});
 
 exports.aiChat = onRequest({ region: 'asia-northeast3', cors: true, timeoutSeconds: 30, memory: '256MiB', maxInstances: 2, secrets: [GEMINI_API_KEY] }, async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(204).send('');
