@@ -1,15 +1,16 @@
 // ============================================================
 // ai-chat.js — Gemini AI 상담 위젯
-// - settings/aiChatPublic.enabled === false 이면 버튼/패널을 DOM에서 제거
-// - 관리자/점검/설정 페이지를 제외한 모든 고객 페이지에서 동작
+// - settings/aiChatPublic.enabled === true 일 때만 표시
+// - 공개 설정 읽기 실패/문서 없음/OFF 상태면 모든 고객 페이지에서 숨김
 // ============================================================
 
 import { db, doc, getDoc, onSnapshot } from './firebase.js';
 
 const AI_CHAT_ENDPOINT = 'https://asia-northeast3-worklist-1e83a.cloudfunctions.net/aiChat';
+const PUBLIC_CONFIG_REF = doc(db, 'settings', 'aiChatPublic');
 
 const DEFAULT_CONFIG = {
-  enabled: true,
+  enabled: false,
   buttonLabel: 'AI 상담',
   widgetTitle: '그린오피스 AI 상담',
   widgetSubtitle: '출력 · 제본 · 디지털인쇄 안내',
@@ -49,20 +50,21 @@ function normalizeQuickPrompts(value) {
   return cleaned.length ? cleaned : DEFAULT_CONFIG.quickPrompts.slice();
 }
 
-function normalizeConfig(data = {}) {
-  const limit = Number(data.dailyClientLimit ?? DEFAULT_CONFIG.dailyClientLimit);
+function normalizeConfig(data = null) {
+  const src = data && typeof data === 'object' ? data : {};
+  const limit = Number(src.dailyClientLimit ?? DEFAULT_CONFIG.dailyClientLimit);
   return {
-    enabled: data.enabled !== false,
-    buttonLabel: normalizeText(data.buttonLabel, DEFAULT_CONFIG.buttonLabel, 24),
-    widgetTitle: normalizeText(data.widgetTitle, DEFAULT_CONFIG.widgetTitle, 60),
-    widgetSubtitle: normalizeText(data.widgetSubtitle, DEFAULT_CONFIG.widgetSubtitle, 90),
-    welcomeMessage: normalizeText(data.welcomeMessage, DEFAULT_CONFIG.welcomeMessage, 500),
-    usageNote: normalizeText(data.usageNote, DEFAULT_CONFIG.usageNote, 500),
-    inputPlaceholder: normalizeText(data.inputPlaceholder, DEFAULT_CONFIG.inputPlaceholder, 120),
-    defaultMode: ['lite', 'flash'].includes(data.defaultMode) ? data.defaultMode : DEFAULT_CONFIG.defaultMode,
-    showModeSelector: data.showModeSelector !== false,
+    enabled: src.enabled === true,
+    buttonLabel: normalizeText(src.buttonLabel, DEFAULT_CONFIG.buttonLabel, 24),
+    widgetTitle: normalizeText(src.widgetTitle, DEFAULT_CONFIG.widgetTitle, 60),
+    widgetSubtitle: normalizeText(src.widgetSubtitle, DEFAULT_CONFIG.widgetSubtitle, 90),
+    welcomeMessage: normalizeText(src.welcomeMessage, DEFAULT_CONFIG.welcomeMessage, 500),
+    usageNote: normalizeText(src.usageNote, DEFAULT_CONFIG.usageNote, 500),
+    inputPlaceholder: normalizeText(src.inputPlaceholder, DEFAULT_CONFIG.inputPlaceholder, 120),
+    defaultMode: ['lite', 'flash'].includes(src.defaultMode) ? src.defaultMode : DEFAULT_CONFIG.defaultMode,
+    showModeSelector: src.showModeSelector !== false,
     dailyClientLimit: Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 100) : DEFAULT_CONFIG.dailyClientLimit,
-    quickPrompts: normalizeQuickPrompts(data.quickPrompts),
+    quickPrompts: normalizeQuickPrompts(src.quickPrompts),
   };
 }
 
@@ -83,10 +85,7 @@ function getLocalCount() {
 }
 
 function addLocalCount() {
-  try {
-    const key = 'gprint_ai_usage_' + todayKey();
-    localStorage.setItem(key, String(getLocalCount() + 1));
-  } catch (e) {}
+  try { localStorage.setItem('gprint_ai_usage_' + todayKey(), String(getLocalCount() + 1)); } catch (e) {}
 }
 
 function injectStyle() {
@@ -155,7 +154,7 @@ function applyConfig() {
 }
 
 function renderAiChat() {
-  if (!isPublicPage() || state.config.enabled === false) {
+  if (!isPublicPage() || state.config.enabled !== true) {
     removeAiChat();
     return;
   }
@@ -204,7 +203,7 @@ function renderAiChat() {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const cfg = state.config;
-    if (cfg.enabled === false) return removeAiChat();
+    if (cfg.enabled !== true) return removeAiChat();
     const question = input.value.trim();
     if (!question) return;
     if (getLocalCount() >= cfg.dailyClientLimit) {
@@ -238,11 +237,12 @@ function renderAiChat() {
 
 async function readPublicConfigOnce() {
   try {
-    const snap = await getDoc(doc(db, 'settings', 'aiChatPublic'));
-    return normalizeConfig(snap.exists() ? snap.data() : {});
+    const snap = await getDoc(PUBLIC_CONFIG_REF);
+    if (!snap.exists()) return normalizeConfig({ enabled: false });
+    return normalizeConfig(snap.data());
   } catch (e) {
     console.warn('[ai-chat] public config read failed:', e);
-    return normalizeConfig({});
+    return normalizeConfig({ enabled: false });
   }
 }
 
@@ -250,15 +250,22 @@ async function initAiChat() {
   if (!isPublicPage()) return;
   if (window.__gprintAiChatStarted) return;
   window.__gprintAiChatStarted = true;
+  removeAiChat();
   state.config = await readPublicConfigOnce();
   renderAiChat();
   try {
-    state.unsub = onSnapshot(doc(db, 'settings', 'aiChatPublic'), (snap) => {
-      state.config = normalizeConfig(snap.exists() ? snap.data() : {});
+    state.unsub = onSnapshot(PUBLIC_CONFIG_REF, (snap) => {
+      state.config = normalizeConfig(snap.exists() ? snap.data() : { enabled: false });
       renderAiChat();
-    }, (e) => console.warn('[ai-chat] public config watch failed:', e));
+    }, (e) => {
+      console.warn('[ai-chat] public config watch failed:', e);
+      state.config = normalizeConfig({ enabled: false });
+      renderAiChat();
+    });
   } catch (e) {
     console.warn('[ai-chat] public config watch setup failed:', e);
+    state.config = normalizeConfig({ enabled: false });
+    renderAiChat();
   }
 }
 
