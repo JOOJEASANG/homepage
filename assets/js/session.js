@@ -10,6 +10,22 @@
 
 import { auth, signOut, onAuthStateChanged } from "./firebase.js";
 
+// 관리자페이지 메뉴에 AI 상담 관리 항목을 보정 추가합니다.
+try {
+  const currentFile = ((location.pathname || '').split('/').pop() || '');
+  if (currentFile === 'admin.html') import('./admin-ai-menu.js').catch(() => null);
+} catch (e) {}
+
+// AI 상담 위젯을 공통 로드합니다.
+// ai-chat.js 내부에서 admin/admin-ai-chat/maintenance 페이지는 제외하고,
+// settings/aiChatPublic.enabled === false 이면 모든 페이지에서 제거합니다.
+try {
+  const currentFile = ((location.pathname || '').split('/').pop() || 'index.html');
+  if (!['admin.html', 'admin-ai-chat.html', 'maintenance.html'].includes(currentFile)) {
+    import('./ai-chat.js').catch(() => null);
+  }
+} catch (e) {}
+
 // ── 스토리지 안전 헬퍼 ──────────────────────────────────────
 // try/catch로 감싸 개인정보 보호 모드 등 스토리지 차단 환경에서도 안전하게 동작
 
