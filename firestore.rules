@@ -18,6 +18,15 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    match /ai_usage_daily/{dayId} {
+      allow read: if isAdmin();
+      allow write: if false;
+      match /clients/{clientId} {
+        allow read: if isAdmin();
+        allow write: if false;
+      }
+    }
+
     match /users/{uid} {
       allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
       allow create: if signedIn() && request.auth.uid == uid;
@@ -31,9 +40,6 @@ service cloud.firestore {
         && quote.data.userId == request.auth.uid;
     }
 
-    // ✅ 비회원 읽기 허용
-    // JS 쿼리에서 where("isGuest","==",true) + where("userId","==","guest") 를
-    // 반드시 포함해야 Firestore 정적 분석 통과 → 데이터 조회 가능
     function canReadGuestQuote(quote) {
       return signedIn()
         && quote.data.isGuest == true
@@ -82,7 +88,6 @@ service cloud.firestore {
         && ( !('guestUid' in resource.data) || request.resource.data.guestUid == resource.data.guestUid );
     }
 
-    // ✅ isEditableByCustomer() 제거: 상태와 무관하게 소유권 이전 허용
     function isGuestClaimToMember() {
       return signedIn()
         && resource.data.isGuest == true
@@ -120,7 +125,6 @@ service cloud.firestore {
     }
 
     match /quotes/{quoteId} {
-
       allow read: if isAdmin()
         || isMemberQuoteOwner(resource)
         || canReadGuestQuote(resource);
