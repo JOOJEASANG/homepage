@@ -112,7 +112,21 @@
                 </div>
 
                 <div id="content-faq" class="hidden p-5 sm:p-7">
-                    <div class="mb-5"><h2 class="text-lg font-black text-slate-900">자주 묻는 질문</h2><p class="text-xs text-slate-500 mt-1">자주 문의하는 내용을 빠르게 확인하세요.</p></div>
+                    <div class="mb-5 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+                        <div>
+                            <h2 class="text-lg font-black text-slate-900">자주 묻는 질문</h2>
+                            <p class="text-xs text-slate-500 mt-1">자주 문의하는 내용을 빠르게 검색하고 확인하세요.</p>
+                        </div>
+                        <div class="w-full lg:w-96">
+                            <label for="faqSearch" class="block text-xs font-bold text-slate-500 mb-1.5">FAQ 검색</label>
+                            <div class="relative">
+                                <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                                <input id="faqSearch" type="search" class="form-input pl-10 pr-10" placeholder="예: 무선제본, PDF, 당일출력, 견적">
+                                <button id="faqSearchClear" type="button" class="hidden absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100" aria-label="검색어 지우기"><i class="fas fa-times"></i></button>
+                            </div>
+                            <p id="faqSearchCount" class="mt-1.5 text-[11px] text-slate-400">검색어를 입력하면 질문과 답변에서 바로 찾습니다.</p>
+                        </div>
+                    </div>
                     <div id="faq-list" class="rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100 bg-white"><div class="p-12 text-center text-slate-400 bg-slate-50">FAQ를 불러오는 중입니다.</div></div>
                 </div>
             </div>
@@ -121,5 +135,6 @@
 
     <script type="module" src="assets/js/maintenance-check.js"></script>
     <script type="module" src="assets/js/pages/qna.js"></script>
+    <script type="module" src="assets/js/pages/faq-search.js"></script>
 </body>
 </html>
