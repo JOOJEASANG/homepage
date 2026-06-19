@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAQ 관리 | 그린오피스</title>
+  <link rel="icon" href="favicon.ico" />
+  <link rel="stylesheet" href="assets/css/tailwind.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    body{font-family:'Pretendard',sans-serif;background:#f8fafc;color:#1e293b}.form-input,.form-textarea{width:100%;border:1.5px solid #e2e8f0;border-radius:.75rem;padding:.75rem .9rem;background:white;font-size:.9rem}.form-input:focus,.form-textarea:focus{outline:none;border-color:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.1)}.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;border-radius:.75rem;padding:.7rem 1rem;font-weight:800;font-size:.86rem}.btn-primary{background:#16a34a;color:#fff}.btn-primary:hover{background:#15803d}.btn-secondary{background:#fff;border:1px solid #cbd5e1;color:#475569}.btn-danger{background:#fee2e2;color:#dc2626;border:1px solid #fecaca}.card{background:#fff;border:1px solid #e2e8f0;border-radius:1rem;box-shadow:0 1px 3px rgba(15,23,42,.05)}
+  </style>
+</head>
+<body>
+  <header class="bg-slate-900 text-white border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div>
+        <h1 class="text-lg font-black"><i class="fas fa-circle-question text-emerald-400 mr-2"></i>FAQ 관리</h1>
+        <p class="text-xs text-slate-400 mt-0.5">자주 묻는 질문을 직접 등록·수정·삭제합니다.</p>
+      </div>
+      <div class="flex gap-2">
+        <a href="admin.html" class="btn bg-white/10 hover:bg-white/15 text-white">관리자</a>
+        <a href="qna.html" class="btn bg-emerald-600 hover:bg-emerald-700 text-white">고객센터 보기</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+    <div id="status" class="card px-4 py-3 text-sm text-slate-500">관리자 권한 확인 중...</div>
+
+    <section id="faqFormWrap" class="card p-5 hidden">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 id="formTitle" class="text-lg font-black text-slate-900">FAQ 직접 등록</h2>
+          <p class="text-xs text-slate-500 mt-1">등록하면 고객센터 FAQ 탭과 검색 결과에 바로 표시됩니다.</p>
+        </div>
+        <button id="resetBtn" type="button" class="btn btn-secondary"><i class="fas fa-plus"></i>새 등록</button>
+      </div>
+      <form id="faqForm" class="grid lg:grid-cols-[1fr_140px] gap-4">
+        <input id="editingId" type="hidden" />
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1.5" for="question">질문</label>
+            <input id="question" class="form-input" placeholder="예: PDF 파일이 아니어도 출력 가능한가요?" maxlength="200" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1.5" for="answer">답변</label>
+            <textarea id="answer" class="form-textarea" rows="7" placeholder="고객에게 보여줄 답변을 입력하세요." maxlength="3000"></textarea>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1.5" for="order">정렬순서</label>
+            <input id="order" type="number" class="form-input" value="100" />
+          </div>
+          <label class="flex items-center gap-2 text-sm font-bold text-slate-600 rounded-xl border border-slate-200 px-3 py-3 bg-slate-50">
+            <input id="isActive" type="checkbox" class="w-4 h-4 accent-emerald-600" checked /> 표시
+          </label>
+          <button id="saveBtn" type="submit" class="btn btn-primary w-full"><i class="fas fa-save"></i>저장</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="faqListWrap" class="card hidden">
+      <div class="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-end justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-black text-slate-900">등록된 FAQ</h2>
+          <p id="faqCount" class="text-xs text-slate-500 mt-1">불러오는 중...</p>
+        </div>
+        <div class="w-full md:w-80 relative">
+          <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <input id="search" type="search" class="form-input pl-10" placeholder="질문/답변 검색" />
+        </div>
+      </div>
+      <div id="faqList" class="divide-y divide-slate-100"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { auth, db, onAuthStateChanged, doc, getDoc, collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp } from './assets/js/firebase.js';
+
+    const $ = id => document.getElementById(id);
+    const status = $('status');
+    let allFaqs = [];
+
+    function escapeHtml(str){return String(str||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
+    function norm(v){return String(v||'').toLowerCase().replace(/\s+/g,' ').trim();}
+
+    async function requireAdmin(user){
+      if(!user || user.isAnonymous) return false;
+      const snap = await getDoc(doc(db,'users',user.uid));
+      return snap.exists() && snap.data()?.role === 'admin';
+    }
+
+    function setStatus(msg,type='info'){
+      const colors = type === 'error' ? 'border-red-200 bg-red-50 text-red-700' : type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500';
+      status.className = 'card px-4 py-3 text-sm ' + colors;
+      status.textContent = msg;
+    }
+
+    function resetForm(){
+      $('editingId').value=''; $('question').value=''; $('answer').value=''; $('order').value='100'; $('isActive').checked=true;
+      $('formTitle').textContent='FAQ 직접 등록'; $('question').focus();
+    }
+
+    function editFaq(item){
+      $('editingId').value=item.id; $('question').value=item.question||''; $('answer').value=item.answer||''; $('order').value=Number(item.order||100); $('isActive').checked=item.isActive!==false;
+      $('formTitle').textContent='FAQ 수정'; window.scrollTo({top:0,behavior:'smooth'});
+    }
+
+    async function removeFaq(id){
+      if(!id || !confirm('이 FAQ를 삭제할까요?')) return;
+      await deleteDoc(doc(db,'faq',id));
+      setStatus('삭제 완료', 'success');
+    }
+
+    function renderFaqs(){
+      const keyword = norm($('search').value);
+      const list = $('faqList');
+      let items = allFaqs.slice();
+      if(keyword) items = items.filter(x => norm((x.question||'') + ' ' + (x.answer||'')).includes(keyword));
+      $('faqCount').textContent = keyword ? `검색 결과 ${items.length}개 / 전체 ${allFaqs.length}개` : `전체 ${allFaqs.length}개`;
+      if(!items.length){list.innerHTML='<div class="p-10 text-center text-slate-400 text-sm">표시할 FAQ가 없습니다.</div>';return;}
+      list.innerHTML = items.map(item => `
+        <article class="p-5 hover:bg-slate-50 transition-colors">
+          <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="inline-flex px-2 py-0.5 rounded text-[11px] font-black ${item.isActive===false?'bg-slate-100 text-slate-500':'bg-emerald-50 text-emerald-700'}">${item.isActive===false?'숨김':'표시'}</span>
+                <span class="text-xs text-slate-400 font-mono">순서 ${Number(item.order||100)}</span>
+              </div>
+              <h3 class="font-black text-slate-900 break-words">Q. ${escapeHtml(item.question||'질문 없음')}</h3>
+              <p class="mt-2 text-sm text-slate-600 whitespace-pre-wrap break-words">${escapeHtml(item.answer||'답변 없음')}</p>
+            </div>
+            <div class="flex gap-2 shrink-0">
+              <button type="button" class="btn btn-secondary btn-edit" data-id="${item.id}"><i class="fas fa-pen"></i>수정</button>
+              <button type="button" class="btn btn-danger btn-delete" data-id="${item.id}"><i class="fas fa-trash"></i>삭제</button>
+            </div>
+          </div>
+        </article>`).join('');
+      list.querySelectorAll('.btn-edit').forEach(btn=>btn.addEventListener('click',()=>editFaq(allFaqs.find(x=>x.id===btn.dataset.id))));
+      list.querySelectorAll('.btn-delete').forEach(btn=>btn.addEventListener('click',()=>removeFaq(btn.dataset.id).catch(e=>setStatus('삭제 실패: '+(e.message||e),'error'))));
+    }
+
+    function startFaqWatch(){
+      const q = query(collection(db,'faq'), orderBy('order','asc'));
+      onSnapshot(q, snap => {
+        allFaqs = [];
+        snap.forEach(d => allFaqs.push({id:d.id,...d.data()}));
+        renderFaqs();
+      }, err => setStatus('FAQ 목록을 불러오지 못했습니다: '+(err.message||err),'error'));
+    }
+
+    $('resetBtn').addEventListener('click',resetForm);
+    $('search').addEventListener('input',renderFaqs);
+    $('faqForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const question = $('question').value.trim();
+      const answer = $('answer').value.trim();
+      if(!question || !answer){setStatus('질문과 답변을 모두 입력하세요.','error');return;}
+      const data = {question, answer, order:Number($('order').value||100), isActive:$('isActive').checked, updatedAt:serverTimestamp()};
+      const id = $('editingId').value;
+      try{
+        $('saveBtn').disabled=true;
+        if(id) await updateDoc(doc(db,'faq',id), data);
+        else await addDoc(collection(db,'faq'), {...data, createdAt:serverTimestamp()});
+        setStatus(id?'수정 완료':'등록 완료','success');
+        resetForm();
+      }catch(err){setStatus('저장 실패: '+(err.message||err),'error');}
+      finally{$('saveBtn').disabled=false;}
+    });
+
+    onAuthStateChanged(auth, async user => {
+      try{
+        if(!await requireAdmin(user)){setStatus('관리자 로그인이 필요합니다. admin.html에서 로그인 후 다시 접속하세요.','error');return;}
+        setStatus('관리자 확인 완료. FAQ를 직접 관리할 수 있습니다.','success');
+        $('faqFormWrap').classList.remove('hidden'); $('faqListWrap').classList.remove('hidden');
+        startFaqWatch();
+      }catch(e){setStatus('관리자 확인 실패: '+(e.message||e),'error');}
+    });
+  </script>
+</body>
+</html>
