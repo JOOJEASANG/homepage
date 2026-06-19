@@ -44,7 +44,7 @@
 
     <main class="pt-16 min-h-screen">
         <section class="bg-white border-b border-slate-100 pt-14 pb-10">
-            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center gap-4">
                     <div class="w-12 h-12 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-center flex-shrink-0">
                         <i class="fas fa-headset text-emerald-600 text-xl"></i>
@@ -58,7 +58,7 @@
             </div>
         </section>
 
-        <section class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
             <div class="panel overflow-hidden">
                 <div class="flex border-b border-slate-100 bg-white">
                     <button id="tab-inquiry" type="button" class="tab-btn active" onclick="switchTab('inquiry')">1:1 문의</button>
@@ -81,92 +81,39 @@
                                     <label for="qnaName" class="block text-xs font-bold text-slate-500 mb-1.5">이름</label>
                                     <input id="qnaName" type="text" class="form-input" placeholder="주문자명 또는 성함">
                                 </div>
-
                                 <div>
                                     <div class="block text-xs font-bold text-slate-500 mb-2">공개 여부</div>
                                     <div class="grid grid-cols-2 gap-2">
-                                        <label class="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-700 cursor-pointer hover:border-emerald-300">
-                                            <input id="qnaSecret" name="qnaVisibility" type="radio" value="secret" checked class="accent-emerald-600">
-                                            비공개
-                                        </label>
-                                        <label class="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-700 cursor-pointer hover:border-emerald-300">
-                                            <input id="qnaPublic" name="qnaVisibility" type="radio" value="public" class="accent-emerald-600">
-                                            공개
-                                        </label>
+                                        <label class="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-700 cursor-pointer hover:border-emerald-300"><input id="qnaSecret" name="qnaVisibility" type="radio" value="secret" checked class="accent-emerald-600">비공개</label>
+                                        <label class="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-700 cursor-pointer hover:border-emerald-300"><input id="qnaPublic" name="qnaVisibility" type="radio" value="public" class="accent-emerald-600">공개</label>
                                     </div>
                                 </div>
-
-                                <div id="qnaPwWrap">
-                                    <label for="qnaPw" class="block text-xs font-bold text-slate-500 mb-1.5">비밀번호</label>
-                                    <input id="qnaPw" type="password" class="form-input" placeholder="답변 조회용 비밀번호">
-                                </div>
-
+                                <div id="qnaPwWrap"><label for="qnaPw" class="block text-xs font-bold text-slate-500 mb-1.5">비밀번호</label><input id="qnaPw" type="password" class="form-input" placeholder="답변 조회용 비밀번호"></div>
+                                <div><label for="qnaTitle" class="block text-xs font-bold text-slate-500 mb-1.5">제목</label><input id="qnaTitle" type="text" class="form-input" placeholder="문의 제목"></div>
                                 <div>
-                                    <label for="qnaTitle" class="block text-xs font-bold text-slate-500 mb-1.5">제목</label>
-                                    <input id="qnaTitle" type="text" class="form-input" placeholder="문의 제목">
-                                </div>
-
-                                <div>
-                                    <div class="flex items-center justify-between mb-1.5">
-                                        <label for="qnaBody" class="block text-xs font-bold text-slate-500">내용</label>
-                                        <span class="text-[11px] text-slate-400"><span id="charCount">0</span>자</span>
-                                    </div>
+                                    <div class="flex items-center justify-between mb-1.5"><label for="qnaBody" class="block text-xs font-bold text-slate-500">내용</label><span class="text-[11px] text-slate-400"><span id="charCount">0</span>자</span></div>
                                     <textarea id="qnaBody" rows="8" class="form-textarea resize-none" placeholder="문의 내용을 입력해주세요."></textarea>
                                 </div>
-
                                 <button id="submitBtn" type="button" class="btn btn-primary w-full">문의 등록하기</button>
                             </div>
                         </section>
 
                         <section class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
-                            <div class="flex items-center justify-between gap-3 mb-5">
-                                <div>
-                                    <h2 class="text-lg font-black text-slate-900">내 문의 답변 확인</h2>
-                                    <p class="text-xs text-slate-500 mt-1">문의 등록 시 입력한 이름과 비밀번호를 입력하세요.</p>
-                                </div>
-                                <i class="fas fa-magnifying-glass text-emerald-600"></i>
-                            </div>
-
-                            <div class="space-y-3">
-                                <div>
-                                    <label for="searchName" class="block text-xs font-bold text-slate-500 mb-1.5">이름</label>
-                                    <input id="searchName" type="text" class="form-input" placeholder="문의 등록 시 입력한 이름">
-                                </div>
-                                <div>
-                                    <label for="searchPw" class="block text-xs font-bold text-slate-500 mb-1.5">비밀번호</label>
-                                    <input id="searchPw" type="password" class="form-input" placeholder="문의 등록 시 입력한 비밀번호">
-                                </div>
-                                <button id="searchBtn" type="button" class="btn btn-secondary w-full">조회하기</button>
-                            </div>
-
-                            <div id="search-result-area" class="hidden mt-6">
-                                <h3 class="text-sm font-black text-slate-800 mb-3">조회 결과</h3>
-                                <div id="my-qna-list" class="space-y-3"></div>
-                            </div>
+                            <div class="flex items-center justify-between gap-3 mb-5"><div><h2 class="text-lg font-black text-slate-900">내 문의 답변 확인</h2><p class="text-xs text-slate-500 mt-1">문의 등록 시 입력한 이름과 비밀번호를 입력하세요.</p></div><i class="fas fa-magnifying-glass text-emerald-600"></i></div>
+                            <div class="space-y-3"><div><label for="searchName" class="block text-xs font-bold text-slate-500 mb-1.5">이름</label><input id="searchName" type="text" class="form-input" placeholder="문의 등록 시 입력한 이름"></div><div><label for="searchPw" class="block text-xs font-bold text-slate-500 mb-1.5">비밀번호</label><input id="searchPw" type="password" class="form-input" placeholder="문의 등록 시 입력한 비밀번호"></div><button id="searchBtn" type="button" class="btn btn-secondary w-full">조회하기</button></div>
+                            <div id="search-result-area" class="hidden mt-6"><h3 class="text-sm font-black text-slate-800 mb-3">조회 결과</h3><div id="my-qna-list" class="space-y-3"></div></div>
                         </section>
                     </div>
 
                     <section>
-                        <div class="flex items-center justify-between mb-4">
-                            <div>
-                                <h2 class="text-lg font-black text-slate-900">공개 문의</h2>
-                                <p class="text-xs text-slate-500 mt-1">공개로 등록된 문의와 답변입니다.</p>
-                            </div>
-                        </div>
-                        <div id="public-qna-list" class="space-y-3">
-                            <div class="text-center py-10 text-slate-400 text-sm">공개 문의를 불러오는 중입니다.</div>
-                        </div>
+                        <div class="flex items-center justify-between mb-4"><div><h2 class="text-lg font-black text-slate-900">공개 문의</h2><p class="text-xs text-slate-500 mt-1">공개로 등록된 문의와 답변입니다.</p></div></div>
+                        <div id="public-qna-list" class="space-y-3"><div class="text-center py-10 text-slate-400 text-sm">공개 문의를 불러오는 중입니다.</div></div>
                     </section>
                 </div>
 
                 <div id="content-faq" class="hidden p-5 sm:p-7">
-                    <div class="mb-5">
-                        <h2 class="text-lg font-black text-slate-900">자주 묻는 질문</h2>
-                        <p class="text-xs text-slate-500 mt-1">자주 문의하는 내용을 빠르게 확인하세요.</p>
-                    </div>
-                    <div id="faq-list" class="rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100 bg-white">
-                        <div class="p-12 text-center text-slate-400 bg-slate-50">FAQ를 불러오는 중입니다.</div>
-                    </div>
+                    <div class="mb-5"><h2 class="text-lg font-black text-slate-900">자주 묻는 질문</h2><p class="text-xs text-slate-500 mt-1">자주 문의하는 내용을 빠르게 확인하세요.</p></div>
+                    <div id="faq-list" class="rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100 bg-white"><div class="p-12 text-center text-slate-400 bg-slate-50">FAQ를 불러오는 중입니다.</div></div>
                 </div>
             </div>
         </section>
