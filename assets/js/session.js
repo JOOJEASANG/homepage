@@ -10,10 +10,13 @@
 
 import { auth, signOut, onAuthStateChanged } from "./firebase.js";
 
-// 관리자페이지 메뉴에 AI 상담 관리 항목을 보정 추가합니다.
+// 관리자페이지 메뉴 보정 항목을 추가합니다.
 try {
   const currentFile = ((location.pathname || '').split('/').pop() || '');
-  if (currentFile === 'admin.html') import('./admin-ai-menu.js').catch(() => null);
+  if (currentFile === 'admin.html') {
+    import('./admin-ai-menu.js').catch(() => null);
+    import('./customer-center-admin-menu.js').catch(() => null);
+  }
 } catch (e) {}
 
 // AI 상담 위젯을 공통 로드합니다.
