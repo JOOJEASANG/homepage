@@ -14,7 +14,7 @@ service cloud.firestore {
 
     match /settings/{docId} {
       allow read: if isAdmin() ||
-        docId in ['unitPriceConfig', 'companyInfo', 'homepageContent', 'imagePreviews', 'print', 'site', 'aiChatPublic'];
+        docId in ['unitPriceConfig', 'companyInfo', 'homepageContent', 'imagePreviews', 'print', 'site', 'aiChatPublic', 'paymentGuide'];
       allow create, update, delete: if isAdmin();
     }
 
