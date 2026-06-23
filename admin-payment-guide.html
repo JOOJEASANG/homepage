@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>결제안내 관리 | 그린오피스</title>
+  <link rel="icon" href="favicon.ico" />
+  <link rel="stylesheet" href="assets/css/tailwind.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>body{font-family:'Pretendard',sans-serif;background:#f8fafc;color:#1e293b}.card{background:#fff;border:1px solid #e2e8f0;border-radius:1rem;box-shadow:0 1px 3px rgba(15,23,42,.05)}.form-input,.form-textarea{width:100%;border:1.5px solid #e2e8f0;border-radius:.75rem;padding:.75rem .9rem;background:white;font-size:.9rem}.form-input:focus,.form-textarea:focus{outline:none;border-color:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.1)}.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;border-radius:.75rem;padding:.75rem 1rem;font-weight:900;font-size:.9rem}.btn-primary{background:#16a34a;color:#fff}.btn-secondary{background:#fff;border:1px solid #cbd5e1;color:#475569}</style>
+</head>
+<body>
+  <header class="bg-slate-900 text-white border-b border-slate-800">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div><h1 class="text-lg font-black"><i class="fas fa-money-check-dollar text-emerald-400 mr-2"></i>결제안내 관리</h1><p class="text-xs text-slate-400 mt-0.5">계좌정보, 입금안내, 환불규정, 이용안내를 관리합니다.</p></div>
+      <div class="flex gap-2"><a href="admin.html" class="btn bg-white/10 hover:bg-white/15 text-white">관리자</a><a href="qna.html" class="btn bg-emerald-600 hover:bg-emerald-700 text-white">고객센터 보기</a></div>
+    </div>
+  </header>
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+    <div id="status" class="card px-4 py-3 text-sm text-slate-500">관리자 권한 확인 중...</div>
+    <form id="form" class="hidden space-y-5">
+      <section class="card p-5">
+        <div class="flex items-center justify-between gap-3 mb-4"><div><h2 class="text-lg font-black">계좌 노출 설정</h2><p class="text-xs text-slate-500 mt-1">ON이면 견적 결과와 고객센터 결제안내에 표시됩니다.</p></div><label class="flex items-center gap-2 text-sm font-black"><input id="enabled" type="checkbox" class="w-5 h-5 accent-emerald-600" checked> 노출</label></div>
+        <div class="grid md:grid-cols-3 gap-3">
+          <div><label class="block text-xs font-bold text-slate-500 mb-1.5">은행명</label><input id="bankName" class="form-input" placeholder="예: 국민은행"></div>
+          <div><label class="block text-xs font-bold text-slate-500 mb-1.5">계좌번호</label><input id="accountNumber" class="form-input" placeholder="예: 000000-00-000000"></div>
+          <div><label class="block text-xs font-bold text-slate-500 mb-1.5">예금주</label><input id="accountHolder" class="form-input" placeholder="예: 그린오피스"></div>
+        </div>
+      </section>
+      <section class="grid lg:grid-cols-2 gap-5">
+        <div class="card p-5"><h2 class="font-black mb-3">입금안내 문구</h2><textarea id="depositNotice" rows="7" class="form-textarea" placeholder="입금 확인 후 작업이 진행됩니다."></textarea></div>
+        <div class="card p-5"><h2 class="font-black mb-3">환불규정</h2><textarea id="refundPolicy" rows="7" class="form-textarea" placeholder="작업 시작 후에는 취소/환불이 제한될 수 있습니다."></textarea></div>
+        <div class="card p-5"><h2 class="font-black mb-3">이용안내</h2><textarea id="usageGuide" rows="7" class="form-textarea" placeholder="파일 접수, 출력, 제본, 방문수령 안내를 입력하세요."></textarea></div>
+        <div class="card p-5"><h2 class="font-black mb-3">작업진행상태 안내</h2><textarea id="processGuide" rows="7" class="form-textarea" placeholder="접수완료 → 파일확인 → 작업진행 → 완료 순서 등"></textarea></div>
+      </section>
+      <section class="card p-5">
+        <h2 class="font-black mb-3">미리보기</h2>
+        <div class="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 text-sm">
+          <p class="font-black text-emerald-800 mb-2"><i class="fas fa-circle-info mr-1"></i>결제안내</p>
+          <div class="grid sm:grid-cols-[90px_1fr] gap-y-1 text-slate-700"><span class="font-bold text-slate-500">은행</span><span id="pvBank">-</span><span class="font-bold text-slate-500">계좌번호</span><span id="pvAccount">-</span><span class="font-bold text-slate-500">예금주</span><span id="pvHolder">-</span></div>
+          <p id="pvNotice" class="mt-3 whitespace-pre-wrap text-slate-600"></p>
+        </div>
+      </section>
+      <div class="sticky bottom-0 bg-slate-100/95 border-t border-slate-200 py-4 flex gap-2 justify-end"><button id="defaultBtn" type="button" class="btn btn-secondary">기본 문구 입력</button><button id="saveBtn" type="submit" class="btn btn-primary"><i class="fas fa-save"></i>저장</button></div>
+    </form>
+  </main>
+  <script type="module">
+    import { auth, db, onAuthStateChanged, doc, getDoc, setDoc, serverTimestamp } from './assets/js/firebase.js';
+    const $=id=>document.getElementById(id); const ref=doc(db,'settings','paymentGuide');
+    const defaults={enabled:true,bankName:'',accountNumber:'',accountHolder:'그린오피스',depositNotice:'입금 확인 후 작업이 진행됩니다.\n입금자명이 주문자명과 다를 경우 관리자 확인이 지연될 수 있습니다.',refundPolicy:'작업 시작 전에는 취소가 가능할 수 있습니다.\n파일 확인 및 출력/제본 작업이 시작된 이후에는 취소 또는 환불이 제한될 수 있습니다.\n파일 자체 오류로 인한 출력 결과는 환불이 제한될 수 있습니다.',usageGuide:'파일은 PDF 접수를 권장합니다.\n출력/제본 가능 여부와 최종 금액은 파일 확인 후 확정됩니다.\n급한 작업은 전화 또는 관리자 확인을 권장합니다.',processGuide:'접수완료 → 파일확인 → 결제확인 → 작업진행 → 완료 순서로 진행됩니다.\n대량 작업은 일정 확인 후 진행됩니다.'};
+    function setStatus(m,t='info'){const c=t==='error'?'border-red-200 bg-red-50 text-red-700':t==='success'?'border-emerald-200 bg-emerald-50 text-emerald-700':'border-slate-200 bg-white text-slate-500';$('status').className='card px-4 py-3 text-sm '+c;$('status').textContent=m;}
+    function roleCacheAdmin(){try{return sessionStorage.getItem('userRole')==='admin'||localStorage.getItem('userRole')==='admin';}catch(e){return false;}}
+    async function isAdmin(user){try{if(roleCacheAdmin())return true;if(!user||user.isAnonymous)return false;const s=await getDoc(doc(db,'users',user.uid));const ok=s.exists()&&s.data()?.role==='admin';if(ok)try{sessionStorage.setItem('userRole','admin')}catch(e){}return ok;}catch(e){return roleCacheAdmin();}}
+    function fill(d){const x={...defaults,...(d||{})};['bankName','accountNumber','accountHolder','depositNotice','refundPolicy','usageGuide','processGuide'].forEach(id=>$(id).value=x[id]||'');$('enabled').checked=x.enabled!==false;preview();}
+    function collect(){const o={enabled:$('enabled').checked};['bankName','accountNumber','accountHolder','depositNotice','refundPolicy','usageGuide','processGuide'].forEach(id=>o[id]=($(id).value||'').trim());return o;}
+    function preview(){const o=collect();$('pvBank').textContent=o.bankName||'-';$('pvAccount').textContent=o.accountNumber||'-';$('pvHolder').textContent=o.accountHolder||'-';$('pvNotice').textContent=o.depositNotice||'';}
+    $('defaultBtn').onclick=()=>fill(defaults); document.getElementById('form').addEventListener('input',preview); document.getElementById('form').addEventListener('change',preview);
+    document.getElementById('form').onsubmit=async e=>{e.preventDefault();try{$('saveBtn').disabled=true;await setDoc(ref,{...collect(),updatedAt:serverTimestamp()},{merge:true});setStatus('결제안내 저장 완료','success');}catch(err){setStatus('저장 실패: '+(err.message||err),'error');}finally{$('saveBtn').disabled=false;}};
+    onAuthStateChanged(auth,async user=>{if(!await isAdmin(user)){setStatus('관리자 로그인이 필요합니다.','error');return;}setStatus('관리자 확인 완료. 결제안내를 수정할 수 있습니다.','success');$('form').classList.remove('hidden');const s=await getDoc(ref).catch(()=>null);fill(s&&s.exists()?s.data():defaults);});
+    setTimeout(async()=>{if(roleCacheAdmin()&&$('form').classList.contains('hidden')){setStatus('관리자 확인 완료. 결제안내를 수정할 수 있습니다.','success');$('form').classList.remove('hidden');const s=await getDoc(ref).catch(()=>null);fill(s&&s.exists()?s.data():defaults);}},700);
+  </script>
+</body>
+</html>
