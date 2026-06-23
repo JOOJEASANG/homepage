@@ -30,16 +30,28 @@
     <div id="status" class="card px-4 py-3 text-sm text-slate-500">관리자 권한 확인 중...</div>
 
     <section id="faqFormWrap" class="card p-5 hidden">
-      <div class="flex items-center justify-between gap-3 mb-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
         <div>
           <h2 id="formTitle" class="text-lg font-black text-slate-900">FAQ 직접 등록</h2>
-          <p class="text-xs text-slate-500 mt-1">등록하면 고객센터 FAQ 탭과 검색 결과에 바로 표시됩니다.</p>
+          <p class="text-xs text-slate-500 mt-1">등록하면 고객센터 FAQ 탭과 검색 결과에 바로 표시됩니다. 기본 FAQ는 버튼으로 한 번에 등록할 수 있습니다.</p>
         </div>
-        <button id="resetBtn" type="button" class="btn btn-secondary"><i class="fas fa-plus"></i>새 등록</button>
+        <div class="flex flex-wrap gap-2">
+          <button id="resetBtn" type="button" class="btn btn-secondary"><i class="fas fa-plus"></i>새 등록</button>
+        </div>
       </div>
-      <form id="faqForm" class="grid lg:grid-cols-[1fr_140px] gap-4">
+      <form id="faqForm" class="grid lg:grid-cols-[1fr_160px] gap-4">
         <input id="editingId" type="hidden" />
         <div class="space-y-3">
+          <div class="grid md:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 mb-1.5" for="category">카테고리</label>
+              <input id="category" class="form-input" placeholder="예: 출력, 제본, 파일접수" maxlength="40" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 mb-1.5" for="keywords">검색키워드</label>
+              <input id="keywords" class="form-input" placeholder="예: 무선제본, 책자, 교재" maxlength="200" />
+            </div>
+          </div>
           <div>
             <label class="block text-xs font-bold text-slate-500 mb-1.5" for="question">질문</label>
             <input id="question" class="form-input" placeholder="예: PDF 파일이 아니어도 출력 가능한가요?" maxlength="200" />
@@ -70,13 +82,14 @@
         </div>
         <div class="w-full md:w-80 relative">
           <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-          <input id="search" type="search" class="form-input pl-10" placeholder="질문/답변 검색" />
+          <input id="search" type="search" class="form-input" style="padding-left:3rem" placeholder="질문/답변/키워드 검색" />
         </div>
       </div>
       <div id="faqList" class="divide-y divide-slate-100"></div>
     </section>
   </main>
 
+  <script type="module" src="assets/js/pages/admin-faq-seed.js"></script>
   <script type="module">
     import { auth, db, onAuthStateChanged, doc, getDoc, collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp } from './assets/js/firebase.js';
 
@@ -100,12 +113,12 @@
     }
 
     function resetForm(){
-      $('editingId').value=''; $('question').value=''; $('answer').value=''; $('order').value='100'; $('isActive').checked=true;
+      $('editingId').value=''; $('category').value=''; $('keywords').value=''; $('question').value=''; $('answer').value=''; $('order').value='100'; $('isActive').checked=true;
       $('formTitle').textContent='FAQ 직접 등록'; $('question').focus();
     }
 
     function editFaq(item){
-      $('editingId').value=item.id; $('question').value=item.question||''; $('answer').value=item.answer||''; $('order').value=Number(item.order||100); $('isActive').checked=item.isActive!==false;
+      $('editingId').value=item.id; $('category').value=item.category||''; $('keywords').value=item.keywords||''; $('question').value=item.question||''; $('answer').value=item.answer||''; $('order').value=Number(item.order||100); $('isActive').checked=item.isActive!==false;
       $('formTitle').textContent='FAQ 수정'; window.scrollTo({top:0,behavior:'smooth'});
     }
 
@@ -119,19 +132,21 @@
       const keyword = norm($('search').value);
       const list = $('faqList');
       let items = allFaqs.slice();
-      if(keyword) items = items.filter(x => norm((x.question||'') + ' ' + (x.answer||'')).includes(keyword));
+      if(keyword) items = items.filter(x => norm((x.category||'') + ' ' + (x.keywords||'') + ' ' + (x.question||'') + ' ' + (x.answer||'')).includes(keyword));
       $('faqCount').textContent = keyword ? `검색 결과 ${items.length}개 / 전체 ${allFaqs.length}개` : `전체 ${allFaqs.length}개`;
       if(!items.length){list.innerHTML='<div class="p-10 text-center text-slate-400 text-sm">표시할 FAQ가 없습니다.</div>';return;}
       list.innerHTML = items.map(item => `
         <article class="p-5 hover:bg-slate-50 transition-colors">
           <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
             <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2 mb-2">
+              <div class="flex flex-wrap items-center gap-2 mb-2">
                 <span class="inline-flex px-2 py-0.5 rounded text-[11px] font-black ${item.isActive===false?'bg-slate-100 text-slate-500':'bg-emerald-50 text-emerald-700'}">${item.isActive===false?'숨김':'표시'}</span>
+                ${item.category ? `<span class="inline-flex px-2 py-0.5 rounded text-[11px] font-black bg-blue-50 text-blue-700">${escapeHtml(item.category)}</span>` : ''}
                 <span class="text-xs text-slate-400 font-mono">순서 ${Number(item.order||100)}</span>
               </div>
               <h3 class="font-black text-slate-900 break-words">Q. ${escapeHtml(item.question||'질문 없음')}</h3>
               <p class="mt-2 text-sm text-slate-600 whitespace-pre-wrap break-words">${escapeHtml(item.answer||'답변 없음')}</p>
+              ${item.keywords ? `<p class="mt-2 text-xs text-slate-400">키워드: ${escapeHtml(item.keywords)}</p>` : ''}
             </div>
             <div class="flex gap-2 shrink-0">
               <button type="button" class="btn btn-secondary btn-edit" data-id="${item.id}"><i class="fas fa-pen"></i>수정</button>
@@ -159,7 +174,7 @@
       const question = $('question').value.trim();
       const answer = $('answer').value.trim();
       if(!question || !answer){setStatus('질문과 답변을 모두 입력하세요.','error');return;}
-      const data = {question, answer, order:Number($('order').value||100), isActive:$('isActive').checked, updatedAt:serverTimestamp()};
+      const data = {category:$('category').value.trim(), keywords:$('keywords').value.trim(), question, answer, order:Number($('order').value||100), isActive:$('isActive').checked, updatedAt:serverTimestamp()};
       const id = $('editingId').value;
       try{
         $('saveBtn').disabled=true;
