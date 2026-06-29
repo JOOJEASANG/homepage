@@ -10,12 +10,15 @@
 
 import { auth, signOut, onAuthStateChanged } from "./firebase.js";
 
-// 관리자페이지 메뉴/보정 항목을 추가합니다.
+// 관리자페이지/메인페이지 보정 항목을 추가합니다.
 try {
-  const currentFile = ((location.pathname || '').split('/').pop() || '');
+  const currentFile = ((location.pathname || '').split('/').pop() || 'index.html');
   if (currentFile === 'admin.html') {
     import('./customer-center-admin-menu.js').catch(() => null);
     import('./portfolio-crop-helper.js').catch(() => null);
+  }
+  if (currentFile === 'index.html' || currentFile === '') {
+    import('./portfolio-index-fix.js').catch(() => null);
   }
 } catch (e) {}
 
