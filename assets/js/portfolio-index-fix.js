@@ -90,11 +90,10 @@ function renderGrid(page=1){
   grid.innerHTML='';
   list.slice(start,start+per).forEach((item,i)=>{
     const title=(item.title||'작업 포트폴리오').trim();
-    const desc=(item.description||'').trim();
     const div=document.createElement('div');
     div.className='group relative aspect-square bg-slate-100 border border-slate-200 overflow-hidden cursor-pointer rounded-sm';
     div.title=title;
-    div.innerHTML='<img src="'+esc(item.imageUrl)+'" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="'+esc(title)+'"><div class="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-slate-950/90 via-slate-950/55 to-transparent"><p class="text-white text-sm font-black truncate">'+esc(title)+'</p>'+(desc?'<p class="text-white/75 text-[11px] truncate mt-0.5">'+esc(desc)+'</p>':'')+'</div><div class="absolute inset-0 bg-slate-900/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><span class="text-white font-bold border border-white px-3 py-1 text-xs uppercase tracking-widest">View</span></div>';
+    div.innerHTML='<img src="'+esc(item.imageUrl)+'" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="'+esc(title)+'"><div class="absolute inset-x-0 bottom-0 px-3 py-2 bg-gradient-to-t from-slate-950/90 via-slate-950/55 to-transparent"><p class="text-white text-sm font-black truncate">'+esc(title)+'</p></div><div class="absolute inset-0 bg-slate-900/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><span class="text-white font-bold border border-white px-3 py-1 text-xs uppercase tracking-widest">View</span></div>';
     div.onclick=()=>openModal(start+i);
     grid.appendChild(div);
   });
