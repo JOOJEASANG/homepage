@@ -10,11 +10,12 @@
 
 import { auth, signOut, onAuthStateChanged } from "./firebase.js";
 
-// 관리자페이지 메뉴에 고객센터 관리 항목을 보정 추가합니다.
+// 관리자페이지 메뉴/보정 항목을 추가합니다.
 try {
   const currentFile = ((location.pathname || '').split('/').pop() || '');
   if (currentFile === 'admin.html') {
     import('./customer-center-admin-menu.js').catch(() => null);
+    import('./portfolio-crop-helper.js').catch(() => null);
   }
 } catch (e) {}
 
