@@ -5,6 +5,7 @@
 //   - 디지털인쇄 견적에서 기존처럼 최종금액에 부가세 10%를 별도 가산하지 않습니다.
 //   - 단가관리의 출력단가/오시단가를 부가세 포함 단가로 보고 계산합니다.
 //   - 화면에는 포함가 기준 공급가액 / 부가세 / 최종결제금액을 함께 표시합니다.
+//   - 상단 안내문 일부를 자연스럽게 정리합니다.
 //   - 기존 quote-print.js의 계산 흐름은 유지하되, quote-print.html에서만 cut10 호출을 보정합니다.
 // ============================================================
 
@@ -67,12 +68,27 @@ function setTextIfDifferent(el, text) {
   return true;
 }
 
+function patchPrintIntroCopy() {
+  if (!isPrintVatPatchTarget()) return;
+  const title = Array.from(document.querySelectorAll('h1')).find(el => (el.textContent || '').includes('디지털'));
+  const desc = title?.closest('.lg\:col-span-8')?.querySelector('p.text-slate-500');
+  if (!desc || desc.dataset.printIntroCopyPatched === '1') return;
+
+  desc.innerHTML = `
+                    초대장, 안내장, 포스터, 전단지 등 다양한 디지털 인쇄물을 간편하게 견적낼 수 있습니다.
+                    <br> 종이는 <b>스노우지</b> / <b>아르떼</b>만 사용합니다. 단면/양면 선택 및 사이즈 자동 견적(면적 비례)을 지원합니다.
+                `;
+  desc.dataset.printIntroCopyPatched = '1';
+}
+
 function patchVatIncludedLabels() {
   if (!isPrintVatPatchTarget()) return;
   if (vatLabelPatchRunning) return;
   vatLabelPatchRunning = true;
 
   try {
+    patchPrintIntroCopy();
+
     const breakdown = document.getElementById('breakdown');
     if (!breakdown) return;
 
@@ -108,6 +124,7 @@ function scheduleVatLabelPatch() {
 
 function initPrintVatIncludedPatch() {
   if (!isPrintVatPatchTarget()) return;
+  patchPrintIntroCopy();
 
   const tryInstall = () => {
     if (installVatIncludedCutPatch()) {
