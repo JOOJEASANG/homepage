@@ -13,6 +13,9 @@ const PRINT_VAT_PATCH_FILE = (() => {
   catch { return 'index.html'; }
 })();
 
+let vatLabelPatchScheduled = false;
+let vatLabelPatchRunning = false;
+
 function isPrintVatPatchTarget() {
   return PRINT_VAT_PATCH_FILE === 'quote-print.html';
 }
@@ -58,33 +61,48 @@ function installVatIncludedCutPatch() {
   return true;
 }
 
+function setTextIfDifferent(el, text) {
+  if (!el || el.textContent === text) return false;
+  el.textContent = text;
+  return true;
+}
+
 function patchVatIncludedLabels() {
   if (!isPrintVatPatchTarget()) return;
-  const breakdown = document.getElementById('breakdown');
-  if (!breakdown) return;
+  if (vatLabelPatchRunning) return;
+  vatLabelPatchRunning = true;
 
-  const rows = Array.from(breakdown.querySelectorAll('div.flex.justify-between'));
-  const supplyRow = rows.find(row => (row.textContent || '').includes('공급가액'));
-  const vatRow = rows.find(row => (row.textContent || '').includes('부가세'));
+  try {
+    const breakdown = document.getElementById('breakdown');
+    if (!breakdown) return;
 
-  if (supplyRow) {
-    const label = supplyRow.querySelector('span:first-child');
-    if (label) label.textContent = '공급가액 (포함가 기준)';
+    const rows = Array.from(breakdown.querySelectorAll('div.flex.justify-between'));
+    const supplyRow = rows.find(row => (row.textContent || '').includes('공급가액'));
+    const vatRow = rows.find(row => (row.textContent || '').includes('부가세'));
+
+    if (supplyRow) {
+      const label = supplyRow.querySelector('span:first-child');
+      setTextIfDifferent(label, '공급가액 (포함가 기준)');
+    }
+    if (vatRow) {
+      const label = vatRow.querySelector('span:first-child');
+      setTextIfDifferent(label, '부가세 (10%, 포함)');
+    }
+
+    const finalCard = Array.from(breakdown.querySelectorAll('div')).find(el => (el.textContent || '').includes('최종결제금액'));
+    const finalLabel = finalCard?.querySelector?.('span:first-child');
+    setTextIfDifferent(finalLabel, '최종결제금액');
+  } finally {
+    vatLabelPatchRunning = false;
   }
-  if (vatRow) {
-    const label = vatRow.querySelector('span:first-child');
-    if (label) label.textContent = '부가세 (10%, 포함)';
-  }
-
-  const finalCard = Array.from(breakdown.querySelectorAll('div')).find(el => (el.textContent || '').includes('최종결제금액'));
-  const finalLabel = finalCard?.querySelector?.('span:first-child');
-  if (finalLabel) finalLabel.textContent = '최종결제금액';
 }
 
 function scheduleVatLabelPatch() {
+  if (vatLabelPatchScheduled) return;
+  vatLabelPatchScheduled = true;
   requestAnimationFrame(() => {
+    vatLabelPatchScheduled = false;
     patchVatIncludedLabels();
-    setTimeout(patchVatIncludedLabels, 0);
   });
 }
 
@@ -112,7 +130,9 @@ function initPrintVatIncludedPatch() {
 
   const breakdown = document.getElementById('breakdown');
   if (breakdown) {
-    new MutationObserver(scheduleVatLabelPatch).observe(breakdown, { childList: true, subtree: true });
+    // quote-print.js가 breakdown.innerHTML을 통째로 갱신할 때만 감지합니다.
+    // subtree 감시는 패치가 직접 바꾼 라벨까지 다시 감지해 반복 실행될 수 있어 제외합니다.
+    new MutationObserver(scheduleVatLabelPatch).observe(breakdown, { childList: true });
   }
 
   document.addEventListener('input', e => {
