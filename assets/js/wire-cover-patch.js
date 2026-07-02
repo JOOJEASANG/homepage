@@ -7,9 +7,6 @@
 //   - 와이어 제본 선택 시 표지 인쇄를 A4 기준 앞면 출력 / 뒷면 출력 체크 방식으로 표시합니다.
 //   - 고급 내지 스노우 120g/150g이 일정 페이지 이상이면 무선제본을 비활성화하고 안내문을 표시합니다.
 //   - 기존 계산식과 호환되도록 coverPrintType 값을 자동 변환합니다.
-//     선택 없음: none
-//     앞면 또는 뒷면 중 1개: color_simplex
-//     앞면 + 뒷면 2개: color_duplex
 // ============================================================
 
 const WIRE_COVER_PATCH_FILE = (() => {
@@ -22,16 +19,32 @@ const PERFECT_BINDING_LIMITS = {
   snow150: { limit: 60, label: '스노우 150g' },
 };
 
+let patchScheduled = false;
+let recalcScheduled = false;
+
 function isWireCoverPatchTarget() {
   return WIRE_COVER_PATCH_FILE === 'quote-book.html';
 }
 
-function fireRecalcFrom(itemEl) {
-  try {
-    const target = itemEl?.querySelector?.('.quantity') || itemEl?.querySelector?.('.coverPrintType') || itemEl;
-    target?.dispatchEvent?.(new Event('input', { bubbles: true }));
-    target?.dispatchEvent?.(new Event('change', { bubbles: true }));
-  } catch (_) {}
+function scheduleRecalcFrom(itemEl) {
+  if (recalcScheduled) return;
+  recalcScheduled = true;
+  setTimeout(() => {
+    recalcScheduled = false;
+    try {
+      const target = itemEl?.querySelector?.('.quantity') || itemEl?.querySelector?.('.coverPrintType') || itemEl;
+      target?.dispatchEvent?.(new Event('change', { bubbles: true }));
+    } catch (_) {}
+  }, 0);
+}
+
+function schedulePatchQuoteItems() {
+  if (patchScheduled) return;
+  patchScheduled = true;
+  requestAnimationFrame(() => {
+    patchScheduled = false;
+    patchQuoteItemsNow();
+  });
 }
 
 function sectionTitleText(section) {
@@ -53,12 +66,10 @@ function reorderQuoteItemSections(itemEl) {
   const innerSection = findSection(itemEl, '내지 설정');
   if (!bindingSection || !coverSection || !innerSection) return;
 
-  // 제본 및 수량을 표지 설정 앞으로 이동합니다.
   if (bindingSection.nextElementSibling !== coverSection) {
     itemEl.insertBefore(bindingSection, coverSection);
   }
 
-  // 표지 설정이 내지 설정 앞에 오도록 보장합니다.
   if (coverSection.nextElementSibling !== innerSection) {
     itemEl.insertBefore(coverSection, innerSection);
   }
@@ -118,7 +129,7 @@ function updatePerfectBindingAvailability(itemEl) {
     perfectOption.classList.remove('selected');
     noneOption?.classList.add('selected');
     bindingInput.value = 'none';
-    fireRecalcFrom(itemEl);
+    scheduleRecalcFrom(itemEl);
   }
 }
 
@@ -184,7 +195,6 @@ function ensureWireCoverBox(itemEl) {
     else if (count === 1) coverPrintSelect.value = 'color_simplex';
     else coverPrintSelect.value = 'color_duplex';
 
-    // 기존 select만 저장/계산에 사용되므로, 뒷면만 단독 선택한 경우를 보조 데이터로 남깁니다.
     itemEl.dataset.wireCoverFront = front.checked ? '1' : '0';
     itemEl.dataset.wireCoverBack = back.checked ? '1' : '0';
   }
@@ -200,8 +210,8 @@ function ensureWireCoverBox(itemEl) {
     }
   }
 
-  front.addEventListener('change', () => { syncSelectFromChecks(); fireRecalcFrom(itemEl); });
-  back.addEventListener('change', () => { syncSelectFromChecks(); fireRecalcFrom(itemEl); });
+  front.addEventListener('change', () => { syncSelectFromChecks(); scheduleRecalcFrom(itemEl); });
+  back.addEventListener('change', () => { syncSelectFromChecks(); scheduleRecalcFrom(itemEl); });
   coverPrintSelect.addEventListener('change', () => {
     if (bindingInput.value === 'wire') {
       syncChecksFromSelect();
@@ -215,7 +225,7 @@ function ensureWireCoverBox(itemEl) {
   updateVisibility();
 }
 
-function patchQuoteItems() {
+function patchQuoteItemsNow() {
   if (!isWireCoverPatchTarget()) return;
   document.querySelectorAll('.quote-item').forEach(itemEl => {
     reorderQuoteItemSections(itemEl);
@@ -224,7 +234,7 @@ function patchQuoteItems() {
   });
 }
 
-function bindWireOptionClicks() {
+function bindBookPatchEvents() {
   if (!isWireCoverPatchTarget()) return;
   if (document.documentElement.dataset.wireCoverPatchBound === '1') return;
   document.documentElement.dataset.wireCoverPatchBound = '1';
@@ -234,7 +244,6 @@ function bindWireOptionClicks() {
     if (!card) return;
     const itemEl = card.closest('.quote-item');
 
-    // 고급 내지 조건으로 비활성화된 무선제본은 선택 자체를 막습니다.
     if (card.dataset.value === 'perfect') {
       updatePerfectBindingAvailability(itemEl);
       if (card.classList.contains('disabled')) {
@@ -262,20 +271,28 @@ function bindWireOptionClicks() {
     }, 0);
   }, true);
 
-  document.addEventListener('input', patchQuoteItems, true);
-  document.addEventListener('change', patchQuoteItems, true);
+  document.addEventListener('input', (e) => {
+    if (e.target?.closest?.('.quote-item')) schedulePatchQuoteItems();
+  }, false);
 
-  const rootObserver = new MutationObserver(patchQuoteItems);
-  rootObserver.observe(document.body || document.documentElement, { childList: true, subtree: true });
+  document.addEventListener('change', (e) => {
+    if (e.target?.closest?.('.quote-item')) schedulePatchQuoteItems();
+  }, false);
+
+  const container = document.getElementById('quote-items-container');
+  if (container) {
+    const rootObserver = new MutationObserver(schedulePatchQuoteItems);
+    rootObserver.observe(container, { childList: true });
+  }
 }
 
 function initWireCoverPatch() {
   if (!isWireCoverPatchTarget()) return;
-  patchQuoteItems();
-  bindWireOptionClicks();
-  setTimeout(patchQuoteItems, 300);
-  setTimeout(patchQuoteItems, 1000);
-  setTimeout(patchQuoteItems, 2000);
+  patchQuoteItemsNow();
+  bindBookPatchEvents();
+  setTimeout(patchQuoteItemsNow, 300);
+  setTimeout(patchQuoteItemsNow, 1000);
+  setTimeout(patchQuoteItemsNow, 2000);
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initWireCoverPatch, { once: true });
