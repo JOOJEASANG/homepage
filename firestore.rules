@@ -12,6 +12,29 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function safeSelfUserCreate() {
+      return !('role' in request.resource.data) || request.resource.data.role == 'user';
+    }
+
+    function safeSelfUserUpdate() {
+      return (
+        !('role' in request.resource.data)
+        || (
+          ('role' in resource.data)
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.role != 'admin'
+        )
+        || (
+          !('role' in resource.data)
+          && request.resource.data.role == 'user'
+        )
+      );
+    }
+
     match /settings/{docId} {
       allow read: if isAdmin() ||
         docId in ['unitPriceConfig', 'companyInfo', 'homepageContent', 'imagePreviews', 'print', 'site', 'aiChatPublic', 'paymentGuide'];
@@ -28,10 +51,10 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
-      allow create: if signedIn() && request.auth.uid == uid;
-      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid);
-      allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow read: if isAdmin() || isSelf(uid);
+      allow create: if isSelf(uid) && safeSelfUserCreate();
+      allow update: if isAdmin() || (isSelf(uid) && safeSelfUserUpdate());
+      allow delete: if isAdmin() || isSelf(uid);
     }
 
     function isMemberQuoteOwner(quote) {
@@ -43,7 +66,9 @@ service cloud.firestore {
     function canReadGuestQuote(quote) {
       return signedIn()
         && quote.data.isGuest == true
-        && quote.data.userId == 'guest';
+        && quote.data.userId == 'guest'
+        && ('guestUid' in quote.data)
+        && quote.data.guestUid == request.auth.uid;
     }
 
     function isGuestQuoteOwnerStrict(quote) {
@@ -198,8 +223,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    function isPublicQna(qna) {
+      return !('isSecret' in qna.data) || qna.data.isSecret == false;
+    }
+
     match /qna/{id} {
-      allow read: if true;
+      allow read: if isAdmin() || isPublicQna(resource);
       allow create: if signedIn();
       allow update, delete: if isAdmin();
     }
