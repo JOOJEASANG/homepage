@@ -70,8 +70,11 @@ function setTextIfDifferent(el, text) {
 
 function patchPrintIntroCopy() {
   if (!isPrintVatPatchTarget()) return;
-  const title = Array.from(document.querySelectorAll('h1')).find(el => (el.textContent || '').includes('디지털'));
-  const desc = title?.closest('.lg\:col-span-8')?.querySelector('p.text-slate-500');
+
+  const desc = Array.from(document.querySelectorAll('p')).find(el => {
+    const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    return text.includes('초대장, 안내장, 포스터, 전단지 등') && text.includes('양면 2장 이상시');
+  });
   if (!desc || desc.dataset.printIntroCopyPatched === '1') return;
 
   desc.innerHTML = `
@@ -125,6 +128,9 @@ function scheduleVatLabelPatch() {
 function initPrintVatIncludedPatch() {
   if (!isPrintVatPatchTarget()) return;
   patchPrintIntroCopy();
+  setTimeout(patchPrintIntroCopy, 50);
+  setTimeout(patchPrintIntroCopy, 300);
+  setTimeout(patchPrintIntroCopy, 1000);
 
   const tryInstall = () => {
     if (installVatIncludedCutPatch()) {
