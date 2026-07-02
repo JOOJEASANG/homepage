@@ -11,6 +11,18 @@
 
 (function () {
   try {
+    const file = ((location.pathname || '').split('/').pop() || 'index.html');
+    const publicPage = file !== 'admin.html' && file !== 'login.html';
+    const role = String(localStorage.getItem('userRole') || sessionStorage.getItem('userRole') || '').toLowerCase();
+    if (publicPage && role === 'admin') {
+      sessionStorage.setItem('managerPublicView', '1');
+      localStorage.setItem('managerPublicView', '1');
+      sessionStorage.setItem('userRole', 'manager-view');
+      localStorage.setItem('userRole', 'manager-view');
+    }
+  } catch(e) {}
+
+  try {
     if (!document.body) return;
 
     // ── ① 비회원 주문 조회 팝업 ──────────────────────────────
