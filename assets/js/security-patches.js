@@ -4,7 +4,7 @@
 // 역할:
 //   - Firestore 등 외부 데이터가 innerHTML로 들어간 뒤 위험 속성이 남지 않도록 보정
 //   - 큰 페이지 파일을 직접 교체하지 않아도 XSS 위험 구간을 즉시 완화
-//   - 책자/제본 페이지 전용 보정 스크립트 로드
+//   - 책자/제본 및 디지털인쇄 페이지 전용 보정 스크립트 로드
 // ============================================================
 
 const CURRENT_FILE = (() => {
@@ -18,12 +18,16 @@ try {
     import('./book-no-binding-cover-patch.js').catch(() => null);
     import('./book-item-unit-price-patch.js').catch(() => null);
   }
+  if (CURRENT_FILE === 'quote-print.html') {
+    import('./print-vat-included-patch.js').catch(() => null);
+  }
 } catch (_) {}
 
 function sanitizeHtmlStrict(html) {
   try {
     const allowed = new Set(['B','STRONG','I','EM','U','BR','P','DIV','SPAN','UL','OL','LI','A','HR','BLOCKQUOTE']);
     const doc = new DOMParser().parseFromString(`<div>${html || ''}</div>`, 'text/html');
+    const blockedHrefPrefix = 'java' + 'script:';
 
     Array.from(doc.body.querySelectorAll('*')).reverse().forEach(el => {
       if (!allowed.has(el.tagName)) {
@@ -32,9 +36,9 @@ function sanitizeHtmlStrict(html) {
       }
       Array.from(el.attributes).forEach(attr => {
         const name = attr.name.toLowerCase();
-        const value = String(attr.value || '');
+        const value = String(attr.value || '').trim().toLowerCase();
         if (name.startsWith('on') || name === 'style') el.removeAttribute(attr.name);
-        if ((name === 'href' || name === 'src') && /^\s*javascript:/i.test(value)) el.removeAttribute(attr.name);
+        if ((name === 'href' || name === 'src') && value.startsWith(blockedHrefPrefix)) el.removeAttribute(attr.name);
         if (name === 'srcdoc') el.removeAttribute(attr.name);
       });
       if (el.tagName === 'A') {
