@@ -1,5 +1,5 @@
 // 사이트 점검 모드 체크 + 공통 UI 보정
-// 점검 중 일반 고객은 maintenance.html로 이동하지만, 관리자(role=admin)는 모든 페이지 접근을 허용합니다.
+// 점검 중 일반 고객은 maintenance.html로 이동하지만, 서버에서 확인된 관리자(role=admin)만 접근을 허용합니다.
 import {
   auth, db,
   doc, getDoc, onAuthStateChanged, onSnapshot,
@@ -47,13 +47,17 @@ function getAuthUserOnce(timeoutMs = 3500) {
 
 async function isVerifiedAdmin() {
   try {
-    if (sessionStorage.getItem('userRole') === 'admin' || localStorage.getItem('userRole') === 'admin') return true;
     const user = await getAuthUserOnce();
     if (!user || user.isAnonymous || !user.uid) return false;
+
     const snap = await getDoc(doc(db, 'users', user.uid));
     const ok = snap.exists() && snap.data()?.role === 'admin';
+
     if (ok) {
       try { sessionStorage.setItem('userRole', 'admin'); } catch {}
+    } else {
+      try { sessionStorage.removeItem('userRole'); } catch {}
+      try { localStorage.removeItem('userRole'); } catch {}
     }
     return ok;
   } catch (e) {
