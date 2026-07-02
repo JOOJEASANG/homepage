@@ -37,17 +37,33 @@ try {
   }
 } catch (e) {}
 
+// 클라이언트 저장소 값만으로 관리자 권한을 승격하지 않습니다.
+// 과거 보정용 managerPublicView/manager-view 값은 권한 오판을 막기 위해 제거만 합니다.
+try {
+  const marker = sessionStorage.getItem('managerPublicView') || localStorage.getItem('managerPublicView');
+  const role = sessionStorage.getItem('userRole') || localStorage.getItem('userRole');
+  if (marker === '1' || role === 'manager-view') {
+    sessionStorage.removeItem('managerPublicView');
+    localStorage.removeItem('managerPublicView');
+    sessionStorage.removeItem('userRole');
+    localStorage.removeItem('userRole');
+  }
+} catch (e) {}
+
+// 비회원 마이페이지 조회는 연락처 단독 조회가 아닌 guestLookupKey 기반 fallback을 우선하도록 보정합니다.
 try {
   const currentFile = ((location.pathname || '').split('/').pop() || 'index.html');
-  if (currentFile === 'admin.html') {
-    const marker = sessionStorage.getItem('managerPublicView') || localStorage.getItem('managerPublicView');
-    const role = sessionStorage.getItem('userRole') || localStorage.getItem('userRole');
-    if (marker === '1' || role === 'manager-view') {
-      sessionStorage.setItem('userRole', 'admin');
-      localStorage.setItem('userRole', 'admin');
-      sessionStorage.removeItem('managerPublicView');
-      localStorage.removeItem('managerPublicView');
-    }
+  const hasGuestKey = !!(
+    sessionStorage.getItem('guestLookupKey') ||
+    localStorage.getItem('guestLookupKey') ||
+    sessionStorage.getItem('guestLookupKeyLegacy') ||
+    localStorage.getItem('guestLookupKeyLegacy')
+  );
+  if (currentFile === 'mypage.html' && hasGuestKey) {
+    ['guestContact', 'guestContactRaw', 'guestContactHyphen'].forEach(k => {
+      try { sessionStorage.removeItem(k); } catch (_) {}
+      try { localStorage.removeItem(k); } catch (_) {}
+    });
   }
 } catch (e) {}
 
@@ -57,10 +73,12 @@ try {
   if (currentFile === 'admin.html') {
     import('./customer-center-admin-menu.js').catch(() => null);
     import('./portfolio-crop-helper.js').catch(() => null);
+    import('./admin-safety-patches.js').catch(() => null);
   }
   if (currentFile === 'index.html' || currentFile === '') {
     import('./portfolio-index-fix.js').catch(() => null);
   }
+  import('./security-patches.js').catch(() => null);
 } catch (e) {}
 
 // AI 상담 위젯을 공통 로드합니다.
@@ -113,6 +131,7 @@ export function clearClientState() {
     "mp_guest_cached", "mp_user_cached",
     "mp_last_tab", "mp_last_filter",
     "admin_session",
+    "managerPublicView",
   ].forEach(safeRemove);
 }
 
