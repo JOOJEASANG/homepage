@@ -1,10 +1,11 @@
 // ============================================================
-// wire-cover-patch.js — 와이어 제본 표지 출력 선택 보정
+// wire-cover-patch.js — 책자/제본 입력 흐름 보정
 //
 // 역할:
 //   - 책자/제본 페이지에서 견적 항목 순서를
 //     기본 정보 → 제본 및 수량 → 표지 설정 → 내지 설정 → 비고로 보정합니다.
 //   - 와이어 제본 선택 시 표지 인쇄를 A4 기준 앞면 출력 / 뒷면 출력 체크 방식으로 표시합니다.
+//   - 고급 내지 스노우 120g/150g이 일정 페이지 이상이면 무선제본을 비활성화하고 안내문을 표시합니다.
 //   - 기존 계산식과 호환되도록 coverPrintType 값을 자동 변환합니다.
 //     선택 없음: none
 //     앞면 또는 뒷면 중 1개: color_simplex
@@ -15,6 +16,11 @@ const WIRE_COVER_PATCH_FILE = (() => {
   try { return (location.pathname || '').split('/').pop() || 'index.html'; }
   catch { return 'index.html'; }
 })();
+
+const PERFECT_BINDING_LIMITS = {
+  snow120: { limit: 80, label: '스노우 120g' },
+  snow150: { limit: 60, label: '스노우 150g' },
+};
 
 function isWireCoverPatchTarget() {
   return WIRE_COVER_PATCH_FILE === 'quote-book.html';
@@ -60,9 +66,66 @@ function reorderQuoteItemSections(itemEl) {
   itemEl.dataset.bookSectionOrderPatched = '1';
 }
 
+function getPerfectBindingBlockReason(itemEl) {
+  if (!itemEl) return '';
+  const sections = Array.from(itemEl.querySelectorAll('.inner-section'));
+  for (const section of sections) {
+    const paperType = section.querySelector('.innerPaperType')?.value || '';
+    const pages = parseInt(section.querySelector('.innerPages')?.value, 10) || 0;
+    const info = PERFECT_BINDING_LIMITS[paperType];
+    if (info && pages >= info.limit) {
+      return `${info.label}은 ${info.limit}p 이상부터 무선제본이 잘 안될 수도 있습니다. 다른 제본 방식을 선택해 주세요.`;
+    }
+  }
+  return '';
+}
+
+function ensurePerfectBindingWarning(itemEl) {
+  if (!itemEl) return null;
+  const bindingOptions = itemEl.querySelector('.binding-options');
+  if (!bindingOptions) return null;
+
+  let warning = itemEl.querySelector('.perfect-binding-warning');
+  if (!warning) {
+    warning = document.createElement('div');
+    warning.className = 'perfect-binding-warning hidden mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 leading-relaxed';
+    warning.innerHTML = `<i class="fas fa-triangle-exclamation mr-1"></i><span class="perfect-binding-warning-text">제본이 잘 안될 수도 있습니다.</span>`;
+    bindingOptions.insertAdjacentElement('afterend', warning);
+  }
+  return warning;
+}
+
+function updatePerfectBindingAvailability(itemEl) {
+  if (!itemEl) return;
+  const perfectOption = itemEl.querySelector('.binding-options .option-card[data-value="perfect"]');
+  const noneOption = itemEl.querySelector('.binding-options .option-card[data-value="none"]');
+  const bindingInput = itemEl.querySelector('.bindingType');
+  const warning = ensurePerfectBindingWarning(itemEl);
+  if (!perfectOption || !bindingInput || !warning) return;
+
+  const reason = getPerfectBindingBlockReason(itemEl);
+  const blocked = !!reason;
+
+  perfectOption.classList.toggle('disabled', blocked);
+  perfectOption.setAttribute('aria-disabled', blocked ? 'true' : 'false');
+  perfectOption.title = blocked ? reason : '';
+
+  const textEl = warning.querySelector('.perfect-binding-warning-text');
+  if (textEl) textEl.textContent = reason || '';
+  warning.classList.toggle('hidden', !blocked);
+
+  if (blocked && bindingInput.value === 'perfect') {
+    perfectOption.classList.remove('selected');
+    noneOption?.classList.add('selected');
+    bindingInput.value = 'none';
+    fireRecalcFrom(itemEl);
+  }
+}
+
 function ensureWireCoverBox(itemEl) {
   if (!itemEl) return;
   reorderQuoteItemSections(itemEl);
+  updatePerfectBindingAvailability(itemEl);
   if (itemEl.dataset.wireCoverPatchReady === '1') return;
 
   const coverPrintSelect = itemEl.querySelector('.coverPrintType');
@@ -156,6 +219,7 @@ function patchQuoteItems() {
   if (!isWireCoverPatchTarget()) return;
   document.querySelectorAll('.quote-item').forEach(itemEl => {
     reorderQuoteItemSections(itemEl);
+    updatePerfectBindingAvailability(itemEl);
     ensureWireCoverBox(itemEl);
   });
 }
@@ -169,8 +233,21 @@ function bindWireOptionClicks() {
     const card = e.target?.closest?.('.binding-options .option-card');
     if (!card) return;
     const itemEl = card.closest('.quote-item');
+
+    // 고급 내지 조건으로 비활성화된 무선제본은 선택 자체를 막습니다.
+    if (card.dataset.value === 'perfect') {
+      updatePerfectBindingAvailability(itemEl);
+      if (card.classList.contains('disabled')) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        return false;
+      }
+    }
+
     setTimeout(() => {
       reorderQuoteItemSections(itemEl);
+      updatePerfectBindingAvailability(itemEl);
       ensureWireCoverBox(itemEl);
       const box = itemEl?.querySelector?.('.wire-cover-print-box');
       const coverPrintSelect = itemEl?.querySelector?.('.coverPrintType');
