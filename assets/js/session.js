@@ -10,6 +10,33 @@
 
 import { auth, signOut, onAuthStateChanged } from "./firebase.js";
 
+// admin.html은 관리자 권한 검사 전에 Firebase 로그인 복원이 끝나야 합니다.
+// 복원 전에 admin.js가 먼저 실행되면 로그인된 관리자도 비로그인/익명으로 판단될 수 있어 잠시 대기합니다.
+try {
+  const currentFile = ((location.pathname || '').split('/').pop() || 'index.html');
+  if (currentFile === 'admin.html') {
+    await new Promise(resolve => {
+      let done = false;
+      let unsub = null;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        try { if (typeof unsub === 'function') unsub(); } catch (e) {}
+        resolve();
+      };
+      try {
+        if (auth.currentUser && !auth.currentUser.isAnonymous) return finish();
+        unsub = onAuthStateChanged(auth, user => {
+          if (user && !user.isAnonymous) finish();
+        }, finish);
+      } catch (e) {
+        return finish();
+      }
+      setTimeout(finish, 2500);
+    });
+  }
+} catch (e) {}
+
 try {
   const currentFile = ((location.pathname || '').split('/').pop() || 'index.html');
   if (currentFile === 'admin.html') {
