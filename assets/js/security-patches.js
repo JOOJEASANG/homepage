@@ -4,12 +4,19 @@
 // 역할:
 //   - Firestore 등 외부 데이터가 innerHTML로 들어간 뒤 위험 속성이 남지 않도록 보정
 //   - 큰 페이지 파일을 직접 교체하지 않아도 XSS 위험 구간을 즉시 완화
+//   - 책자/제본 페이지 전용 보정 스크립트 로드
 // ============================================================
 
 const CURRENT_FILE = (() => {
   try { return (location.pathname || '').split('/').pop() || 'index.html'; }
   catch { return 'index.html'; }
 })();
+
+try {
+  if (CURRENT_FILE === 'quote-book.html') {
+    import('./wire-cover-patch.js').catch(() => null);
+  }
+} catch (_) {}
 
 function sanitizeHtmlStrict(html) {
   try {
