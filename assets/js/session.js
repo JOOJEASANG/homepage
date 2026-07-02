@@ -10,6 +10,20 @@
 
 import { auth, signOut, onAuthStateChanged } from "./firebase.js";
 
+try {
+  const currentFile = ((location.pathname || '').split('/').pop() || 'index.html');
+  if (currentFile === 'admin.html') {
+    const marker = sessionStorage.getItem('managerPublicView') || localStorage.getItem('managerPublicView');
+    const role = sessionStorage.getItem('userRole') || localStorage.getItem('userRole');
+    if (marker === '1' || role === 'manager-view') {
+      sessionStorage.setItem('userRole', 'admin');
+      localStorage.setItem('userRole', 'admin');
+      sessionStorage.removeItem('managerPublicView');
+      localStorage.removeItem('managerPublicView');
+    }
+  }
+} catch (e) {}
+
 // 관리자페이지/메인페이지 보정 항목을 추가합니다.
 try {
   const currentFile = ((location.pathname || '').split('/').pop() || 'index.html');
