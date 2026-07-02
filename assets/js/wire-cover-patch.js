@@ -2,8 +2,9 @@
 // wire-cover-patch.js — 와이어 제본 표지 출력 선택 보정
 //
 // 역할:
-//   - 책자/제본 페이지에서 와이어 제본 선택 시 표지 인쇄를
-//     A4 기준 앞면 출력 / 뒷면 출력 체크 방식으로 선택하게 합니다.
+//   - 책자/제본 페이지에서 견적 항목 순서를
+//     기본 정보 → 제본 및 수량 → 표지 설정 → 내지 설정 → 비고로 보정합니다.
+//   - 와이어 제본 선택 시 표지 인쇄를 A4 기준 앞면 출력 / 뒷면 출력 체크 방식으로 표시합니다.
 //   - 기존 계산식과 호환되도록 coverPrintType 값을 자동 변환합니다.
 //     선택 없음: none
 //     앞면 또는 뒷면 중 1개: color_simplex
@@ -27,8 +28,43 @@ function fireRecalcFrom(itemEl) {
   } catch (_) {}
 }
 
+function sectionTitleText(section) {
+  try { return (section?.querySelector?.('h2')?.textContent || '').replace(/\s+/g, ' ').trim(); }
+  catch { return ''; }
+}
+
+function findSection(itemEl, keyword) {
+  try {
+    return Array.from(itemEl.children).find(child => sectionTitleText(child).includes(keyword)) || null;
+  } catch { return null; }
+}
+
+function reorderQuoteItemSections(itemEl) {
+  if (!itemEl || itemEl.dataset.bookSectionOrderPatched === '1') return;
+
+  const bindingSection = findSection(itemEl, '제본 및 수량');
+  const coverSection = findSection(itemEl, '표지 설정');
+  const innerSection = findSection(itemEl, '내지 설정');
+  if (!bindingSection || !coverSection || !innerSection) return;
+
+  // 제본 및 수량을 표지 설정 앞으로 이동합니다.
+  if (bindingSection.nextElementSibling !== coverSection) {
+    itemEl.insertBefore(bindingSection, coverSection);
+  }
+
+  // 표지 설정이 내지 설정 앞에 오도록 보장합니다.
+  if (coverSection.nextElementSibling !== innerSection) {
+    itemEl.insertBefore(coverSection, innerSection);
+  }
+
+  itemEl.dataset.bookSectionOrderPatched = '1';
+}
+
 function ensureWireCoverBox(itemEl) {
-  if (!itemEl || itemEl.dataset.wireCoverPatchReady === '1') return;
+  if (!itemEl) return;
+  reorderQuoteItemSections(itemEl);
+  if (itemEl.dataset.wireCoverPatchReady === '1') return;
+
   const coverPrintSelect = itemEl.querySelector('.coverPrintType');
   const bindingInput = itemEl.querySelector('.bindingType');
   if (!coverPrintSelect || !bindingInput) return;
@@ -113,17 +149,15 @@ function ensureWireCoverBox(itemEl) {
   const observer = new MutationObserver(updateVisibility);
   observer.observe(bindingInput, { attributes: true, attributeFilter: ['value'] });
 
-  const originalValueDescriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
-  if (originalValueDescriptor && !bindingInput.dataset.wireCoverValueHooked) {
-    bindingInput.dataset.wireCoverValueHooked = '1';
-  }
-
   updateVisibility();
 }
 
 function patchQuoteItems() {
   if (!isWireCoverPatchTarget()) return;
-  document.querySelectorAll('.quote-item').forEach(ensureWireCoverBox);
+  document.querySelectorAll('.quote-item').forEach(itemEl => {
+    reorderQuoteItemSections(itemEl);
+    ensureWireCoverBox(itemEl);
+  });
 }
 
 function bindWireOptionClicks() {
@@ -136,6 +170,7 @@ function bindWireOptionClicks() {
     if (!card) return;
     const itemEl = card.closest('.quote-item');
     setTimeout(() => {
+      reorderQuoteItemSections(itemEl);
       ensureWireCoverBox(itemEl);
       const box = itemEl?.querySelector?.('.wire-cover-print-box');
       const coverPrintSelect = itemEl?.querySelector?.('.coverPrintType');
