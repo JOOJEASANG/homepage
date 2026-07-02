@@ -4,6 +4,7 @@
 // 역할:
 //   - 디지털인쇄 견적에서 기존처럼 최종금액에 부가세 10%를 별도 가산하지 않습니다.
 //   - 단가관리의 출력단가/오시단가를 부가세 포함 단가로 보고 계산합니다.
+//   - 화면에는 포함가 기준 공급가액 / 부가세 / 최종결제금액을 함께 표시합니다.
 //   - 기존 quote-print.js의 계산 흐름은 유지하되, quote-print.html에서만 cut10 호출을 보정합니다.
 // ============================================================
 
@@ -31,8 +32,8 @@ function installVatIncludedCutPatch() {
     // quote-print.js 기존 흐름:
     //   totalRounded = cut10((기본 인쇄비 + 오시비) * 1.1)
     //   supply       = cut10(totalRounded / 1.1)
-    // 여기서 첫 번째 cut10은 /1.1로 되돌려 부가세 포함가 기준으로 만들고,
-    // 두 번째 cut10은 같은 금액을 반환해 vat = total - supply = 0 이 되도록 합니다.
+    // 여기서 첫 번째 cut10은 /1.1로 되돌려 최종금액을 부가세 포함가 기준으로 만들고,
+    // 두 번째 cut10은 정상 처리해서 포함가 안의 공급가액/부가세가 보이도록 합니다.
     try {
       const now = performance?.now?.() || Date.now();
       if (
@@ -40,9 +41,8 @@ function installVatIncludedCutPatch() {
         now - pendingAt < 120 &&
         Math.abs(n - (pendingIncludedTotal / 1.1)) <= Math.max(2, pendingIncludedTotal * 0.002)
       ) {
-        const same = pendingIncludedTotal;
         pendingIncludedTotal = null;
-        return same;
+        return originalCut10(n);
       }
 
       const includedTotal = originalCut10(n / 1.1);
@@ -66,15 +66,15 @@ function patchVatIncludedLabels() {
   const rows = Array.from(breakdown.querySelectorAll('div.flex.justify-between'));
   const supplyRow = rows.find(row => (row.textContent || '').includes('공급가액'));
   const vatRow = rows.find(row => (row.textContent || '').includes('부가세'));
-  const totalText = document.getElementById('totalPrice')?.textContent || '';
 
   if (supplyRow) {
     const label = supplyRow.querySelector('span:first-child');
-    const amount = supplyRow.querySelector('span:last-child');
-    if (label) label.textContent = '계산금액 (부가세 포함)';
-    if (amount && totalText && !/주문 불가/.test(totalText)) amount.textContent = totalText;
+    if (label) label.textContent = '공급가액 (포함가 기준)';
   }
-  if (vatRow) vatRow.remove();
+  if (vatRow) {
+    const label = vatRow.querySelector('span:first-child');
+    if (label) label.textContent = '부가세 (10%, 포함)';
+  }
 
   const finalCard = Array.from(breakdown.querySelectorAll('div')).find(el => (el.textContent || '').includes('최종결제금액'));
   const finalLabel = finalCard?.querySelector?.('span:first-child');
