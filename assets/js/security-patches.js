@@ -16,6 +16,7 @@ try {
   if (CURRENT_FILE === 'quote-book.html') {
     import('./wire-cover-patch.js').catch(() => null);
     import('./book-no-binding-cover-patch.js').catch(() => null);
+    import('./book-quote-ux-polish.js').catch(() => null);
   }
 } catch (_) {}
 
