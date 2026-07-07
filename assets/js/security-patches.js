@@ -91,4 +91,264 @@ function hardenGuideHtml() {
   }
 }
 
+function addSharedPatchStyle() {
+  if (document.getElementById('shared-request-fixes-style')) return;
+  const style = document.createElement('style');
+  style.id = 'shared-request-fixes-style';
+  style.textContent = `
+    #hdr-admin-modal input {
+      color:#0f172a !important;
+      background:#fff !important;
+      -webkit-text-fill-color:#0f172a !important;
+      caret-color:#0f172a !important;
+    }
+    #hdr-admin-modal input::placeholder {
+      color:#94a3b8 !important;
+      -webkit-text-fill-color:#94a3b8 !important;
+      opacity:1 !important;
+    }
+    #hdr-admin-submit .btn-text { opacity:1; }
+    .chat-read-receipt-badge {
+      display:inline-flex;
+      align-items:center;
+      align-self:flex-end;
+      margin:0 3px 2px;
+      font-size:10px;
+      line-height:1;
+      white-space:nowrap;
+      color:#94a3b8;
+      font-weight:700;
+    }
+    .chat-read-receipt-badge.is-read { color:#2563eb; }
+    .chat-read-receipt-badge.is-unread { color:#94a3b8; }
+  `;
+  document.head.appendChild(style);
+}
+
+function initAdminLoginModalFix() {
+  addSharedPatchStyle();
+
+  const applyInputStyle = () => {
+    ['hdr-admin-email', 'hdr-admin-pw'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.add('text-slate-900', 'placeholder:text-slate-400', 'bg-white');
+      el.style.color = '#0f172a';
+      el.style.backgroundColor = '#fff';
+      try { el.style.webkitTextFillColor = '#0f172a'; } catch (_) {}
+    });
+  };
+
+  const resetAdminButton = () => {
+    const btn = document.getElementById('hdr-admin-submit');
+    if (!btn) return;
+    const txt = btn.querySelector('.btn-text');
+    const spin = btn.querySelector('.fa-spinner');
+    btn.disabled = false;
+    if (txt) txt.style.opacity = '1';
+    if (spin) spin.classList.add('hidden');
+  };
+
+  const onAdminModalOpened = () => {
+    applyInputStyle();
+    resetAdminButton();
+    setTimeout(applyInputStyle, 80);
+    setTimeout(resetAdminButton, 80);
+    setTimeout(() => document.getElementById('hdr-admin-email')?.focus(), 90);
+  };
+
+  document.addEventListener('click', (e) => {
+    if (e.target.closest?.('#btn-admin-login')) {
+      setTimeout(onAdminModalOpened, 0);
+      setTimeout(onAdminModalOpened, 150);
+    }
+    if (e.target.closest?.('#hdr-admin-close')) {
+      setTimeout(resetAdminButton, 0);
+    }
+    if (e.target.closest?.('#hdr-admin-submit')) {
+      // 빈 값 오류나 네트워크 지연으로 버튼이 계속 로딩 상태에 갇히는 것을 방지합니다.
+      setTimeout(() => {
+        const modal = document.getElementById('hdr-admin-modal');
+        const btn = document.getElementById('hdr-admin-submit');
+        if (!modal || modal.classList.contains('hidden') || !btn || !btn.disabled) return;
+        const email = (document.getElementById('hdr-admin-email')?.value || '').trim();
+        const pw = (document.getElementById('hdr-admin-pw')?.value || '').trim();
+        if (!email || !pw) resetAdminButton();
+      }, 120);
+      setTimeout(() => {
+        const modal = document.getElementById('hdr-admin-modal');
+        const btn = document.getElementById('hdr-admin-submit');
+        if (!modal || modal.classList.contains('hidden') || !btn || !btn.disabled) return;
+        resetAdminButton();
+        const err = document.getElementById('hdr-admin-error');
+        if (err) {
+          err.textContent = '로그인 응답이 지연되고 있습니다. 비밀번호를 확인 후 다시 시도해주세요.';
+          err.classList.remove('hidden');
+        }
+      }, 12000);
+    }
+  }, true);
+
+  document.addEventListener('input', (e) => {
+    if (e.target?.id === 'hdr-admin-email' || e.target?.id === 'hdr-admin-pw') applyInputStyle();
+  }, true);
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { applyInputStyle(); resetAdminButton(); }, { once: true });
+  else { applyInputStyle(); resetAdminButton(); }
+}
+
+function initAdminEditSessionGuard() {
+  const params = new URLSearchParams(location.search || '');
+  const isAdminEditPage = params.get('adminEdit') === '1';
+
+  const markAdminEdit = () => {
+    try { sessionStorage.setItem('userRole', 'admin'); } catch (_) {}
+    try { localStorage.setItem('userRole', 'admin'); } catch (_) {}
+    try { sessionStorage.setItem('adminEditSession', '1'); } catch (_) {}
+    try { localStorage.setItem('adminEditSession', '1'); } catch (_) {}
+    try { sessionStorage.removeItem('guestLookupKey'); } catch (_) {}
+  };
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest?.('.admin-edit-quote-btn');
+    if (!btn) return;
+    markAdminEdit();
+  }, true);
+
+  if (isAdminEditPage) {
+    markAdminEdit();
+    window.addEventListener('beforeunload', markAdminEdit);
+
+    const patchHardLogout = () => {
+      try {
+        if (!window.hardLogout || window.hardLogout.__adminEditGuard) return;
+        const original = window.hardLogout;
+        const guarded = async function(target = 'admin.html') {
+          const stillAdminEdit = new URLSearchParams(location.search || '').get('adminEdit') === '1';
+          if (stillAdminEdit) {
+            markAdminEdit();
+            location.href = target || 'admin.html';
+            return;
+          }
+          return original.apply(this, arguments);
+        };
+        guarded.__adminEditGuard = true;
+        window.hardLogout = guarded;
+      } catch (_) {}
+    };
+
+    patchHardLogout();
+    setTimeout(patchHardLogout, 100);
+    setTimeout(patchHardLogout, 800);
+    setInterval(markAdminEdit, 15000);
+  }
+}
+
+function initChatReadReceipts() {
+  if (CURRENT_FILE !== 'admin.html' && CURRENT_FILE !== 'mypage.html') return;
+  addSharedPatchStyle();
+
+  const side = CURRENT_FILE === 'admin.html' ? 'admin' : 'customer';
+  const mine = side === 'admin' ? 'admin' : 'customer';
+  const other = side === 'admin' ? 'customer' : 'admin';
+  const readFlagForOtherMessages = side === 'admin' ? 'readByAdmin' : 'readByCustomer';
+  const readFlagForMyMessages = side === 'admin' ? 'readByCustomer' : 'readByAdmin';
+  const readAtForOtherMessages = `${readFlagForOtherMessages}At`;
+
+  let currentQuoteId = null;
+  let unsubscribe = null;
+  let fb = null;
+
+  const getChatBox = () => document.getElementById('chat-messages');
+  const isModalOpen = () => {
+    const modal = document.getElementById('detailsModal');
+    return !!(modal && !modal.classList.contains('hidden'));
+  };
+
+  async function getFirebase() {
+    if (fb) return fb;
+    fb = await import('./firebase.js');
+    return fb;
+  }
+
+  function visibleMessages(messages) {
+    if (side === 'customer') return messages.filter(m => !m.isProof);
+    return messages;
+  }
+
+  function messageRows() {
+    const box = getChatBox();
+    if (!box) return [];
+    return Array.from(box.children).filter(el => el.querySelector?.('.chat-bubble'));
+  }
+
+  function decorate(messages) {
+    const rows = messageRows();
+    if (!rows.length) return;
+    const vis = visibleMessages(messages);
+    vis.forEach((msg, idx) => {
+      const row = rows[idx];
+      if (!row) return;
+      row.querySelectorAll('.chat-read-receipt-badge').forEach(el => el.remove());
+      if (msg.sender !== mine) return;
+      const read = msg[readFlagForMyMessages] === true;
+      const badge = document.createElement('span');
+      badge.className = `chat-read-receipt-badge ${read ? 'is-read' : 'is-unread'}`;
+      badge.textContent = read ? '읽음' : '안읽음';
+      badge.title = read ? '상대방이 읽었습니다' : '상대방이 아직 읽지 않았습니다';
+      const bubble = row.querySelector('.chat-bubble');
+      const wrap = bubble?.parentElement || row;
+      wrap.appendChild(badge);
+    });
+  }
+
+  async function markRead(messages, quoteId) {
+    if (!isModalOpen()) return;
+    const api = await getFirebase();
+    messages.forEach(msg => {
+      if (!msg?.id || msg.sender !== other || msg[readFlagForOtherMessages] === true) return;
+      api.updateDoc(api.doc(api.db, `quotes/${quoteId}/messages`, msg.id), {
+        [readFlagForOtherMessages]: true,
+        [readAtForOtherMessages]: api.serverTimestamp(),
+      }).catch(() => null);
+    });
+  }
+
+  async function listen(quoteId) {
+    if (!quoteId || currentQuoteId === quoteId) return;
+    currentQuoteId = quoteId;
+    try { if (typeof unsubscribe === 'function') unsubscribe(); } catch (_) {}
+
+    const api = await getFirebase();
+    const q = api.query(api.collection(api.db, `quotes/${quoteId}/messages`), api.orderBy('timestamp'));
+    unsubscribe = api.onSnapshot(q, (snap) => {
+      const messages = snap.docs.map(d => ({ id: d.id, ...(d.data() || {}) }));
+      markRead(messages, quoteId).catch(() => null);
+      setTimeout(() => decorate(messages), 0);
+      setTimeout(() => decorate(messages), 80);
+      setTimeout(() => decorate(messages), 250);
+    }, () => null);
+  }
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest?.('.view-details-btn');
+    if (!btn) return;
+    const id = btn.dataset?.id;
+    if (!id) return;
+    setTimeout(() => listen(id), 60);
+    setTimeout(() => listen(id), 300);
+  }, true);
+
+  document.addEventListener('click', (e) => {
+    if (e.target.closest?.('#closeModalBtn')) {
+      try { if (typeof unsubscribe === 'function') unsubscribe(); } catch (_) {}
+      unsubscribe = null;
+      currentQuoteId = null;
+    }
+  }, true);
+}
+
 hardenGuideHtml();
+initAdminLoginModalFix();
+initAdminEditSessionGuard();
+initChatReadReceipts();
