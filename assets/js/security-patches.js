@@ -107,7 +107,9 @@ function addSharedPatchStyle() {
       -webkit-text-fill-color:#94a3b8 !important;
       opacity:1 !important;
     }
-    #hdr-admin-submit .btn-text { opacity:1; }
+    #hdr-admin-submit .btn-text { opacity:1 !important; }
+    #hdr-admin-submit .fa-spinner { display:none !important; }
+    #hdr-admin-submit[disabled] { opacity:1 !important; cursor:pointer !important; }
     .chat-read-receipt-badge {
       display:inline-flex;
       align-items:center;
@@ -145,15 +147,28 @@ function initAdminLoginModalFix() {
     const txt = btn.querySelector('.btn-text');
     const spin = btn.querySelector('.fa-spinner');
     btn.disabled = false;
+    btn.removeAttribute('disabled');
     if (txt) txt.style.opacity = '1';
-    if (spin) spin.classList.add('hidden');
+    if (spin) {
+      spin.classList.add('hidden');
+      spin.style.display = 'none';
+    }
+  };
+
+  const forceStableButton = () => {
+    resetAdminButton();
+    setTimeout(resetAdminButton, 0);
+    setTimeout(resetAdminButton, 80);
+    setTimeout(resetAdminButton, 250);
+    setTimeout(resetAdminButton, 700);
+    setTimeout(resetAdminButton, 1500);
+    setTimeout(resetAdminButton, 3000);
   };
 
   const onAdminModalOpened = () => {
     applyInputStyle();
-    resetAdminButton();
+    forceStableButton();
     setTimeout(applyInputStyle, 80);
-    setTimeout(resetAdminButton, 80);
     setTimeout(() => document.getElementById('hdr-admin-email')?.focus(), 90);
   };
 
@@ -163,38 +178,32 @@ function initAdminLoginModalFix() {
       setTimeout(onAdminModalOpened, 150);
     }
     if (e.target.closest?.('#hdr-admin-close')) {
-      setTimeout(resetAdminButton, 0);
+      setTimeout(forceStableButton, 0);
     }
     if (e.target.closest?.('#hdr-admin-submit')) {
-      // 빈 값 오류나 네트워크 지연으로 버튼이 계속 로딩 상태에 갇히는 것을 방지합니다.
+      // 로그인 시도 자체는 기존 header.js에 맡기고, 버튼 표시만 즉시 정상화합니다.
+      setTimeout(forceStableButton, 0);
+      setTimeout(forceStableButton, 120);
+      setTimeout(forceStableButton, 500);
+      setTimeout(forceStableButton, 1200);
       setTimeout(() => {
         const modal = document.getElementById('hdr-admin-modal');
         const btn = document.getElementById('hdr-admin-submit');
-        if (!modal || modal.classList.contains('hidden') || !btn || !btn.disabled) return;
-        const email = (document.getElementById('hdr-admin-email')?.value || '').trim();
-        const pw = (document.getElementById('hdr-admin-pw')?.value || '').trim();
-        if (!email || !pw) resetAdminButton();
-      }, 120);
-      setTimeout(() => {
-        const modal = document.getElementById('hdr-admin-modal');
-        const btn = document.getElementById('hdr-admin-submit');
-        if (!modal || modal.classList.contains('hidden') || !btn || !btn.disabled) return;
-        resetAdminButton();
-        const err = document.getElementById('hdr-admin-error');
-        if (err) {
-          err.textContent = '로그인 응답이 지연되고 있습니다. 비밀번호를 확인 후 다시 시도해주세요.';
-          err.classList.remove('hidden');
-        }
-      }, 12000);
+        if (!modal || modal.classList.contains('hidden') || !btn) return;
+        forceStableButton();
+      }, 4000);
     }
   }, true);
 
   document.addEventListener('input', (e) => {
-    if (e.target?.id === 'hdr-admin-email' || e.target?.id === 'hdr-admin-pw') applyInputStyle();
+    if (e.target?.id === 'hdr-admin-email' || e.target?.id === 'hdr-admin-pw') {
+      applyInputStyle();
+      forceStableButton();
+    }
   }, true);
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { applyInputStyle(); resetAdminButton(); }, { once: true });
-  else { applyInputStyle(); resetAdminButton(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { applyInputStyle(); forceStableButton(); }, { once: true });
+  else { applyInputStyle(); forceStableButton(); }
 }
 
 function initAdminEditSessionGuard() {
