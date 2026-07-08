@@ -10,10 +10,21 @@
 
 import { auth, signOut, onAuthStateChanged } from "./firebase.js";
 
+function getCurrentFile() {
+  try {
+    const raw = ((location.pathname || '').split('/').pop() || 'index.html').toLowerCase();
+    if (raw === 'admin') return 'admin.html';
+    if (raw === '') return 'index.html';
+    return raw;
+  } catch (e) {
+    return 'index.html';
+  }
+}
+
 // admin.html은 관리자 권한 검사 전에 Firebase 로그인 복원이 끝나야 합니다.
 // 복원 전에 admin.js가 먼저 실행되면 로그인된 관리자도 비로그인/익명으로 판단될 수 있어 잠시 대기합니다.
 try {
-  const currentFile = ((location.pathname || '').split('/').pop() || 'index.html');
+  const currentFile = getCurrentFile();
   if (currentFile === 'admin.html') {
     await new Promise(resolve => {
       let done = false;
@@ -52,7 +63,7 @@ try {
 
 // 비회원 마이페이지 조회는 연락처 단독 조회가 아닌 guestLookupKey 기반 fallback을 우선하도록 보정합니다.
 try {
-  const currentFile = ((location.pathname || '').split('/').pop() || 'index.html');
+  const currentFile = getCurrentFile();
   const hasGuestKey = !!(
     sessionStorage.getItem('guestLookupKey') ||
     localStorage.getItem('guestLookupKey') ||
@@ -69,7 +80,7 @@ try {
 
 // 관리자페이지/메인페이지 보정 항목을 추가합니다.
 try {
-  const currentFile = ((location.pathname || '').split('/').pop() || 'index.html');
+  const currentFile = getCurrentFile();
   if (currentFile === 'admin.html') {
     import('./customer-center-admin-menu.js').catch(() => null);
     import('./portfolio-crop-helper.js').catch(() => null);
@@ -85,7 +96,7 @@ try {
 // ai-chat.js 내부에서 admin/admin-ai-chat/maintenance 페이지는 제외하고,
 // settings/aiChatPublic.enabled === false 이면 모든 페이지에서 제거합니다.
 try {
-  const currentFile = ((location.pathname || '').split('/').pop() || 'index.html');
+  const currentFile = getCurrentFile();
   if (!['admin.html', 'admin-ai-chat.html', 'maintenance.html'].includes(currentFile)) {
     import('./ai-chat.js').catch(() => null);
   }
