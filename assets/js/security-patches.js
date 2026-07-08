@@ -8,7 +8,11 @@
 // ============================================================
 
 const CURRENT_FILE = (() => {
-  try { return (location.pathname || '').split('/').pop() || 'index.html'; }
+  try {
+    const raw = (location.pathname || '').split('/').pop() || 'index.html';
+    if (raw === 'admin') return 'admin.html';
+    return raw;
+  }
   catch { return 'index.html'; }
 })();
 
@@ -96,6 +100,10 @@ function addSharedPatchStyle() {
   const style = document.createElement('style');
   style.id = 'shared-request-fixes-style';
   style.textContent = `
+    #btn-admin-login,
+    #hdr-admin-modal {
+      display:none !important;
+    }
     #hdr-admin-modal input {
       color:#0f172a !important;
       background:#fff !important;
@@ -125,6 +133,29 @@ function addSharedPatchStyle() {
     .chat-read-receipt-badge.is-unread { color:#94a3b8; }
   `;
   document.head.appendChild(style);
+}
+
+function initRemovePublicAdminButton() {
+  const remove = () => {
+    try { document.getElementById('btn-admin-login')?.remove(); } catch (_) {}
+    try { document.getElementById('hdr-admin-modal')?.remove(); } catch (_) {}
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', remove, { once: true });
+  } else {
+    remove();
+  }
+
+  try {
+    const observer = new MutationObserver(remove);
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+  } catch (_) {}
+
+  setTimeout(remove, 0);
+  setTimeout(remove, 150);
+  setTimeout(remove, 600);
+  setTimeout(remove, 1500);
 }
 
 function initAdminLoginModalFix() {
@@ -358,6 +389,7 @@ function initChatReadReceipts() {
 }
 
 hardenGuideHtml();
+initRemovePublicAdminButton();
 initAdminLoginModalFix();
 initAdminEditSessionGuard();
 initChatReadReceipts();
