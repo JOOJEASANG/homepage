@@ -2,6 +2,7 @@
 // company-info-loader.js — 관리자 공급자 정보(settings/companyInfo)를 화면에 반영
 // ============================================================
 import { db, doc, getDoc } from "./firebase.js";
+import "./ux-refresh-v2.js";
 
 function formatPhone(value) {
   const raw = String(value || '').trim();

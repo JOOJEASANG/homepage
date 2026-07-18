@@ -1,0 +1,572 @@
+/* ============================================================
+   GreenOffice 2026 UX/UI Refresh
+   - Shared visual system for public, quote, customer and admin pages
+   - Scoped by html[data-ui-refresh="1"] to avoid functional conflicts
+   ============================================================ */
+
+html[data-ui-refresh="1"] {
+  --ux-brand-50: #effcf5;
+  --ux-brand-100: #d9f7e7;
+  --ux-brand-200: #afeccb;
+  --ux-brand-300: #78dba7;
+  --ux-brand-400: #3fc37f;
+  --ux-brand-500: #1fa866;
+  --ux-brand-600: #148a54;
+  --ux-brand-700: #116e46;
+  --ux-brand-800: #10583a;
+  --ux-brand-900: #0d4931;
+  --ux-ink: #15221c;
+  --ux-muted: #66766e;
+  --ux-line: #e2ebe6;
+  --ux-soft: #f5f8f6;
+  --ux-surface: #ffffff;
+  --ux-blue: #2563eb;
+  --ux-danger: #dc2626;
+  --ux-warning: #d97706;
+  --ux-radius-sm: 10px;
+  --ux-radius: 16px;
+  --ux-radius-lg: 24px;
+  --ux-shadow-xs: 0 1px 2px rgba(17, 45, 31, .04);
+  --ux-shadow-sm: 0 6px 18px rgba(17, 45, 31, .07);
+  --ux-shadow-md: 0 16px 45px rgba(17, 45, 31, .10);
+  --ux-shadow-lg: 0 28px 80px rgba(9, 35, 22, .16);
+  --ux-ease: cubic-bezier(.2, .8, .2, 1);
+  color-scheme: light;
+  scroll-behavior: smooth;
+}
+
+html[data-ui-refresh="1"] body {
+  color: var(--ux-ink);
+  background-color: var(--ux-soft);
+  font-feature-settings: "ss01", "ss02", "cv01";
+  text-rendering: optimizeLegibility;
+}
+
+html[data-ui-refresh="1"] ::selection {
+  color: #08351f;
+  background: #b7efd0;
+}
+
+html[data-ui-refresh="1"] :where(a, button, input, select, textarea, [role="button"]):focus-visible {
+  outline: 3px solid rgba(31, 168, 102, .28) !important;
+  outline-offset: 2px !important;
+}
+
+html[data-ui-refresh="1"] :where(button, a, input, select, textarea) {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html[data-ui-refresh="1"] :where(button, a) {
+  transition: transform .18s var(--ux-ease), box-shadow .18s var(--ux-ease),
+              background-color .18s ease, border-color .18s ease, color .18s ease,
+              opacity .18s ease;
+}
+
+html[data-ui-refresh="1"] :where(button, a):active {
+  transform: translateY(1px) scale(.995);
+}
+
+/* ---------- Shared header ---------- */
+html[data-ui-refresh="1"] #main-header {
+  background: rgba(255, 255, 255, .88) !important;
+  border-color: rgba(218, 230, 223, .85) !important;
+  box-shadow: 0 1px 0 rgba(16, 88, 58, .03), 0 10px 35px rgba(17, 45, 31, .045) !important;
+  -webkit-backdrop-filter: saturate(160%) blur(18px);
+  backdrop-filter: saturate(160%) blur(18px);
+}
+
+html[data-ui-refresh="1"] #main-header.is-scrolled {
+  background: rgba(255, 255, 255, .96) !important;
+  box-shadow: 0 12px 35px rgba(17, 45, 31, .09) !important;
+}
+
+html[data-ui-refresh="1"] #main-header nav {
+  max-width: 1280px !important;
+}
+
+html[data-ui-refresh="1"] #main-header nav > a:first-child > div {
+  border-radius: 12px !important;
+  background: linear-gradient(145deg, var(--ux-brand-500), var(--ux-brand-700)) !important;
+  box-shadow: 0 8px 20px rgba(31, 168, 102, .25) !important;
+}
+
+html[data-ui-refresh="1"] #main-header nav > a:first-child span {
+  letter-spacing: -.045em !important;
+  color: #17241e !important;
+}
+
+html[data-ui-refresh="1"] #main-header :where(a, button).h-16 {
+  position: relative;
+  border-bottom: 0 !important;
+  border-radius: 10px;
+  height: 42px !important;
+  padding-inline: 14px !important;
+  margin-block: 11px;
+}
+
+html[data-ui-refresh="1"] #main-header :where(a, button).h-16[class*="font-bold"] {
+  color: var(--ux-brand-700) !important;
+  background: var(--ux-brand-50) !important;
+}
+
+html[data-ui-refresh="1"] #main-header :where(a, button).h-16[class*="font-bold"]::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 3px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--ux-brand-400), var(--ux-brand-600));
+}
+
+html[data-ui-refresh="1"] #btn-order-lookup {
+  min-height: 40px;
+  border: 1px solid rgba(20, 138, 84, .18) !important;
+  border-radius: 12px !important;
+  color: #fff !important;
+  background: linear-gradient(135deg, var(--ux-brand-500), var(--ux-brand-700)) !important;
+  box-shadow: 0 8px 22px rgba(20, 138, 84, .22) !important;
+}
+
+html[data-ui-refresh="1"] #btn-order-lookup:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(20, 138, 84, .30) !important;
+}
+
+html[data-ui-refresh="1"] #btn-mobile-menu {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--ux-line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+html[data-ui-refresh="1"] #mobile-menu {
+  margin: 8px 12px 0;
+  width: calc(100% - 24px) !important;
+  border: 1px solid var(--ux-line) !important;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--ux-shadow-md) !important;
+}
+
+html[data-ui-refresh="1"] #mobile-menu :where(a, button) {
+  min-height: 54px;
+  border-color: #eef3f0 !important;
+}
+
+/* ---------- Shared forms ---------- */
+html[data-ui-refresh="1"] :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-radius: 11px !important;
+  border-color: #cfdcd5 !important;
+  background-color: #fff !important;
+  color: #192720 !important;
+  box-shadow: inset 0 1px 1px rgba(15, 50, 31, .025);
+}
+
+html[data-ui-refresh="1"] :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):hover {
+  border-color: #aac5b6 !important;
+}
+
+html[data-ui-refresh="1"] :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus {
+  border-color: var(--ux-brand-500) !important;
+  box-shadow: 0 0 0 4px rgba(31, 168, 102, .11) !important;
+  outline: none !important;
+}
+
+html[data-ui-refresh="1"] :where(input, textarea)::placeholder {
+  color: #99a8a0 !important;
+  opacity: 1;
+}
+
+html[data-ui-refresh="1"] :where(button)[disabled] {
+  cursor: not-allowed;
+  opacity: .58;
+  filter: grayscale(.08);
+}
+
+/* ---------- Shared modal and toast ---------- */
+html[data-ui-refresh="1"] :where([id$="-modal"], [id$="Modal"], [id$="-overlay"]).flex {
+  animation: ux-overlay-in .2s ease both;
+}
+
+html[data-ui-refresh="1"] :where([id$="-modal"], [id$="Modal"], [id$="-overlay"]) > :where(div, section) {
+  border: 1px solid rgba(219, 230, 224, .95);
+}
+
+html[data-ui-refresh="1"] #hdr-lookup-modal > div,
+html[data-ui-refresh="1"] #userMenuModal > div,
+html[data-ui-refresh="1"] #guest-lookup-overlay > div {
+  border-radius: 22px !important;
+  box-shadow: var(--ux-shadow-lg) !important;
+}
+
+html[data-ui-refresh="1"] #toast-container > *,
+html[data-ui-refresh="1"] #toast:not(.hidden) {
+  border-radius: 13px !important;
+  box-shadow: var(--ux-shadow-md) !important;
+  backdrop-filter: blur(10px);
+}
+
+@keyframes ux-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---------- Common surface treatment ---------- */
+html[data-ui-refresh="1"] .ux-surface,
+html[data-ui-refresh="1"] body:not([data-page="index"]):not([data-page="admin"]) main :where(.bg-white, [class*="bg-white/"]) {
+  border-color: var(--ux-line) !important;
+}
+
+html[data-ui-refresh="1"] :where(.shadow-sm, .shadow, .shadow-md):not(#main-header) {
+  box-shadow: var(--ux-shadow-xs) !important;
+}
+
+/* ---------- Main page ---------- */
+html[data-ui-refresh="1"] body[data-page="index"] {
+  background: #fff;
+}
+
+html[data-ui-refresh="1"] body[data-page="index"] .hero-section {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 80% 18%, rgba(73, 196, 133, .17), transparent 34%),
+    radial-gradient(circle at 10% 75%, rgba(37, 99, 235, .07), transparent 30%),
+    linear-gradient(180deg, #f9fdfb 0%, #f4faf7 54%, #fff 100%) !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="index"] .hero-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(20, 138, 84, .035) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(20, 138, 84, .035) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, #000, transparent 85%);
+}
+
+html[data-ui-refresh="1"] body[data-page="index"] .hero-section h1 {
+  letter-spacing: -.055em !important;
+  line-height: 1.08 !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="index"] .hero-cta-primary {
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, var(--ux-brand-500), var(--ux-brand-700)) !important;
+  box-shadow: 0 12px 32px rgba(20, 138, 84, .26) !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="index"] .hero-cta-secondary {
+  border-radius: 14px !important;
+  border-color: var(--ux-line) !important;
+  box-shadow: var(--ux-shadow-xs) !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="index"] :where(.glass-card, .stat-card, .panel-card, .service-card) {
+  border-radius: 18px !important;
+  border-color: var(--ux-line) !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="index"] .glass-card {
+  box-shadow: 0 24px 70px rgba(16, 75, 45, .10) !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="index"] .service-card {
+  box-shadow: 0 6px 22px rgba(16, 75, 45, .035);
+}
+
+html[data-ui-refresh="1"] body[data-page="index"] .service-card:hover {
+  transform: translateY(-6px) !important;
+  border-color: #a9ddc2 !important;
+  box-shadow: 0 20px 48px rgba(20, 138, 84, .12) !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="index"] .service-icon {
+  border-radius: 15px !important;
+  box-shadow: inset 0 0 0 1px rgba(20, 138, 84, .09);
+}
+
+html[data-ui-refresh="1"] body[data-page="index"] .realtime-section {
+  background: linear-gradient(180deg, #f5f8f6, #f9fbfa) !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="index"] .panel-card {
+  overflow: hidden;
+  box-shadow: 0 12px 36px rgba(17, 45, 31, .055) !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="index"] .portfolio-item {
+  border-radius: 16px !important;
+  box-shadow: var(--ux-shadow-sm);
+}
+
+/* ---------- Quote pages ---------- */
+html[data-ui-refresh="1"] body:is([data-page="quote-book"], [data-page="quote-print"]) {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(31, 168, 102, .08), transparent 30%),
+    #f4f7f5 !important;
+}
+
+html[data-ui-refresh="1"] body:is([data-page="quote-book"], [data-page="quote-print"]) main {
+  max-width: 1280px;
+}
+
+html[data-ui-refresh="1"] body:is([data-page="quote-book"], [data-page="quote-print"]) main :where(.bg-white, section, form) {
+  border-radius: 18px;
+}
+
+html[data-ui-refresh="1"] body:is([data-page="quote-book"], [data-page="quote-print"]) main > :where(div, section) {
+  border-color: var(--ux-line);
+}
+
+html[data-ui-refresh="1"] body:is([data-page="quote-book"], [data-page="quote-print"]) :where(button[type="submit"], #submit-btn, #submitBtn, .submit-btn) {
+  min-height: 48px;
+  border-radius: 13px !important;
+  background: linear-gradient(135deg, var(--ux-brand-500), var(--ux-brand-700)) !important;
+  box-shadow: 0 10px 24px rgba(20, 138, 84, .23) !important;
+}
+
+html[data-ui-refresh="1"] body:is([data-page="quote-book"], [data-page="quote-print"]) :where(.sticky, [class*="sticky"]) {
+  scrollbar-width: thin;
+}
+
+html[data-ui-refresh="1"] body:is([data-page="quote-book"], [data-page="quote-print"]) :where(.price, [id*="price"], [id*="total"])[class*="text-"] {
+  letter-spacing: -.035em;
+}
+
+/* ---------- Login ---------- */
+html[data-ui-refresh="1"] body[data-page="login"] {
+  background:
+    radial-gradient(circle at 20% 10%, rgba(31, 168, 102, .22), transparent 34%),
+    radial-gradient(circle at 90% 90%, rgba(37, 99, 235, .10), transparent 32%),
+    linear-gradient(145deg, #07140e, #0c2117 55%, #0b1712) !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="login"] .card {
+  border: 1px solid rgba(255, 255, 255, .65) !important;
+  border-radius: 26px !important;
+  box-shadow: 0 35px 90px rgba(0, 0, 0, .34) !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="login"] .tab-container {
+  border-radius: 13px !important;
+  padding: 5px !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="login"] .tab-btn {
+  border-radius: 9px !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="login"] .btn-primary {
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, var(--ux-brand-500), var(--ux-brand-700)) !important;
+  box-shadow: 0 12px 28px rgba(20, 138, 84, .28) !important;
+}
+
+/* ---------- My page / Q&A ---------- */
+html[data-ui-refresh="1"] body:is([data-page="mypage"], [data-page="qna"]) {
+  background:
+    radial-gradient(circle at 90% 0%, rgba(31, 168, 102, .08), transparent 28%),
+    #f4f7f5 !important;
+}
+
+html[data-ui-refresh="1"] body:is([data-page="mypage"], [data-page="qna"]) main :where(.bg-white, [class*="bg-white"]) {
+  border-radius: 17px;
+}
+
+html[data-ui-refresh="1"] body[data-page="mypage"] #detailsModal > div,
+html[data-ui-refresh="1"] body[data-page="admin"] #detailsModal > div {
+  border-radius: 22px !important;
+  overflow: hidden;
+  box-shadow: var(--ux-shadow-lg) !important;
+}
+
+html[data-ui-refresh="1"] body:is([data-page="mypage"], [data-page="admin"]) #chat-messages {
+  background:
+    linear-gradient(rgba(247, 250, 248, .88), rgba(247, 250, 248, .88)),
+    radial-gradient(circle at 25% 20%, rgba(31, 168, 102, .09), transparent 25%);
+}
+
+html[data-ui-refresh="1"] body:is([data-page="mypage"], [data-page="admin"]) .chat-bubble {
+  border-radius: 15px !important;
+  box-shadow: 0 3px 10px rgba(17, 45, 31, .07);
+}
+
+html[data-ui-refresh="1"] body[data-page="qna"] :where(#qna-list, #faq-list) > * {
+  transition: transform .18s var(--ux-ease), box-shadow .18s var(--ux-ease), border-color .18s ease;
+}
+
+/* ---------- Admin ---------- */
+html[data-ui-refresh="1"] body[data-page="admin"] {
+  --bg: #f3f6f4 !important;
+  --surface: #ffffff !important;
+  --border: #dfe9e3 !important;
+  --text-primary: #17241e !important;
+  --text-secondary: #53635a !important;
+  --text-muted: #87958d !important;
+  --green: var(--ux-brand-600) !important;
+  --green-dark: var(--ux-brand-700) !important;
+  --green-light: var(--ux-brand-50) !important;
+  --green-mid: var(--ux-brand-100) !important;
+  background: #f3f6f4 !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="admin"] :where(.card, .stat-card, .admin-card, .bg-white) {
+  border-color: var(--ux-line) !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="admin"] :where(.card, .stat-card, .admin-card) {
+  border-radius: 15px !important;
+  box-shadow: var(--ux-shadow-xs) !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="admin"] aside,
+html[data-ui-refresh="1"] body[data-page="admin"] :where(.sidebar, #sidebar) {
+  border-color: var(--ux-line) !important;
+  box-shadow: 8px 0 30px rgba(17, 45, 31, .035);
+}
+
+html[data-ui-refresh="1"] body[data-page="admin"] :where(table) {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+html[data-ui-refresh="1"] body[data-page="admin"] :where(thead th) {
+  background: #f5f8f6 !important;
+  color: #52645a !important;
+  font-size: 11px !important;
+  letter-spacing: .025em;
+}
+
+html[data-ui-refresh="1"] body[data-page="admin"] :where(tbody tr) {
+  transition: background-color .16s ease, box-shadow .16s ease;
+}
+
+html[data-ui-refresh="1"] body[data-page="admin"] :where(tbody tr:hover) {
+  background: #f4fbf7 !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="admin"] :where(.btn, button[class*="btn-"]) {
+  border-radius: 9px !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="admin"] .btn-primary {
+  background: linear-gradient(135deg, var(--ux-brand-500), var(--ux-brand-700)) !important;
+  border-color: transparent !important;
+  box-shadow: 0 7px 18px rgba(20, 138, 84, .18);
+}
+
+html[data-ui-refresh="1"] body[data-page="admin"] #searchInput {
+  background: #fff !important;
+}
+
+/* ---------- Work guide ---------- */
+html[data-ui-refresh="1"] body[data-page="work-guide"] {
+  background: #f4f7f5 !important;
+}
+
+html[data-ui-refresh="1"] body[data-page="work-guide"] :where(.bg-white, section, article) {
+  border-color: var(--ux-line) !important;
+}
+
+/* ---------- Progressive reveal ---------- */
+html[data-ui-refresh="1"] .ux-reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity .55s var(--ux-ease), transform .55s var(--ux-ease);
+}
+
+html[data-ui-refresh="1"] .ux-reveal.ux-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- Scroll to top ---------- */
+html[data-ui-refresh="1"] #ux-scroll-top {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, .6);
+  border-radius: 14px;
+  color: #fff;
+  background: rgba(17, 88, 57, .92);
+  box-shadow: 0 12px 32px rgba(8, 49, 29, .22);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  backdrop-filter: blur(12px);
+}
+
+html[data-ui-refresh="1"] #ux-scroll-top.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+html[data-ui-refresh="1"] #ux-scroll-top:hover {
+  background: var(--ux-brand-600);
+  transform: translateY(-2px);
+}
+
+/* ---------- Responsive refinements ---------- */
+@media (max-width: 1023px) {
+  html[data-ui-refresh="1"] #main-header nav {
+    padding-inline: 14px !important;
+  }
+
+  html[data-ui-refresh="1"] #btn-order-lookup {
+    min-width: 68px;
+  }
+}
+
+@media (max-width: 640px) {
+  html[data-ui-refresh="1"] {
+    --ux-radius: 14px;
+    --ux-radius-lg: 20px;
+  }
+
+  html[data-ui-refresh="1"] #main-header nav > a:first-child span {
+    font-size: 16px !important;
+  }
+
+  html[data-ui-refresh="1"] body[data-page="index"] .hero-section h1 {
+    letter-spacing: -.045em !important;
+  }
+
+  html[data-ui-refresh="1"] :where(input, select, textarea) {
+    font-size: 16px !important; /* iOS focus zoom prevention */
+  }
+
+  html[data-ui-refresh="1"] #ux-scroll-top {
+    right: 14px;
+    bottom: 16px;
+    width: 42px;
+    height: 42px;
+  }
+
+  html[data-ui-refresh="1"] body[data-page="admin"] :where(.btn, button) {
+    min-height: 38px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-ui-refresh="1"] { scroll-behavior: auto; }
+  html[data-ui-refresh="1"] *,
+  html[data-ui-refresh="1"] *::before,
+  html[data-ui-refresh="1"] *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  html[data-ui-refresh="1"] .ux-reveal { opacity: 1; transform: none; }
+}
