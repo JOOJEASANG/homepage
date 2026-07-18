@@ -9,7 +9,7 @@
 // ============================================================
 
 import { auth, signOut, onAuthStateChanged } from "./firebase.js";
-import "./ux-refresh.js";
+import "./ux-refresh-v2.js";
 
 function getCurrentFile() {
   try {
