@@ -189,11 +189,18 @@ service cloud.firestore {
           || canReadGuestQuote(quoteDoc());
       }
 
+      function isCustomerReadReceiptUpdate() {
+        return canAccessThisQuote()
+          && !isAdmin()
+          && request.resource.data.diff(resource.data).changedKeys().hasOnly(['readByCustomer', 'readByCustomerAt'])
+          && request.resource.data.readByCustomer == true;
+      }
+
       match /messages/{msgId} {
         allow read: if canAccessThisQuote();
         allow create: if canAccessThisQuote();
         allow delete: if isAdmin();
-        allow update: if isAdmin();
+        allow update: if isAdmin() || isCustomerReadReceiptUpdate();
       }
     }
 
