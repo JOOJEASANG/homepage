@@ -99,6 +99,7 @@ try {
     import('./portfolio-index-fix.js').catch(() => null);
   }
   import('./security-patches.js').catch(() => null);
+  import('./customer-ui-fixes.js').catch(() => null);
 } catch (e) {}
 
 // AI 상담 위젯을 공통 로드합니다.
