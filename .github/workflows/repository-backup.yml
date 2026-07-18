@@ -1,0 +1,31 @@
+name: Repository ZIP Backup
+
+on:
+  push:
+    branches:
+      - 'backup/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout snapshot
+        uses: actions/checkout@v4
+
+      - name: Create ZIP backup
+        run: |
+          mkdir -p backup-output
+          zip -r "backup-output/homepage-${GITHUB_SHA}.zip" . \
+            -x '.git/*' 'backup-output/*' 'node_modules/*'
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: homepage-main-backup-2026-07-18
+          path: backup-output/*.zip
+          retention-days: 90
+          if-no-files-found: error
