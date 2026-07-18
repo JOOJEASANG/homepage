@@ -21,30 +21,39 @@ function getCurrentFile() {
   }
 }
 
-// admin.html은 관리자 권한 검사 전에 Firebase 로그인 복원이 끝나야 합니다.
-// 복원 전에 admin.js가 먼저 실행되면 로그인된 관리자도 비로그인/익명으로 판단될 수 있어 잠시 대기합니다.
+// admin.html 또는 /admin은 관리자 권한 검사 전에 Firebase 로그인 복원이 끝나야 합니다.
+// 비로그인 상태라면 공개 메인으로 보내지 않고 관리자 로그인 탭으로 보냅니다.
 try {
   const currentFile = getCurrentFile();
   if (currentFile === 'admin.html') {
-    await new Promise(resolve => {
+    const restoredUser = await new Promise(resolve => {
       let done = false;
       let unsub = null;
-      const finish = () => {
+      const finish = (user = auth.currentUser || null) => {
         if (done) return;
         done = true;
         try { if (typeof unsub === 'function') unsub(); } catch (e) {}
-        resolve();
+        resolve(user || null);
       };
       try {
-        if (auth.currentUser && !auth.currentUser.isAnonymous) return finish();
+        if (auth.currentUser && !auth.currentUser.isAnonymous) return finish(auth.currentUser);
         unsub = onAuthStateChanged(auth, user => {
-          if (user && !user.isAnonymous) finish();
-        }, finish);
+          if (user && !user.isAnonymous) finish(user);
+        }, () => finish(null));
       } catch (e) {
-        return finish();
+        return finish(null);
       }
-      setTimeout(finish, 2500);
+      setTimeout(() => finish(auth.currentUser || null), 2500);
     });
+
+    if (!restoredUser || restoredUser.isAnonymous) {
+      try { localStorage.setItem('postLoginRedirect', 'admin.html'); } catch (e) {}
+      try { sessionStorage.setItem('postLoginRedirect', 'admin.html'); } catch (e) {}
+      if (!/login\.html$/i.test(getCurrentFile())) {
+        location.replace('login.html?tab=admin');
+        await new Promise(() => {});
+      }
+    }
   }
 } catch (e) {}
 
@@ -103,36 +112,26 @@ try {
 } catch (e) {}
 
 // ── 스토리지 안전 헬퍼 ──────────────────────────────────────
-// try/catch로 감싸 개인정보 보호 모드 등 스토리지 차단 환경에서도 안전하게 동작
-
-// sessionStorage 우선 조회, 없으면 localStorage 에서 가져옴
 export function safeGet(key) {
   try { return sessionStorage.getItem(key) ?? localStorage.getItem(key); }
   catch(e) { return null; }
 }
 
-// persist=true → localStorage, false(기본) → sessionStorage 에 저장
 export function safeSet(key, val, persist = false) {
   try { (persist ? localStorage : sessionStorage).setItem(key, val); }
   catch(e) {}
 }
 
-// sessionStorage + localStorage 양쪽에서 동시에 삭제
 export function safeRemove(key) {
   try { sessionStorage.removeItem(key); } catch(e) {}
   try { localStorage.removeItem(key); } catch(e) {}
 }
 
-// ── 비회원 조회키 ─────────────────────────────────────────────
-// 비회원이 주문 조회 시 사용하는 SHA-256 해시키
-// 형식: sha256("이름|연락처숫자|비번끝4자리")
 export function getGuestKey() {
   const k = (safeGet("guestLookupKey") || safeGet("guestLookupKeyLegacy") || "").trim();
   return k || null;
 }
 
-// ── 클라이언트 상태 전체 초기화 ─────────────────────────────
-// 로그아웃 시 비회원 관련 키를 localStorage/sessionStorage 양쪽에서 모두 삭제
 export function clearClientState() {
   [
     "guestLookupKey", "guestLookupKeyLegacy",
@@ -143,35 +142,31 @@ export function clearClientState() {
     "mp_last_tab", "mp_last_filter",
     "admin_session",
     "managerPublicView",
+    "userRole", "userName", "userEmail",
+    "postLoginRedirect", "quoteToReload", "quoteDraft", "lastQuoteDraft",
+    "temp_quote_print", "autoSubmitBook", "autoSubmitPrint",
   ].forEach(safeRemove);
 }
 
-// ── Firebase 로그아웃 (오류 무시) ────────────────────────────
 export async function firebaseSignOutSafe() {
   try { await signOut(auth); } catch(e) {}
 }
 
-// ── 완전 로그아웃 ────────────────────────────────────────────
-// 클라이언트 상태 초기화 → Firebase 로그아웃 → 지정 페이지로 이동
 export async function hardLogout(target = "index.html") {
   try { clearClientState(); } catch(e) {}
   await firebaseSignOutSafe();
   try { location.replace(target); location.reload(); }
   catch(e) { location.href = target; }
 }
-// 인라인 script 태그에서도 호출할 수 있도록 전역 등록
 window.hardLogout = hardLogout;
 
-// ── 자동 로그아웃 (30분 비활성, 관리자 제외) ─────────────────
-// 사용자 활동(클릭/키/마우스/스크롤)이 30분간 없으면 자동 로그아웃
-// 관리자(userRole=admin)는 제외. 비회원 조회 세션 포함.
-const _IDLE_MS = 30 * 60 * 1000; // 30분
+const _IDLE_MS = 30 * 60 * 1000;
 let _idleTimer = null;
 
 function _resetIdleTimer() {
   clearTimeout(_idleTimer);
   _idleTimer = setTimeout(async () => {
-    if (safeGet('userRole') === 'admin') return; // 관리자 제외
+    if (safeGet('userRole') === 'admin') return;
     const hasSession = safeGet('userRole') || getGuestKey();
     if (hasSession) await hardLogout('login.html');
   }, _IDLE_MS);
@@ -181,32 +176,26 @@ function _resetIdleTimer() {
   const evs = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll', 'click'];
   evs.forEach(ev => window.addEventListener(ev, _resetIdleTimer, { passive: true }));
 
-  // Auth 상태 변경 시 타이머 시작/중단
   try {
     onAuthStateChanged(auth, (user) => {
       if (user && !user.isAnonymous) {
-        _resetIdleTimer(); // 회원 로그인 시 타이머 시작
+        _resetIdleTimer();
       } else if (getGuestKey()) {
-        _resetIdleTimer(); // 비회원 조회 세션 시 타이머 시작
+        _resetIdleTimer();
       } else {
-        clearTimeout(_idleTimer); // 비로그인(익명 포함) 시 타이머 중단
+        clearTimeout(_idleTimer);
       }
     });
-    // 비회원 세션은 onAuthStateChanged 와 별개이므로 즉시도 체크
     if (getGuestKey()) _resetIdleTimer();
   } catch(e) {}
 })();
 
-// ── 현재 세션 상태 반환 ──────────────────────────────────────
-// 헤더 렌더링 및 페이지 분기 처리에 사용
-// 반환: { user, isMember, isGuest, isAnon, displayName, guestKey }
 export function getSessionState() {
   const guestKey    = getGuestKey();
   const user        = auth.currentUser;
-  const isMember    = !!(user && !user.isAnonymous);   // 이메일 로그인 회원
-  const isAnon      = !!(user && user.isAnonymous);     // 익명 로그인 (내부용, UI에는 표시 안 함)
-  const isGuest     = !!guestKey;                       // 비회원 조회 세션 (UI 기준)
-  // 표시 이름 우선순위: 비회원 저장이름 > 회원 저장이름 > Firebase 프로필명
+  const isMember    = !!(user && !user.isAnonymous);
+  const isAnon      = !!(user && user.isAnonymous);
+  const isGuest     = !!guestKey;
   const displayName = (
     safeGet("guestName") || safeGet("userName") || user?.displayName || ""
   ).trim();
