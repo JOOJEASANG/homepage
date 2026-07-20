@@ -230,6 +230,10 @@ async function initDirectAdminMaintenanceFallback() {
   } catch (_) {}
 }
 
+if (CURRENT_FILE === 'admin.html' || CURRENT_FILE === 'qna.html') {
+  import('./qna-conversation-thread.js').catch(() => null);
+}
+
 initAdminButtonCleanupFallback();
 initMobileCustomerButtonFallback();
 initRecentQuotesSafety();
