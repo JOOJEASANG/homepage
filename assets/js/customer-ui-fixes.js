@@ -234,6 +234,10 @@ if (CURRENT_FILE === 'admin.html' || CURRENT_FILE === 'qna.html') {
   import('./qna-conversation-thread.js').catch(() => null);
 }
 
+if (CURRENT_FILE === 'mypage.html') {
+  import('./mypage-quote-price-fix.js').catch(() => null);
+}
+
 initAdminButtonCleanupFallback();
 initMobileCustomerButtonFallback();
 initRecentQuotesSafety();
