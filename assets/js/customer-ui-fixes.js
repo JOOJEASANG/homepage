@@ -236,6 +236,11 @@ if (CURRENT_FILE === 'admin.html' || CURRENT_FILE === 'qna.html') {
 
 if (CURRENT_FILE === 'admin.html') {
   import('./admin-mobile-header-fix.js').catch(() => null);
+  import('./notice-publish-period-admin.js').catch(() => null);
+}
+
+if (CURRENT_FILE === 'index.html') {
+  import('./notice-publish-period-public.js').catch(() => null);
 }
 
 if (CURRENT_FILE === 'mypage.html') {
