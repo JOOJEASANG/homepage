@@ -45,14 +45,14 @@ function renderCard() {
             <label for="book-a5-rate-percent" class="text-sm font-extrabold text-slate-800">A5 적용률</label>
           </div>
           <p class="text-xs text-slate-500 leading-5 mb-3">
-            A4 내지 인쇄 단가를 100%로 보고 A5에 적용할 비율입니다. 작은 규격은 재단·정합·제본 작업성이 떨어지므로 기본값은 85%입니다.
-            제본비·표지 디자인·오시 등 고정 작업비에는 이 비율을 적용하지 않습니다.
+            A4 규격을 100%로 보고 A5에 적용할 비율입니다. 작은 규격은 재단·정합·제본 작업성이 떨어지므로 기본값은 85%입니다.
+            내지·표지·간지·제본·오시처럼 규격 영향을 받는 비용에는 같은 비율을 적용하고, 표지 디자인비 같은 고정 작업비는 그대로 유지합니다.
           </p>
           <div class="relative max-w-[220px]">
             <input type="number" id="book-a5-rate-percent" min="50" max="120" step="1" class="form-input w-full font-extrabold text-slate-800 pr-10" value="85">
             <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">%</span>
           </div>
-          <div class="mt-2 text-[11px] text-slate-400">예: A4 내지금액 100,000원 → A5 85% 설정 시 85,000원</div>
+          <div class="mt-2 text-[11px] text-slate-400">예: A4 기준 규격비 100,000원 → A5 85% 설정 시 85,000원</div>
         </div>
         <div class="flex flex-col items-stretch sm:items-end gap-2">
           <button type="button" id="save-book-a5-rate-btn" class="btn btn-success whitespace-nowrap">

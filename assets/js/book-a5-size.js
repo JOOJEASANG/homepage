@@ -95,6 +95,38 @@ function updateMultiplier(next) {
   if (changed) triggerRecalculateIfA5Selected();
 }
 
+// 한 책자 항목 안에서는 모든 내지 구간의 규격을 동일하게 유지합니다.
+// 어느 구간에서 규격을 바꾸더라도 표지/제본 기준과 내지 규격이 어긋나지 않게 합니다.
+function syncBookItemPaperSizes(event) {
+  const select = event.target?.closest?.('select.paperSize');
+  if (!select) return;
+  const item = select.closest('.quote-item');
+  if (!item) return;
+  const value = select.value;
+  item.querySelectorAll('select.paperSize').forEach(other => {
+    if (other !== select && other.value !== value) other.value = value;
+  });
+}
+
+function inheritSizeForNewInnerSection(event) {
+  const button = event.target?.closest?.('.add-inner-section-btn');
+  if (!button) return;
+  const item = button.closest('.quote-item');
+  const baseValue = item?.querySelector('select.paperSize')?.value;
+  if (!item || !baseValue) return;
+  setTimeout(() => {
+    const selects = Array.from(item.querySelectorAll('select.paperSize'));
+    const newest = selects[selects.length - 1];
+    if (newest && newest.value !== baseValue) {
+      newest.value = baseValue;
+      try { newest.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) {}
+    }
+  }, 0);
+}
+
+document.addEventListener('change', syncBookItemPaperSizes, true);
+document.addEventListener('click', inheritSizeForNewInnerSection, true);
+
 function initObserver() {
   applyToAllSelects();
 
