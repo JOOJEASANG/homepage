@@ -243,6 +243,14 @@ if (CURRENT_FILE === 'index.html') {
   import('./notice-publish-period-public.js').catch(() => null);
 }
 
+if (CURRENT_FILE === 'quote-book.html') {
+  import('./book-a5-size.js').catch(() => null);
+}
+
+if (CURRENT_FILE === 'quote-book-price.html') {
+  import('./book-a5-rate-admin.js').catch(() => null);
+}
+
 if (CURRENT_FILE === 'mypage.html') {
   import('./mypage-quote-price-fix.js').catch(() => null);
 }
