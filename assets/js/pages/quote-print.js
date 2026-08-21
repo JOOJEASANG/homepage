@@ -41,6 +41,7 @@ function saveTempFormData() {
         paperType: document.getElementById('paperType').value,
         paperWeight: document.getElementById('paperWeight').value,
         oshiEnabled: document.getElementById('oshiEnabled').checked,
+        fullBackgroundEnabled: document.getElementById('fullBackgroundEnabled')?.checked || false,
         oshiLines: document.querySelector('input[name="oshiLines"]:checked')?.value || '1',
         timestamp: Date.now()
     };
@@ -475,6 +476,8 @@ document.getElementById('member-go-login-btn')?.addEventListener('click', () => 
             radio.dispatchEvent(new Event('change', {bubbles:true}));
         }
     }
+    const bgChk = document.getElementById('fullBackgroundEnabled');
+    if (bgChk) bgChk.checked = !!s.fullBackgroundEnabled;
 
     // 버튼 문구 변경 (수정 모드임을 인지)
     const submitBtn = document.getElementById('submitBtn');
@@ -517,6 +520,7 @@ const el = {
       paperType: $id('paperType','[name="paperType"],[data-field="paperType"]'),
       paperWeight: $id('paperWeight','[name="paperWeight"],[data-field="paperWeight"]'),
       oshiEnabled: document.getElementById('oshiEnabled'),
+      fullBackgroundEnabled: document.getElementById('fullBackgroundEnabled'),
       oshiOptions: document.getElementById('oshiOptions'),
       breakdown: document.getElementById('breakdown'),
       supplyPrice: document.getElementById('supplyPrice'),
@@ -624,6 +628,7 @@ loadEditPayloadIfAny();
       const wFactor = getWeightFactor(paperType, weight);
       const specKey = `${paperType}_${weight}`; // for display only
       const oshiLines = getOshiLines();
+      const fullBackgroundEnabled = !!el.fullBackgroundEnabled?.checked;
 
       el.minQtyHint.classList.add('hidden');
 
@@ -664,7 +669,10 @@ loadEditPayloadIfAny();
         oshiCost = oshiUnit * qty * mul;
       }
 
-      const supplyRaw = basePrint + oshiCost;
+      const fullBackgroundUnit = 100;
+      const fullBackgroundCost = fullBackgroundEnabled ? fullBackgroundUnit * qty * mul : 0;
+
+      const supplyRaw = basePrint + oshiCost + fullBackgroundCost;
       const totalRaw = supplyRaw * 1.1;
       const totalRounded = cut10(totalRaw); // 10원단위 절삭
       const supply = cut10(totalRounded / 1.1);
@@ -689,6 +697,10 @@ loadEditPayloadIfAny();
         html += `<div class="flex justify-between"><span class="text-slate-500">오시(${oshiLines}줄)</span><span class="font-bold">${Math.round(oshiUnit).toLocaleString()}원/매 × ${qty.toLocaleString()}매 × ${mul.toFixed(3)}</span></div>`;
         html += `<div class="flex justify-between"><span class="text-slate-500">오시비</span><span class="font-extrabold text-slate-800">${Math.round(oshiCost).toLocaleString()}원</span></div>`;
       }
+      if (fullBackgroundEnabled){
+        html += `<div class="flex justify-between"><span class="text-slate-500">전체바탕색</span><span class="font-bold">${fullBackgroundUnit.toLocaleString()}원/매 × ${qty.toLocaleString()}매 × ${mul.toFixed(3)}</span></div>`;
+        html += `<div class="flex justify-between"><span class="text-slate-500">전체바탕색비</span><span class="font-extrabold text-slate-800">${Math.round(fullBackgroundCost).toLocaleString()}원</span></div>`;
+      }
       html += `<div class="border-t border-dashed border-slate-200 mt-2 pt-2 space-y-1">`;
       html += `<div class="flex justify-between"><span class="text-slate-500">공급가액</span><span class="font-extrabold">${supply.toLocaleString()}원</span></div>`;
       html += `<div class="flex justify-between"><span class="text-slate-500">부가세 (10%)</span><span class="font-bold">${vat.toLocaleString()}원</span></div>`;
@@ -703,7 +715,7 @@ loadEditPayloadIfAny();
       const roundingUnit = 10;
       const roundingDiff = totalRounded - totalRaw;
 
-      return { ok:true, supply, vat, total, unitPrice: unit.price, mul, specKey, oshiLines, oshiCost, basePrint, supplyRaw, totalRaw, totalRounded, roundingUnit, roundingDiff };
+      return { ok:true, supply, vat, total, unitPrice: unit.price, mul, specKey, oshiLines, oshiCost, fullBackgroundEnabled, fullBackgroundUnit, fullBackgroundCost, basePrint, supplyRaw, totalRaw, totalRounded, roundingUnit, roundingDiff };
     }
 
     // ---------- Auth ----------
@@ -1085,6 +1097,7 @@ function loadEditPayloadIfAny(){
       sides: data.options?.sides || data.options?.printSides || null,
       quantity: data.quantity || data.options?.quantity || null,
       oshiEnabled: data.options?.oshiEnabled ?? null,
+      fullBackgroundEnabled: data.options?.fullBackgroundEnabled ?? null,
       oshiLines: data.options?.oshiLines ?? null,
     } : null;
 
@@ -1106,6 +1119,7 @@ function loadEditPayloadIfAny(){
         if (s.quantity) el.quantity.value = String(s.quantity);
 
         if (s.oshiEnabled != null) el.oshiEnabled.checked = !!s.oshiEnabled;
+        if (s.fullBackgroundEnabled != null && el.fullBackgroundEnabled) el.fullBackgroundEnabled.checked = !!s.fullBackgroundEnabled;
         if (s.oshiLines != null){
           const r = document.querySelector(`input[name="oshiLines"][value="${s.oshiLines}"]`);
           if (r) r.checked = true;
@@ -1229,6 +1243,7 @@ async function submitQuoteRequest(user, ordererName, ordererContact, ordererComp
         const sides = Number(el.printSides.value||1);
 
         const oshiEnabled = !!el.oshiEnabled.checked;
+        const fullBackgroundEnabled = !!el.fullBackgroundEnabled?.checked;
         const oshiLines = oshiEnabled ? Number((document.querySelector('input[name="oshiLines"]:checked')||{}).value || 0) : 0;
 
         const quoteDoc = {
@@ -1248,6 +1263,7 @@ async function submitQuoteRequest(user, ordererName, ordererContact, ordererComp
             sides,
             quantity: qty,
             oshiEnabled,
+            fullBackgroundEnabled,
             oshiLines,
           },
 
@@ -1259,8 +1275,11 @@ async function submitQuoteRequest(user, ordererName, ordererContact, ordererComp
           sizeMultiplier: calc.mul,
           basePrint: calc.basePrint,
           oshiCost: calc.oshiCost,
+          fullBackgroundEnabled: calc.fullBackgroundEnabled,
+          fullBackgroundUnit: calc.fullBackgroundUnit,
+          fullBackgroundCost: calc.fullBackgroundCost,
           breakdownHtml: el.breakdown.innerHTML,
-          breakdownData: JSON.stringify([{ digital_print: { unitPrice: calc.unitPrice, mul: calc.mul, sides, basePrint: calc.basePrint, oshiLines, oshiCost: calc.oshiCost, supplyRaw: calc.supplyRaw, totalRaw: calc.totalRaw, totalRounded: calc.totalRounded, roundingUnit: calc.roundingUnit, roundingDiff: calc.roundingDiff } }]),
+          breakdownData: JSON.stringify([{ digital_print: { unitPrice: calc.unitPrice, mul: calc.mul, sides, basePrint: calc.basePrint, oshiLines, oshiCost: calc.oshiCost, fullBackgroundEnabled: calc.fullBackgroundEnabled, fullBackgroundUnit: calc.fullBackgroundUnit, fullBackgroundCost: calc.fullBackgroundCost, supplyRaw: calc.supplyRaw, totalRaw: calc.totalRaw, totalRounded: calc.totalRounded, roundingUnit: calc.roundingUnit, roundingDiff: calc.roundingDiff } }]),
           // For multi-item compatible rendering in admin/mypage
           formData: JSON.stringify([{
             productType: 'print',
@@ -1277,6 +1296,7 @@ async function submitQuoteRequest(user, ordererName, ordererContact, ordererComp
               인쇄면: (sides === 1 ? '단면(1면)' : '양면(2면)'),
               수량: `${qty.toLocaleString()}매`,
               오시: (oshiLines > 0 ? `${oshiLines}줄` : '없음'),
+              전체바탕색: (fullBackgroundEnabled ? `${calc.fullBackgroundUnit.toLocaleString()}원/매` : '없음'),
               '사이즈계수': (calc.mul || 0).toFixed(3),
               '10원단위절삭': `${(calc.totalRaw||0).toLocaleString()}원 → ${(calc.totalRounded||0).toLocaleString()}원 (차이 ${(calc.roundingDiff||0).toLocaleString()}원)`
             },
@@ -1291,7 +1311,10 @@ async function submitQuoteRequest(user, ordererName, ordererContact, ordererComp
               vat: calc.vat,
               total: calc.total,
               basePrint: calc.basePrint,
-              oshiCost: calc.oshiCost
+              oshiCost: calc.oshiCost,
+              fullBackgroundEnabled: calc.fullBackgroundEnabled,
+              fullBackgroundUnit: calc.fullBackgroundUnit,
+              fullBackgroundCost: calc.fullBackgroundCost
             }
           }]),
 
@@ -1615,6 +1638,7 @@ openSignupModal();
     el.customW.addEventListener('input', compute);
     el.customH.addEventListener('input', compute);
     el.oshiEnabled.addEventListener('change', ()=>{ toggleOshi(); compute(); });
+    el.fullBackgroundEnabled?.addEventListener('change', compute);
     document.querySelectorAll('input[name="oshiLines"]').forEach(r=> r.addEventListener('change', compute));
     el.refreshBtn.addEventListener('click', compute);
     el.form.addEventListener('submit', submitQuote);
@@ -1686,6 +1710,7 @@ openSignupModal();
           customW: el.customW.value,
           customH: el.customH.value,
           oshiEnabled: !!el.oshiEnabled.checked,
+          fullBackgroundEnabled: !!el.fullBackgroundEnabled?.checked,
           oshiLines: (document.querySelector('input[name="oshiLines"]:checked')||{}).value || '',
           // NOTE: attachments are not persisted
         };
@@ -1725,6 +1750,8 @@ openSignupModal();
 
         try{
           document.getElementById('oshiEnabled').checked = !!d.oshiEnabled;
+          const bg = document.getElementById('fullBackgroundEnabled');
+          if (bg) bg.checked = !!d.fullBackgroundEnabled;
           toggleOshi();
           if(d.oshiLines){
             const r = document.querySelector(`input[name="oshiLines"][value="${d.oshiLines}"]`);
