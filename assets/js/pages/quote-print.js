@@ -1279,7 +1279,7 @@ async function submitQuoteRequest(user, ordererName, ordererContact, ordererComp
           fullBackgroundUnit: calc.fullBackgroundUnit,
           fullBackgroundCost: calc.fullBackgroundCost,
           breakdownHtml: el.breakdown.innerHTML,
-          breakdownData: JSON.stringify([{ digital_print: { unitPrice: calc.unitPrice, mul: calc.mul, sides, basePrint: calc.basePrint, oshiLines, oshiCost: calc.oshiCost, fullBackgroundEnabled: calc.fullBackgroundEnabled, fullBackgroundUnit: calc.fullBackgroundUnit, fullBackgroundCost: calc.fullBackgroundCost, supplyRaw: calc.supplyRaw, totalRaw: calc.totalRaw, totalRounded: calc.totalRounded, roundingUnit: calc.roundingUnit, roundingDiff: calc.roundingDiff } }]),
+          breakdownData: JSON.stringify([{ digital_print: { unitPrice: calc.unitPrice, mul: calc.mul, sides, basePrint: calc.basePrint, oshiLines, oshiCost: calc.oshiCost, fullBackgroundEnabled: calc.fullBackgroundEnabled, fullBackgroundUnit: calc.fullBackgroundUnit, fullBackgroundCost: calc.fullBackgroundCost, fullBackgroundEnabled: calc.fullBackgroundEnabled, fullBackgroundUnit: calc.fullBackgroundUnit, fullBackgroundCost: calc.fullBackgroundCost, supplyRaw: calc.supplyRaw, totalRaw: calc.totalRaw, totalRounded: calc.totalRounded, roundingUnit: calc.roundingUnit, roundingDiff: calc.roundingDiff } }]),
           // For multi-item compatible rendering in admin/mypage
           formData: JSON.stringify([{
             productType: 'print',
@@ -1312,6 +1312,9 @@ async function submitQuoteRequest(user, ordererName, ordererContact, ordererComp
               total: calc.total,
               basePrint: calc.basePrint,
               oshiCost: calc.oshiCost,
+              fullBackgroundEnabled: calc.fullBackgroundEnabled,
+              fullBackgroundUnit: calc.fullBackgroundUnit,
+              fullBackgroundCost: calc.fullBackgroundCost,
               fullBackgroundEnabled: calc.fullBackgroundEnabled,
               fullBackgroundUnit: calc.fullBackgroundUnit,
               fullBackgroundCost: calc.fullBackgroundCost
@@ -1638,6 +1641,7 @@ openSignupModal();
     el.customW.addEventListener('input', compute);
     el.customH.addEventListener('input', compute);
     el.oshiEnabled.addEventListener('change', ()=>{ toggleOshi(); compute(); });
+    el.fullBackgroundEnabled?.addEventListener('change', compute);
     el.fullBackgroundEnabled?.addEventListener('change', compute);
     document.querySelectorAll('input[name="oshiLines"]').forEach(r=> r.addEventListener('change', compute));
     el.refreshBtn.addEventListener('click', compute);
