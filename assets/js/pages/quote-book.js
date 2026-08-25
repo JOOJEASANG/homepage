@@ -1245,6 +1245,11 @@ function applyImagePreviewsToUI(root=document) {
             const itemSizeMultiplier = Number.isFinite(rawItemSizeMultiplier) && rawItemSizeMultiplier > 0
                 ? rawItemSizeMultiplier
                 : 1;
+            const selectedBindingType = itemEl.querySelector('.bindingType').value;
+            const isA5Saddle = primarySizeSelect?.value === 'a5' && selectedBindingType === 'saddle';
+            // A5 중철은 2-up 출력 효율을 반영해 인쇄 관련 비용만 A4의 60%로 계산합니다.
+            // 제본/간지/오시 등 작업비는 기존 A5 배율(관리자 설정, 기본 85%)을 유지합니다.
+            const printSizeMultiplier = isA5Saddle ? 0.60 : itemSizeMultiplier;
 
             let itemTotalPrice = 0;
             let itemBreakdownHtml = '';
@@ -1264,7 +1269,7 @@ function applyImagePreviewsToUI(root=document) {
             if (coverPaperType !== 'none' && coverPrintType !== 'none') {
                 const coverKey = `${coverPaperType}_${coverPrintType}`;
                 const coverTiers = priceConfig.cover[coverKey] || [];
-                coverUnitPrice = findPriceTier(coverTiers, quantity) * itemSizeMultiplier;
+                coverUnitPrice = findPriceTier(coverTiers, quantity) * printSizeMultiplier;
                 totalCoverCost = coverUnitPrice * quantity;
                 if (itemEl.querySelector('.bindingType').value === 'wire') totalCoverCost /= 2;
                 totalCoverCost = Math.floor(totalCoverCost / 100) * 100; // 100원 단위 절삭
@@ -1282,7 +1287,11 @@ function applyImagePreviewsToUI(root=document) {
             itemEl.querySelectorAll('.inner-section').forEach((section, innerIndex) => {
                 const paperTypeValue = section.querySelector('.innerPaperType').value;
                 const printTypeValue = section.querySelector('.innerPrintType').value;
-                const sizeMultiplier = parseFloat(section.querySelector('.paperSize').value);
+                const sectionSizeValue = section.querySelector('.paperSize').value;
+                const normalSizeMultiplier = parseFloat(sectionSizeValue);
+                const sizeMultiplier = (selectedBindingType === 'saddle' && sectionSizeValue === 'a5')
+                    ? 0.60
+                    : normalSizeMultiplier;
                 const pages = parseInt(section.querySelector('.innerPages').value) || 0;
 
                 totalInnerPagesSpecified += pages;
@@ -1341,7 +1350,7 @@ function applyImagePreviewsToUI(root=document) {
                 }
             }
 
-            const bindingType = itemEl.querySelector('.bindingType').value;
+            const bindingType = selectedBindingType;
             let bindingCost = 0;
             let bindingUnitPrice = 0;
 
