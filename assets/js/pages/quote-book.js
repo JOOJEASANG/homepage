@@ -1246,10 +1246,12 @@ function applyImagePreviewsToUI(root=document) {
                 ? rawItemSizeMultiplier
                 : 1;
             const selectedBindingType = itemEl.querySelector('.bindingType').value;
-            const isA5Saddle = primarySizeSelect?.value === 'a5' && selectedBindingType === 'saddle';
-            // A5 중철은 2-up 출력 효율을 반영해 인쇄 관련 비용만 A4의 60%로 계산합니다.
-            // 제본/간지/오시 등 작업비는 기존 A5 배율(관리자 설정, 기본 85%)을 유지합니다.
-            const printSizeMultiplier = isA5Saddle ? 0.60 : itemSizeMultiplier;
+            const isA5 = primarySizeSelect?.value === 'a5';
+  const isA5Saddle = isA5 && selectedBindingType === 'saddle';
+  const isA5PerfectOrWire = isA5 && (selectedBindingType === 'perfect' || selectedBindingType === 'wire');
+  // A5 인쇄비만 제본 방식에 따라 별도 배율 적용:
+  // 중철 60%, 무선/와이어 70%. 제본/간지/오시 등 작업비는 기존 A5 배율을 유지합니다.
+  const printSizeMultiplier = isA5Saddle ? 0.60 : (isA5PerfectOrWire ? 0.70 : itemSizeMultiplier);
 
             let itemTotalPrice = 0;
             let itemBreakdownHtml = '';
@@ -1289,9 +1291,9 @@ function applyImagePreviewsToUI(root=document) {
                 const printTypeValue = section.querySelector('.innerPrintType').value;
                 const sectionSizeValue = section.querySelector('.paperSize').value;
                 const normalSizeMultiplier = parseFloat(sectionSizeValue);
-                const sizeMultiplier = (selectedBindingType === 'saddle' && sectionSizeValue === 'a5')
-                    ? 0.60
-                    : normalSizeMultiplier;
+                const sizeMultiplier = sectionSizeValue === 'a5'
+          ? (selectedBindingType === 'saddle' ? 0.60 : ((selectedBindingType === 'perfect' || selectedBindingType === 'wire') ? 0.70 : normalSizeMultiplier))
+          : normalSizeMultiplier;
                 const pages = parseInt(section.querySelector('.innerPages').value) || 0;
 
                 totalInnerPagesSpecified += pages;
