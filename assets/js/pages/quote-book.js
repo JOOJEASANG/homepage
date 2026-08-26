@@ -1386,7 +1386,15 @@ function applyImagePreviewsToUI(root=document) {
                 }
             }
 
-            itemTotalPrice = totalCoverCost + totalInnerCost + totalInterleafCost + bindingCost + etcDesignCost + etcOshiCost;
+            // 내지 총 장수: 페이지 수를 양면 기준 2로 나눈 실제 낱장 수 × 부수입니다.
+  // 홀수 페이지는 마지막 한 면도 종이 1장이 필요하므로 올림 처리합니다.
+  const innerSheetsPerCopy = Math.ceil(totalInnerPagesSpecified / 2);
+  const totalInnerSheets = innerSheetsPerCopy * quantity;
+  if (totalInnerPagesSpecified > 0) {
+      itemBreakdownHtml += `<li class="mt-2 pt-2 border-t border-slate-100"><div class="flex justify-between items-center"><span class="text-slate-600 font-medium">내지 총 장수</span><span class="font-bold text-brand-600">${totalInnerSheets.toLocaleString()}장</span></div><div class="text-right text-[11px] text-slate-400 mt-0.5">권당 ${innerSheetsPerCopy.toLocaleString()}장 × ${quantity.toLocaleString()}부</div></li>`;
+  }
+
+  itemTotalPrice = totalCoverCost + totalInnerCost + totalInterleafCost + bindingCost + etcDesignCost + etcOshiCost;
 
             breakdownForLastQuote.push({
                 orderName: orderName || `견적항목 ${index + 1}`,
