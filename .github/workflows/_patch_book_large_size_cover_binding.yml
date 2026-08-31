@@ -1,0 +1,41 @@
+name: Patch large size cover binding rates
+on:
+  push:
+    branches: [fix/book-size-rate-inner-only]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[patched-large-size]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/book-size-rate-inner-only
+      - name: Patch quote-book calculation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('assets/js/pages/quote-book.js')
+          s = p.read_text()
+
+          replacements = [
+          ('''            // 규격별 배율은 내지 인쇄비에만 적용합니다.\n            // 표지·간지·제본·오시는 규격과 관계없이 기본 단가를 사용합니다.\n''', '''            // 규격별 배율은 기본적으로 내지 인쇄비에만 적용합니다.\n            // 단, A4 이상(A4/B4/A3)은 표지와 제본에도 같은 규격 배율을 적용합니다.\n            // 간지와 오시는 규격과 관계없이 기본 단가를 사용합니다.\n'''),
+          ('''            const selectedBindingType = itemEl.querySelector('.bindingType').value;\n            // A5 내지 인쇄비는 제본 방식에 따라 별도 배율(중철 60%, 무선/와이어 70%)을 적용합니다.\n''', '''            const selectedBindingType = itemEl.querySelector('.bindingType').value;\n            const largeSizeMultiplier = itemSizeMultiplier >= 1 ? itemSizeMultiplier : 1;\n            // A5 내지 인쇄비는 제본 방식에 따라 별도 배율(중철 60%, 무선/와이어 70%)을 적용합니다.\n'''),
+          ('''                coverUnitPrice = findPriceTier(coverTiers, quantity);\n''', '''                coverUnitPrice = findPriceTier(coverTiers, quantity) * largeSizeMultiplier;\n'''),
+          ('''                bindingUnitPrice = findBindingPriceTier(bindingTiers, quantity, actualTotalPages);\n''', '''                bindingUnitPrice = findBindingPriceTier(bindingTiers, quantity, actualTotalPages) * largeSizeMultiplier;\n''')]
+
+          for old, new in replacements:
+              if old not in s:
+                  raise SystemExit('patch marker not found: ' + old[:100])
+              s = s.replace(old, new, 1)
+
+          p.write_text(s)
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add assets/js/pages/quote-book.js
+          git commit -m "Apply large-size rate to cover and binding [patched-large-size]"
+          git push
