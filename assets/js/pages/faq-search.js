@@ -21,16 +21,8 @@ function ensureCategoryArea(){
   const list=document.getElementById('faq-list');
   if(!list||document.getElementById('faq-category-list'))return;
   const wrap=document.createElement('div');
-  wrap.className='mb-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 sm:p-4';
-  wrap.innerHTML=`
-    <div class="flex items-center gap-2 mb-3 px-1">
-      <span class="w-7 h-7 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center justify-center text-emerald-600"><i class="fas fa-layer-group text-xs"></i></span>
-      <div>
-        <h3 class="text-sm font-black text-slate-800 leading-none">질문 분류</h3>
-        <p class="text-[11px] text-slate-400 mt-1">원하는 항목을 선택하세요</p>
-      </div>
-    </div>
-    <div id="faq-category-list" class="flex gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible" style="scrollbar-width:none"></div>`;
+  wrap.className='mb-5 border-b border-slate-200';
+  wrap.innerHTML='<div id="faq-category-list" class="flex gap-5 overflow-x-auto -mb-px" style="scrollbar-width:none"></div>';
   list.parentNode.insertBefore(wrap,list);
 }
 
@@ -39,7 +31,6 @@ function getCategories(){
   cachedFaqs.forEach(item=>seen.add(normalizeCategory(item.category)));
   return Array.from(seen);
 }
-function categoryCount(category){return category==='전체'?cachedFaqs.length:cachedFaqs.filter(item=>normalizeCategory(item.category)===category).length;}
 
 function renderCategories(){
   ensureCategoryArea();
@@ -49,7 +40,7 @@ function renderCategories(){
   if(!values.includes(selectedCategory))selectedCategory='전체';
   categories.innerHTML=values.map((category,index)=>{
     const active=category===selectedCategory;
-    return `<button type="button" data-faq-category-index="${index}" aria-pressed="${active}" class="shrink-0 inline-flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-[13px] font-bold transition-all duration-200 ${active?'border-emerald-600 bg-white text-emerald-700 shadow-[0_2px_10px_rgba(15,118,110,0.10)] ring-1 ring-emerald-100':'border-transparent bg-transparent text-slate-500 hover:bg-white hover:border-slate-200 hover:text-slate-800'}"><span>${esc(category)}</span><span class="min-w-[20px] h-5 px-1.5 rounded-md flex items-center justify-center text-[10px] font-black ${active?'bg-emerald-600 text-white':'bg-slate-200/70 text-slate-500'}">${categoryCount(category)}</span></button>`;
+    return `<button type="button" data-faq-category-index="${index}" aria-pressed="${active}" class="shrink-0 border-b-2 px-0.5 py-3 text-sm transition-colors ${active?'border-slate-800 font-bold text-slate-900':'border-transparent font-medium text-slate-400 hover:text-slate-700'}">${esc(category)}</button>`;
   }).join('');
   categories.querySelectorAll('[data-faq-category-index]').forEach(btn=>btn.addEventListener('click',()=>{
     selectedCategory=values[Number(btn.dataset.faqCategoryIndex)]||'전체';
@@ -79,7 +70,7 @@ function renderFaqList(){
         <span class="font-bold text-slate-700 group-hover:text-brand-600 text-base flex items-center min-w-0">
           <span class="bg-brand-100 text-brand-600 text-xs font-extrabold px-2 py-1 rounded mr-3 shrink-0">Q</span>
           <span class="min-w-0 break-words">${esc(data.question)}</span>
-          <span class="ml-2 shrink-0 text-[10px] font-bold px-2 py-1 rounded-md border border-slate-200 bg-slate-50 text-slate-400">${esc(normalizeCategory(data.category))}</span>
+          <span class="ml-2 shrink-0 text-[11px] font-medium text-slate-400">${esc(normalizeCategory(data.category))}</span>
         </span>
         <i class="fas fa-chevron-down text-slate-300 group-hover:text-brand-600 transition-transform duration-200 ml-3 shrink-0"></i>
       </button>
