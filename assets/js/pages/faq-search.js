@@ -5,8 +5,57 @@ function text(v){return String(v||'').toLowerCase().replace(/\s+/g,' ').trim();}
 function esc(str){return String(str||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
 
 let cachedFaqs=[];
+let selectedCategory='전체';
 
-function getEls(){return{input:document.getElementById('faqSearch'),clear:document.getElementById('faqSearchClear'),count:document.getElementById('faqSearchCount'),list:document.getElementById('faq-list')}}
+function getEls(){return{input:document.getElementById('faqSearch'),clear:document.getElementById('faqSearchClear'),count:document.getElementById('faqSearchCount'),list:document.getElementById('faq-list'),categories:document.getElementById('faq-category-list')}}
+
+function normalizeCategory(value){return String(value||'').trim()||'기타';}
+
+function ensureCustomerCenterLabels(){
+  const tab=document.getElementById('tab-faq');
+  if(tab)tab.textContent='자주 묻는 질문';
+  const searchLabel=document.querySelector('label[for="faqSearch"]');
+  if(searchLabel)searchLabel.textContent='자주 묻는 질문 검색';
+}
+
+function ensureCategoryArea(){
+  const list=document.getElementById('faq-list');
+  if(!list||document.getElementById('faq-category-list'))return;
+  const wrap=document.createElement('div');
+  wrap.className='mb-5';
+  wrap.innerHTML=`
+    <div class="flex items-center justify-between gap-3 mb-2">
+      <h3 class="text-sm font-black text-slate-800">카테고리</h3>
+      <span class="text-[11px] text-slate-400">분류를 선택하면 해당 질문만 표시됩니다.</span>
+    </div>
+    <div id="faq-category-list" class="flex flex-wrap gap-2"></div>`;
+  list.parentNode.insertBefore(wrap,list);
+}
+
+function getCategories(){
+  const seen=new Set();
+  cachedFaqs.forEach(item=>seen.add(normalizeCategory(item.category)));
+  return Array.from(seen);
+}
+
+function renderCategories(){
+  ensureCategoryArea();
+  const {categories}=getEls();
+  if(!categories)return;
+  const values=['전체',...getCategories()];
+  if(!values.includes(selectedCategory))selectedCategory='전체';
+  categories.innerHTML=values.map((category,index)=>{
+    const active=category===selectedCategory;
+    return `<button type="button" data-faq-category-index="${index}" class="inline-flex items-center rounded-full border px-3.5 py-2 text-xs font-extrabold transition ${active?'border-emerald-600 bg-emerald-600 text-white shadow-sm':'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50'}">${esc(category)}</button>`;
+  }).join('');
+  categories.querySelectorAll('[data-faq-category-index]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      selectedCategory=values[Number(btn.dataset.faqCategoryIndex)]||'전체';
+      renderCategories();
+      renderFaqList();
+    });
+  });
+}
 
 function bindAccordion(root){
   root.querySelectorAll('[data-faq-toggle]').forEach(btn=>{
@@ -26,22 +75,31 @@ function renderFaqList(){
   input.style.paddingLeft='3rem';
   input.style.paddingRight='3rem';
   const keyword=text(input.value);
-  const rows=cachedFaqs.filter(item=>!keyword||text((item.category||'')+' '+(item.keywords||'')+' '+(item.question||'')+' '+(item.answer||'')).includes(keyword));
+  const rows=cachedFaqs.filter(item=>{
+    const category=normalizeCategory(item.category);
+    const categoryMatch=selectedCategory==='전체'||category===selectedCategory;
+    const keywordMatch=!keyword||text((item.category||'')+' '+(item.keywords||'')+' '+(item.question||'')+' '+(item.answer||'')).includes(keyword);
+    return categoryMatch&&keywordMatch;
+  });
   if(clear)clear.classList.toggle('hidden',!keyword);
-  if(count)count.textContent=cachedFaqs.length?(keyword?'검색 결과 '+rows.length+'개 / 전체 '+cachedFaqs.length+'개':'전체 '+cachedFaqs.length+'개 FAQ가 표시됩니다.'):'등록된 FAQ가 없습니다.';
-  if(!rows.length){list.innerHTML='<div class="p-12 text-center text-slate-400 bg-slate-50 text-sm">'+(keyword?'검색 결과가 없습니다.':'등록된 자주 묻는 질문이 없습니다.')+'</div>';return;}
+  if(count){
+    if(!cachedFaqs.length)count.textContent='등록된 자주 묻는 질문이 없습니다.';
+    else if(keyword||selectedCategory!=='전체')count.textContent=`현재 ${rows.length}개 / 전체 ${cachedFaqs.length}개 질문이 표시됩니다.`;
+    else count.textContent=`전체 ${cachedFaqs.length}개의 자주 묻는 질문이 표시됩니다.`;
+  }
+  if(!rows.length){list.innerHTML='<div class="p-12 text-center text-slate-400 bg-slate-50 text-sm">'+((keyword||selectedCategory!=='전체')?'조건에 맞는 질문이 없습니다.':'등록된 자주 묻는 질문이 없습니다.')+'</div>';return;}
   list.innerHTML=rows.map(data=>`
     <div class="bg-white" data-search="${esc((data.category||'')+' '+(data.keywords||''))}">
-      <button data-faq-toggle class="w-full px-8 py-5 text-left flex justify-between items-center focus:outline-none hover:bg-slate-50 transition-colors group">
+      <button data-faq-toggle class="w-full px-5 sm:px-8 py-5 text-left flex justify-between items-center focus:outline-none hover:bg-slate-50 transition-colors group">
         <span class="font-bold text-slate-700 group-hover:text-brand-600 text-base flex items-center min-w-0">
           <span class="bg-brand-100 text-brand-600 text-xs font-extrabold px-2 py-1 rounded mr-3 shrink-0">Q</span>
-          <span class="truncate">${esc(data.question)}</span>
-          ${data.category?`<span class="ml-2 shrink-0 text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-500">${esc(data.category)}</span>`:''}
+          <span class="min-w-0 break-words">${esc(data.question)}</span>
+          <span class="ml-2 shrink-0 text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-500">${esc(normalizeCategory(data.category))}</span>
         </span>
-        <i class="fas fa-chevron-down text-slate-300 group-hover:text-brand-600 transition-transform duration-200"></i>
+        <i class="fas fa-chevron-down text-slate-300 group-hover:text-brand-600 transition-transform duration-200 ml-3 shrink-0"></i>
       </button>
       <div class="faq-answer bg-slate-50 border-t border-slate-100">
-        <div class="px-8 py-6 text-slate-600 leading-relaxed whitespace-pre-wrap pl-16 text-sm"><span class="font-bold text-slate-800 mr-2 text-base">A.</span> ${esc(data.answer)}</div>
+        <div class="px-5 sm:px-8 py-6 text-slate-600 leading-relaxed whitespace-pre-wrap sm:pl-16 text-sm"><span class="font-bold text-slate-800 mr-2 text-base">A.</span> ${esc(data.answer)}</div>
       </div>
     </div>`).join('');
   bindAccordion(list);
@@ -55,14 +113,17 @@ async function loadFaqs(){
     try{await getDocs(query(collection(db,'faq'),limit(1)));}catch(e){q=query(collection(db,'faq'),orderBy('createdAt','desc'));}
     const snap=await getDocs(q);
     cachedFaqs=[];
-    snap.forEach(d=>{const data=d.data()||{}; if(data.isActive===false)return; cachedFaqs.push({id:d.id,...data});});
+    snap.forEach(d=>{const data=d.data()||{};if(data.isActive===false)return;cachedFaqs.push({id:d.id,...data});});
+    renderCategories();
     renderFaqList();
   }catch(e){console.warn('[faq] public render failed:',e);}
 }
 
 ready(function(){
+  ensureCustomerCenterLabels();
+  ensureCategoryArea();
   const {input,clear}=getEls();
-  if(input){input.addEventListener('input',renderFaqList);}
+  if(input)input.addEventListener('input',renderFaqList);
   if(clear)clear.addEventListener('click',function(){input.value='';input.focus();renderFaqList();});
   setTimeout(loadFaqs,200);
   setTimeout(loadFaqs,1200);
