@@ -1238,20 +1238,15 @@ function applyImagePreviewsToUI(root=document) {
             const quantity = parseInt(itemEl.querySelector('.quantity').value) || 0;
             if (quantity === 0) return;
 
-            // 책 전체 규격은 첫 번째 내지 규격을 기준으로 합니다.
-            // A4=100%를 기준으로 표지·내지·간지·제본·오시까지 같은 배율을 적용합니다.
+            // 규격별 배율은 내지 인쇄비에만 적용합니다.
+            // 표지·간지·제본·오시는 규격과 관계없이 기본 단가를 사용합니다.
             const primarySizeSelect = itemEl.querySelector('.inner-section .paperSize');
             const rawItemSizeMultiplier = primarySizeSelect ? parseFloat(primarySizeSelect.value) : 1;
             const itemSizeMultiplier = Number.isFinite(rawItemSizeMultiplier) && rawItemSizeMultiplier > 0
                 ? rawItemSizeMultiplier
                 : 1;
             const selectedBindingType = itemEl.querySelector('.bindingType').value;
-            const isA5 = primarySizeSelect?.value === 'a5';
-  const isA5Saddle = isA5 && selectedBindingType === 'saddle';
-  const isA5PerfectOrWire = isA5 && (selectedBindingType === 'perfect' || selectedBindingType === 'wire');
-  // A5 인쇄비만 제본 방식에 따라 별도 배율 적용:
-  // 중철 60%, 무선/와이어 70%. 제본/간지/오시 등 작업비는 기존 A5 배율을 유지합니다.
-  const printSizeMultiplier = isA5Saddle ? 0.60 : (isA5PerfectOrWire ? 0.70 : itemSizeMultiplier);
+            // A5 내지 인쇄비는 제본 방식에 따라 별도 배율(중철 60%, 무선/와이어 70%)을 적용합니다.
 
             let itemTotalPrice = 0;
             let itemBreakdownHtml = '';
@@ -1271,7 +1266,7 @@ function applyImagePreviewsToUI(root=document) {
             if (coverPaperType !== 'none' && coverPrintType !== 'none') {
                 const coverKey = `${coverPaperType}_${coverPrintType}`;
                 const coverTiers = priceConfig.cover[coverKey] || [];
-                coverUnitPrice = findPriceTier(coverTiers, quantity) * printSizeMultiplier;
+                coverUnitPrice = findPriceTier(coverTiers, quantity);
                 totalCoverCost = coverUnitPrice * quantity;
                 if (itemEl.querySelector('.bindingType').value === 'wire') totalCoverCost /= 2;
                 totalCoverCost = Math.floor(totalCoverCost / 100) * 100; // 100원 단위 절삭
@@ -1342,7 +1337,7 @@ function applyImagePreviewsToUI(root=document) {
             if (interleafSheets > 0) {
                 const interleafTiers = priceConfig.interleaf[interleafColor] || [];
                 const totalInterleafSheets = interleafSheets * quantity;
-                interleafUnitPrice = findPriceTier(interleafTiers, totalInterleafSheets) * itemSizeMultiplier;
+                interleafUnitPrice = findPriceTier(interleafTiers, totalInterleafSheets);
                 totalInterleafCost = Math.floor((interleafUnitPrice * totalInterleafSheets) / 100) * 100; // 100원 단위 절삭
 
                 if (totalInterleafCost > 0) {
@@ -1362,7 +1357,7 @@ function applyImagePreviewsToUI(root=document) {
                                          (totalInnerPagesSpecified + interleafSheets);
 
                 const bindingTiers = priceConfig.binding[bindingType] || [];
-                bindingUnitPrice = findBindingPriceTier(bindingTiers, quantity, actualTotalPages) * itemSizeMultiplier;
+                bindingUnitPrice = findBindingPriceTier(bindingTiers, quantity, actualTotalPages);
                 bindingCost = Math.floor((bindingUnitPrice * quantity) / 100) * 100; // 100원 단위 절삭
 
                 if (bindingCost > 0) {
@@ -1382,7 +1377,7 @@ function applyImagePreviewsToUI(root=document) {
                 }
             }
             if (coverOshi) {
-                etcOshiCost = Math.floor((((priceConfig.etc.coverOshi || 0) * itemSizeMultiplier) * quantity) / 100) * 100; // 규격 배율 적용 후 100원 단위 절삭
+                etcOshiCost = Math.floor(((priceConfig.etc.coverOshi || 0) * quantity) / 100) * 100; // 100원 단위 절삭
                 if (etcOshiCost > 0) {
                     itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 오시</span><div class="font-medium text-slate-800">${etcOshiCost.toLocaleString()}원</div></div></li>`;
                 }
