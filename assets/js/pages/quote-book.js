@@ -1238,14 +1238,16 @@ function applyImagePreviewsToUI(root=document) {
             const quantity = parseInt(itemEl.querySelector('.quantity').value) || 0;
             if (quantity === 0) return;
 
-            // 규격별 배율은 내지 인쇄비에만 적용합니다.
-            // 표지·간지·제본·오시는 규격과 관계없이 기본 단가를 사용합니다.
+            // 규격별 배율은 기본적으로 내지 인쇄비에만 적용합니다.
+            // 단, A4 이상(A4/B4/A3)은 표지와 제본에도 같은 규격 배율을 적용합니다.
+            // 간지와 오시는 규격과 관계없이 기본 단가를 사용합니다.
             const primarySizeSelect = itemEl.querySelector('.inner-section .paperSize');
             const rawItemSizeMultiplier = primarySizeSelect ? parseFloat(primarySizeSelect.value) : 1;
             const itemSizeMultiplier = Number.isFinite(rawItemSizeMultiplier) && rawItemSizeMultiplier > 0
                 ? rawItemSizeMultiplier
                 : 1;
             const selectedBindingType = itemEl.querySelector('.bindingType').value;
+            const largeSizeMultiplier = itemSizeMultiplier >= 1 ? itemSizeMultiplier : 1;
             // A5 내지 인쇄비는 제본 방식에 따라 별도 배율(중철 60%, 무선/와이어 70%)을 적용합니다.
 
             let itemTotalPrice = 0;
@@ -1266,7 +1268,7 @@ function applyImagePreviewsToUI(root=document) {
             if (coverPaperType !== 'none' && coverPrintType !== 'none') {
                 const coverKey = `${coverPaperType}_${coverPrintType}`;
                 const coverTiers = priceConfig.cover[coverKey] || [];
-                coverUnitPrice = findPriceTier(coverTiers, quantity);
+                coverUnitPrice = findPriceTier(coverTiers, quantity) * largeSizeMultiplier;
                 totalCoverCost = coverUnitPrice * quantity;
                 if (itemEl.querySelector('.bindingType').value === 'wire') totalCoverCost /= 2;
                 totalCoverCost = Math.floor(totalCoverCost / 100) * 100; // 100원 단위 절삭
@@ -1357,7 +1359,7 @@ function applyImagePreviewsToUI(root=document) {
                                          (totalInnerPagesSpecified + interleafSheets);
 
                 const bindingTiers = priceConfig.binding[bindingType] || [];
-                bindingUnitPrice = findBindingPriceTier(bindingTiers, quantity, actualTotalPages);
+                bindingUnitPrice = findBindingPriceTier(bindingTiers, quantity, actualTotalPages) * largeSizeMultiplier;
                 bindingCost = Math.floor((bindingUnitPrice * quantity) / 100) * 100; // 100원 단위 절삭
 
                 if (bindingCost > 0) {
