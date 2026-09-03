@@ -55,7 +55,7 @@ function ensureA5Option(select) {
     changed = true;
   }
 
-  const expectedLabel = `A5 (국판 148×210) · A4의 ${percentText(a5Multiplier)}%`;
+  const expectedLabel = `A5 (148×210) · A4의 ${percentText(a5Multiplier)}%`;
   const expectedMultiplier = String(a5Multiplier);
 
   // 같은 값을 반복해서 쓰면 MutationObserver가 계속 재호출될 수 있으므로
