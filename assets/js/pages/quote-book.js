@@ -1100,10 +1100,10 @@ function applyImagePreviewsToUI(root=document) {
                 <div>
                     <label class="block text-xs font-bold text-slate-500 mb-1">규격 (사이즈)</label>
                     <select name="paperSize" class="form-select w-full paperSize">
-                        <option value="1" selected>A4 (국배판)</option>
-                        <option value="0.9">B5 (46배판)</option>
-                        <option value="1.8">B4 (타블로이드)</option>
-                        <option value="2">A3</option>
+                        <option value="1" selected>A4 (210×297)</option>
+                        <option value="0.9">B5 (182×257)</option>
+                        <option value="1.8">B4 (257×364)</option>
+                        <option value="2">A3 (297×420)</option>
                     </select>
                 </div>
                 <div>
