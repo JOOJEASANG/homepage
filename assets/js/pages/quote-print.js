@@ -325,7 +325,7 @@ document.getElementById('member-go-login-btn')?.addEventListener('click', () => 
         A4: 210*297,
         A3: 297*420,
         A5: 148*210,
-        B5: 176*250,
+        B5: 182*257,
         B4: 257*364
       };
       const area = map[size] || A4_AREA;

@@ -1098,7 +1098,7 @@ function applyImagePreviewsToUI(root=document) {
             ${sectionCount > 0 ? `<button type="button" class="remove-inner-section-btn absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-200 text-slate-500 hover:bg-red-100 hover:text-red-500 flex items-center justify-center transition-colors" title="삭제"><i class="fas fa-times text-xs"></i></button>` : ''}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1">규격 (사이즈)</label>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">규격 (사이즈) 단위(mm)</label>
                     <select name="paperSize" class="form-select w-full paperSize">
                         <option value="1" selected>A4 (210×297)</option>
                         <option value="0.9">B5 (182×257)</option>
