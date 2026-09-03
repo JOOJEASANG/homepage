@@ -1,0 +1,33 @@
+name: Patch B5 color inner rate
+on:
+  push:
+    branches: [fix/book-size-rate-inner-only]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[patched-b5-color]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/book-size-rate-inner-only
+      - name: Patch B5 color multiplier
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('assets/js/pages/quote-book.js')
+          s = p.read_text()
+          old = '''                const normalSizeMultiplier = parseFloat(sectionSizeValue);\n                const sizeMultiplier = sectionSizeValue === 'a5'\n          ? (selectedBindingType === 'saddle' ? 0.60 : ((selectedBindingType === 'perfect' || selectedBindingType === 'wire') ? 0.70 : normalSizeMultiplier))\n          : normalSizeMultiplier;\n'''
+          new = '''                const normalSizeMultiplier = parseFloat(sectionSizeValue);\n                const isColorPrint = printTypeValue === 'color_simplex' || printTypeValue === 'color_duplex';\n                // B5 컬러 내지는 A4와 동일한 100% 단가로 계산합니다. (B5 흑백은 기존 90% 유지)\n                const sizeMultiplier = sectionSizeValue === 'a5'\n          ? (selectedBindingType === 'saddle' ? 0.60 : ((selectedBindingType === 'perfect' || selectedBindingType === 'wire') ? 0.70 : normalSizeMultiplier))\n          : (sectionSizeValue === '0.9' && isColorPrint ? 1 : normalSizeMultiplier);\n'''
+          if old not in s:
+              raise SystemExit('patch marker not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add assets/js/pages/quote-book.js
+          git commit -m "Calculate B5 color inner pages at A4 rate [patched-b5-color]"
+          git push
