@@ -364,10 +364,20 @@ function deepMerge(base, patch){
       .trim();
   }
 
+  async function persistGuideHtml(html){
+    const normalizedHtml = String(html || '').trim();
+    const text = htmlToPlainText(normalizedHtml);
+    await setDoc(doc(db, "settings", "print"), {
+      guideHtml: normalizedHtml,
+      guide: text,
+      guideUpdatedAt: Date.now()
+    }, { merge: true });
+    return normalizedHtml;
+  }
+
   async function saveGuide(){
     const html = (el.guideEditor?.innerHTML || "").trim();
-    const text = htmlToPlainText(html);
-    await setDoc(doc(db, "settings", "print"), { guideHtml: html, guide: text, guideUpdatedAt: Date.now() }, { merge: true });
+    await persistGuideHtml(html);
     // 저장 성공 시 임시저장본 삭제
     try{
       localStorage.removeItem(GUIDE_DRAFT_KEY);
@@ -601,10 +611,22 @@ function deepMerge(base, patch){
         if (url){
           editor.focus();
           restoreSelection();
-          requestAnimationFrame(()=>{
-            try { document.execCommand('insertImage', false, url); } catch(err) {}
-            saveSelection();
+          await new Promise((resolve) => {
+            requestAnimationFrame(()=>{
+              try { document.execCommand('insertImage', false, url); } catch(err) {}
+              saveSelection();
+              resolve();
+            });
           });
+
+          // 이미지 첨부는 화면에만 보이고 저장되지 않는 상태가 생기지 않도록
+          // 삽입 직후 현재 안내문 HTML을 Firestore에 즉시 동기화합니다.
+          const savedHtml = await persistGuideHtml(editor.innerHTML || '');
+          if (el.guidePreview) el.guidePreview.innerHTML = savedHtml;
+          try{
+            localStorage.removeItem(GUIDE_DRAFT_KEY);
+            localStorage.removeItem(GUIDE_DRAFT_AT_KEY);
+          }catch(e){}
         }
       });
     }
