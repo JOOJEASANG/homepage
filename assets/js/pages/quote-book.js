@@ -1288,9 +1288,11 @@ function applyImagePreviewsToUI(root=document) {
                 const printTypeValue = section.querySelector('.innerPrintType').value;
                 const sectionSizeValue = section.querySelector('.paperSize').value;
                 const normalSizeMultiplier = parseFloat(sectionSizeValue);
+                const isColorPrint = printTypeValue === 'color_simplex' || printTypeValue === 'color_duplex';
+                // B5 컬러 내지는 A4와 동일한 100% 단가로 계산합니다. (B5 흑백은 기존 90% 유지)
                 const sizeMultiplier = sectionSizeValue === 'a5'
           ? (selectedBindingType === 'saddle' ? 0.60 : ((selectedBindingType === 'perfect' || selectedBindingType === 'wire') ? 0.70 : normalSizeMultiplier))
-          : normalSizeMultiplier;
+          : (sectionSizeValue === '0.9' && isColorPrint ? 1 : normalSizeMultiplier);
                 const pages = parseInt(section.querySelector('.innerPages').value) || 0;
 
                 totalInnerPagesSpecified += pages;
