@@ -285,7 +285,15 @@ document.getElementById('member-go-login-btn')?.addEventListener('click', () => 
       if (size === 'IN12x18') { cw = 457; ch = 305; size = 'CUSTOM'; }
       if (size === 'IN13x19') { cw = 482; ch = 330; size = 'CUSTOM'; }
 
-      // Custom size -> area ratio (A4 기준) + 최소계수
+      const configuredA4 = Math.max(Number(preset?.A4 ?? 1) || 1, minMul);
+      const configuredA3 = Math.max(Number(preset?.A3 ?? 2) || 2, minMul);
+
+      // 디지털 출력 판형 기준: B5는 A4 단가, B4는 A3 단가로 계산합니다.
+      if (size === 'B5') return configuredA4;
+      if (size === 'B4') return configuredA3;
+
+      // 직접입력은 실제 가로×세로를 판형에 맞춰 자동 계산합니다.
+      // A4 이하면 A4, A3 이하면 A3, A3 초과는 실제 면적비(최소 A3 단가)로 계산합니다.
       if (size === 'CUSTOM') {
         const w = Number(cw) || 0;
         const h = Number(ch) || 0;
@@ -295,9 +303,15 @@ document.getElementById('member-go-login-btn')?.addEventListener('click', () => 
         if (!ok) {
           throw new Error('디지털 인쇄 최대 사이즈는 13×19인치(482×330mm) 이하입니다.');
         }
+
+        const shortSide = Math.min(w, h);
+        const longSide = Math.max(w, h);
+        if (shortSide <= 210 && longSide <= 297) return configuredA4;
+        if (shortSide <= 297 && longSide <= 420) return configuredA3;
+
         const areaCustom = w * h;
         const mulCustom = areaCustom / A4_AREA;
-        return Math.max(mulCustom, minMul);
+        return Math.max(mulCustom, configuredA3, minMul);
       }
 
       // Preset override (admin-configurable)
