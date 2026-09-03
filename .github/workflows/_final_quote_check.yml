@@ -1,0 +1,89 @@
+name: Final quote validation
+on:
+  push:
+    branches: [fix/final-quote-size-label-check]
+permissions:
+  contents: write
+jobs:
+  validate-and-patch:
+    if: ${{ !contains(github.event.head_commit.message, '[final-checked]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/final-quote-size-label-check
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Patch labels and stale B5 dimension
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          changes = {
+            Path('quote-print.html'): [
+              ('>사이즈</label>', '>사이즈 단위(mm)</label>'),
+            ],
+            Path('assets/js/pages/quote-book.js'): [
+              ('>규격 (사이즈)</label>', '>규격 (사이즈) 단위(mm)</label>'),
+            ],
+            Path('assets/js/pages/quote-print.js'): [
+              ('B5: 176*250,', 'B5: 182*257,'),
+            ],
+          }
+          for path, reps in changes.items():
+            s = path.read_text()
+            for old, new in reps:
+              if old not in s:
+                raise SystemExit(f'patch marker missing: {path}: {old}')
+              s = s.replace(old, new, 1)
+            path.write_text(s)
+          PY
+      - name: Install and build
+        run: |
+          npm ci
+          npm run build:css
+      - name: Check JavaScript syntax
+        run: |
+          find assets/js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Verify recent quote and FAQ rules
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          qp = Path('assets/js/pages/quote-print.js').read_text()
+          qph = Path('quote-print.html').read_text()
+          qb = Path('assets/js/pages/quote-book.js').read_text()
+          a5 = Path('assets/js/book-a5-size.js').read_text()
+          faq = Path('assets/js/pages/faq-search.js').read_text()
+          checks = {
+            'digital size unit label': '사이즈 단위(mm)' in qph,
+            'digital B5 label': 'B5 (182×257)' in qph,
+            'digital B5 bills as A4': "if (size === 'B5') return configuredA4;" in qp,
+            'digital B4 bills as A3': "if (size === 'B4') return configuredA3;" in qp,
+            'digital custom A4 threshold': 'shortSide <= 210 && longSide <= 297' in qp,
+            'digital custom A3 threshold': 'shortSide <= 297 && longSide <= 420' in qp,
+            'digital fallback B5 dimension current': 'B5: 182*257' in qp,
+            'book size unit label': '규격 (사이즈) 단위(mm)' in qb,
+            'book A4 label': 'A4 (210×297)' in qb,
+            'book B5 label': 'B5 (182×257)' in qb,
+            'book B4 label': 'B4 (257×364)' in qb,
+            'book A3 label': 'A3 (297×420)' in qb,
+            'book A5 label': 'A5 (148×210)' in a5,
+            'book B5 color A4 rate': "sectionSizeValue === '0.9' && isColorPrint ? 1" in qb,
+            'book A5 saddle 60': "selectedBindingType === 'saddle' ? 0.60" in qb,
+            'book A5 perfect/wire 70': "selectedBindingType === 'perfect' || selectedBindingType === 'wire'" in qb and '? 0.70' in qb,
+            'digital full background option': 'fullBackgroundEnabled' in qp and 'fullBackgroundCost' in qp,
+            'FAQ category filter': 'selectedCategory' in faq and 'renderCategories' in faq,
+          }
+          failed = [name for name, ok in checks.items() if not ok]
+          for name, ok in checks.items():
+            print(('PASS' if ok else 'FAIL') + ' - ' + name)
+          if failed:
+            raise SystemExit('failed checks: ' + ', '.join(failed))
+          PY
+      - name: Commit final patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add quote-print.html assets/js/pages/quote-book.js assets/js/pages/quote-print.js
+          git commit -m "Add mm units and finalize quote size labels [final-checked]"
+          git push
