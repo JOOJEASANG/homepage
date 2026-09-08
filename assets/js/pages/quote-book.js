@@ -1035,6 +1035,44 @@ function applyImagePreviewsToUI(root=document) {
                             </button>
                         </div>
                     </div>
+                    <div class="binding-direction-section hidden">
+                        <label class="block text-xs font-bold text-slate-500 mb-2">제본 방향 / 철 위치</label>
+                        <input type="hidden" name="bindingDirection" class="bindingDirection" value="portrait-left">
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 binding-direction-options">
+                            <button type="button" class="option-card" data-value="landscape-top">
+                                <div class="w-14 h-10 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
+                                    <div class="absolute left-1 right-1 top-0 border-t-[3px] border-slate-700"></div>
+                                    <div class="absolute left-2 right-2 top-2 border-t border-dashed border-slate-200"></div>
+                                </div>
+                                <span class="title">가로상철</span>
+                                <span class="description">가로 · 위쪽 제본</span>
+                            </button>
+                            <button type="button" class="option-card" data-value="landscape-left">
+                                <div class="w-14 h-10 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
+                                    <div class="absolute top-1 bottom-1 left-0 border-l-[3px] border-slate-700"></div>
+                                    <div class="absolute top-2 bottom-2 left-2 border-l border-dashed border-slate-200"></div>
+                                </div>
+                                <span class="title">가로좌철</span>
+                                <span class="description">가로 · 왼쪽 제본</span>
+                            </button>
+                            <button type="button" class="option-card selected" data-value="portrait-left">
+                                <div class="w-10 h-14 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
+                                    <div class="absolute top-1 bottom-1 left-0 border-l-[3px] border-slate-700"></div>
+                                    <div class="absolute top-2 bottom-2 left-2 border-l border-dashed border-slate-200"></div>
+                                </div>
+                                <span class="title">세로좌철</span>
+                                <span class="description">세로 · 왼쪽 제본</span>
+                            </button>
+                            <button type="button" class="option-card" data-value="portrait-top">
+                                <div class="w-10 h-14 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
+                                    <div class="absolute left-1 right-1 top-0 border-t-[3px] border-slate-700"></div>
+                                    <div class="absolute left-2 right-2 top-2 border-t border-dashed border-slate-200"></div>
+                                </div>
+                                <span class="title">세로상철</span>
+                                <span class="description">세로 · 위쪽 제본</span>
+                            </button>
+                        </div>
+                    </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-500 mb-1">주문 수량 (부)</label>
                         <input type="number" name="quantity" value="1" min="1" class="form-input w-full quantity text-lg font-bold text-brand-700">
@@ -1068,6 +1106,12 @@ function applyImagePreviewsToUI(root=document) {
             newItem.querySelectorAll('.binding-options .option-card').forEach(card => {
                 card.classList.toggle('selected', card.dataset.value === bindingValue);
             });
+            const bindingDirectionValue = data.bindingDirection || 'portrait-left';
+            newItem.querySelector('.bindingDirection').value = bindingDirectionValue;
+            newItem.querySelectorAll('.binding-direction-options .option-card').forEach(card => {
+                card.classList.toggle('selected', card.dataset.value === bindingDirectionValue);
+            });
+            newItem.querySelector('.binding-direction-section')?.classList.toggle('hidden', bindingValue === 'none');
             newItem.querySelector('.quantity').value = data.quantity || '1';
             newItem.querySelector('.remarks').value = data.remarks || '';
             if (data.interleafSheets > 0) {
@@ -1149,6 +1193,16 @@ function applyImagePreviewsToUI(root=document) {
             bindingOptionsContainer.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected'));
             selectedCard.classList.add('selected');
             itemEl.querySelector('.bindingType').value = selectedCard.dataset.value;
+            itemEl.querySelector('.binding-direction-section')?.classList.toggle('hidden', selectedCard.dataset.value === 'none');
+            calculateAndSave();
+        });
+        const bindingDirectionOptions = itemEl.querySelector('.binding-direction-options');
+        bindingDirectionOptions?.addEventListener('click', (e) => {
+            const selectedCard = e.target.closest('.option-card');
+            if (!selectedCard) return;
+            bindingDirectionOptions.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected'));
+            selectedCard.classList.add('selected');
+            itemEl.querySelector('.bindingDirection').value = selectedCard.dataset.value;
             calculateAndSave();
         });
     }
@@ -1167,6 +1221,7 @@ function applyImagePreviewsToUI(root=document) {
             itemData.coverDesign = itemEl.querySelector('.coverDesign').checked;
             itemData.coverOshi = itemEl.querySelector('.coverOshi').checked;
             itemData.bindingType = itemEl.querySelector('.bindingType').value;
+            itemData.bindingDirection = itemEl.querySelector('.bindingDirection')?.value || 'portrait-left';
             itemData.quantity = itemEl.querySelector('.quantity').value;
             itemData.remarks = itemEl.querySelector('.remarks').value;
             const interleafSection = itemEl.querySelector('.interleaf-section');
@@ -1247,6 +1302,9 @@ function applyImagePreviewsToUI(root=document) {
                 ? rawItemSizeMultiplier
                 : 1;
             const selectedBindingType = itemEl.querySelector('.bindingType').value;
+            const bindingDirection = itemEl.querySelector('.bindingDirection')?.value || 'portrait-left';
+            itemEl.querySelector('.binding-direction-section')?.classList.toggle('hidden', selectedBindingType === 'none');
+            const bindingDirectionLabels = { 'landscape-top':'가로상철', 'landscape-left':'가로좌철', 'portrait-left':'세로좌철', 'portrait-top':'세로상철' };
             const largeSizeMultiplier = itemSizeMultiplier >= 1 ? itemSizeMultiplier : 1;
             // A5 내지 인쇄비는 제본 방식에 따라 별도 배율(중철 60%, 무선/와이어 70%)을 적용합니다.
 
@@ -1365,7 +1423,7 @@ function applyImagePreviewsToUI(root=document) {
                 bindingCost = Math.floor((bindingUnitPrice * quantity) / 100) * 100; // 100원 단위 절삭
 
                 if (bindingCost > 0) {
-                    itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 제본 (${getSpecText('bindingType', bindingType)})</span><span class="text-slate-500 text-xs">${Math.round(bindingUnitPrice).toLocaleString()}원/부</span></div><div class="flex justify-end font-medium text-slate-800">${bindingCost.toLocaleString()}원</div></li>`;
+                    itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 제본 (${getSpecText('bindingType', bindingType)} / ${bindingDirectionLabels[bindingDirection] || '세로좌철'})</span><span class="text-slate-500 text-xs">${Math.round(bindingUnitPrice).toLocaleString()}원/부</span></div><div class="flex justify-end font-medium text-slate-800">${bindingCost.toLocaleString()}원</div></li>`;
                 }
             }
 
@@ -1403,7 +1461,7 @@ function applyImagePreviewsToUI(root=document) {
                 cover: (coverPaperType !== 'none' && coverPrintType !== 'none') ? { unitPrice: (typeof coverUnitPrice === 'number' ? coverUnitPrice : 0), amount: totalCoverCost, paperType: coverPaperType, printType: coverPrintType } : null,
                 inners: innerSectionDetailsForSubmission,
                 interleaf: (interleafSheets > 0) ? { sheets: interleafSheets, color: interleafColor, unitPrice: (typeof interleafUnitPrice === 'number' ? interleafUnitPrice : 0), amount: totalInterleafCost } : null,
-                binding: (bindingType !== 'none') ? { type: bindingType, unitPrice: (typeof bindingUnitPrice === 'number' ? bindingUnitPrice : 0), amount: bindingCost } : null,
+                binding: (bindingType !== 'none') ? { type: bindingType, direction: bindingDirection, directionLabel: bindingDirectionLabels[bindingDirection] || '세로좌철', unitPrice: (typeof bindingUnitPrice === 'number' ? bindingUnitPrice : 0), amount: bindingCost } : null,
                 etc: { coverDesign: etcDesignCost, coverOshi: etcOshiCost },
                 itemTotal: itemTotalPrice
             });
@@ -1655,6 +1713,7 @@ DOMElements.signupModal.classList.remove('hidden');
             itemData.coverDesign = itemEl.querySelector('.coverDesign').checked;
             itemData.coverOshi = itemEl.querySelector('.coverOshi').checked;
             itemData.bindingType = itemEl.querySelector('.bindingType').value;
+            itemData.bindingDirection = itemEl.querySelector('.bindingDirection')?.value || 'portrait-left';
             itemData.quantity = itemEl.querySelector('.quantity').value;
             itemData.remarks = itemEl.querySelector('.remarks').value;
             const interleafSection = itemEl.querySelector('.interleaf-section');
