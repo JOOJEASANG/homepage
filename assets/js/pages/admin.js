@@ -1504,7 +1504,7 @@ try {
                         // 제본/간지
                         html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                             ${item.interleafSheets > 0 ? `<div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200"><h5 class="font-bold text-yellow-700 text-sm mb-1">🎨 간지</h5><p class="text-sm"><span class="font-semibold">${getSpecText('color', item.interleafColor)}</span> / <span class="font-bold">${item.interleafSheets}장</span></p></div>` : ''}
-                            <div class="bg-slate-100 p-3 rounded-lg border border-slate-200"><h5 class="font-bold text-slate-700 text-sm mb-1">📚 제본</h5><p class="text-sm font-medium text-slate-900">${getSpecText('binding', item.bindingType)}</p></div>
+                            <div class="bg-slate-100 p-3 rounded-lg border border-slate-200"><h5 class="font-bold text-slate-700 text-sm mb-1">📚 제본</h5><p class="text-sm font-medium text-slate-900">${getSpecText('binding', item.bindingType)}</p>${item.bindingType && item.bindingType !== 'none' ? `<p class="text-xs text-slate-500 mt-1">방향/철 위치: <span class="font-bold text-slate-700">${({ 'landscape-top':'가로상철', 'landscape-left':'가로좌철', 'portrait-left':'세로좌철', 'portrait-top':'세로상철' })[item.bindingDirection] || '세로좌철'}</span></p>` : ''}</div>
                         </div>`;
                     
                     } else {
