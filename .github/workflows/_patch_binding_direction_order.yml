@@ -18,85 +18,43 @@ jobs:
           from pathlib import Path
           p=Path('assets/js/pages/quote-book.js')
           s=p.read_text(encoding='utf-8')
-          old='''                            <button type="button" class="option-card" data-value="landscape-top">
-                                <div class="w-14 h-10 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
-                                    <div class="absolute left-1 right-1 top-0 border-t-[3px] border-slate-700"></div>
-                                    <div class="absolute left-2 right-2 top-2 border-t border-dashed border-slate-200"></div>
-                                </div>
-                                <span class="title">가로상철</span>
-                                <span class="description">가로 · 위쪽 제본</span>
-                            </button>
-                            <button type="button" class="option-card" data-value="landscape-left">
-                                <div class="w-14 h-10 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
-                                    <div class="absolute top-1 bottom-1 left-0 border-l-[3px] border-slate-700"></div>
-                                    <div class="absolute top-2 bottom-2 left-2 border-l border-dashed border-slate-200"></div>
-                                </div>
-                                <span class="title">가로좌철</span>
-                                <span class="description">가로 · 왼쪽 제본</span>
-                            </button>
-                            <button type="button" class="option-card selected" data-value="portrait-left">
-                                <div class="w-10 h-14 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
-                                    <div class="absolute top-1 bottom-1 left-0 border-l-[3px] border-slate-700"></div>
-                                    <div class="absolute top-2 bottom-2 left-2 border-l border-dashed border-slate-200"></div>
-                                </div>
-                                <span class="title">세로좌철</span>
-                                <span class="description">세로 · 왼쪽 제본</span>
-                            </button>
-                            <button type="button" class="option-card" data-value="portrait-top">
-                                <div class="w-10 h-14 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
-                                    <div class="absolute left-1 right-1 top-0 border-t-[3px] border-slate-700"></div>
-                                    <div class="absolute left-2 right-2 top-2 border-t border-dashed border-slate-200"></div>
-                                </div>
-                                <span class="title">세로상철</span>
-                                <span class="description">세로 · 위쪽 제본</span>
-                            </button>'''
-          new='''                            <button type="button" class="option-card selected" data-value="portrait-left">
-                                <div class="w-10 h-14 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
-                                    <div class="absolute top-1 bottom-1 left-0 border-l-[3px] border-slate-700"></div>
-                                    <div class="absolute top-2 bottom-2 left-2 border-l border-dashed border-slate-200"></div>
-                                </div>
-                                <span class="title">세로좌철</span>
-                                <span class="description">세로 · 왼쪽 제본</span>
-                            </button>
-                            <button type="button" class="option-card" data-value="portrait-top">
-                                <div class="w-10 h-14 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
-                                    <div class="absolute left-1 right-1 top-0 border-t-[3px] border-slate-700"></div>
-                                    <div class="absolute left-2 right-2 top-2 border-t border-dashed border-slate-200"></div>
-                                </div>
-                                <span class="title">세로상철</span>
-                                <span class="description">세로 · 위쪽 제본</span>
-                            </button>
-                            <button type="button" class="option-card" data-value="landscape-top">
-                                <div class="w-14 h-10 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
-                                    <div class="absolute left-1 right-1 top-0 border-t-[3px] border-slate-700"></div>
-                                    <div class="absolute left-2 right-2 top-2 border-t border-dashed border-slate-200"></div>
-                                </div>
-                                <span class="title">가로상철</span>
-                                <span class="description">가로 · 위쪽 제본</span>
-                            </button>
-                            <button type="button" class="option-card" data-value="landscape-left">
-                                <div class="w-14 h-10 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
-                                    <div class="absolute top-1 bottom-1 left-0 border-l-[3px] border-slate-700"></div>
-                                    <div class="absolute top-2 bottom-2 left-2 border-l border-dashed border-slate-200"></div>
-                                </div>
-                                <span class="title">가로좌철</span>
-                                <span class="description">가로 · 왼쪽 제본</span>
-                            </button>'''
-          if old not in s:
-              raise SystemExit('direction block not found')
-          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          marker='<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 binding-direction-options">'
+          scope=s.find(marker)
+          if scope < 0:
+              raise SystemExit('binding direction container not found')
+          def button_block(value):
+              pos=s.find(f'data-value="{value}"', scope)
+              if pos < 0:
+                  raise SystemExit(f'{value} not found')
+              start=s.rfind('<button', scope, pos)
+              end=s.find('</button>', pos)
+              if start < 0 or end < 0:
+                  raise SystemExit(f'{value} button bounds not found')
+              end += len('</button>')
+              return start, end, s[start:end]
+          values=['landscape-top','landscape-left','portrait-left','portrait-top']
+          found={v:button_block(v) for v in values}
+          region_start=min(x[0] for x in found.values())
+          region_end=max(x[1] for x in found.values())
+          order=['portrait-left','portrait-top','landscape-top','landscape-left']
+          indent='                            '
+          reordered=('\n'+indent).join(found[v][2] for v in order)
+          s=s[:region_start]+reordered+s[region_end:]
+          p.write_text(s,encoding='utf-8')
       - name: Validate
         run: |
           node --check assets/js/pages/quote-book.js
           python3 - <<'PY'
           from pathlib import Path
           s=Path('assets/js/pages/quote-book.js').read_text(encoding='utf-8')
-          a=s.index('data-value="portrait-left"')
+          scope=s.index('binding-direction-options')
+          a=s.index('data-value="portrait-left"',scope)
           b=s.index('data-value="portrait-top"',a)
           c=s.index('data-value="landscape-top"',b)
           d=s.index('data-value="landscape-left"',c)
           assert a < b < c < d
           assert 'name="bindingDirection" class="bindingDirection" value="portrait-left"' in s
+          assert 'option-card selected" data-value="portrait-left"' in s[a-80:a+80]
           PY
       - name: Commit patch
         run: |
