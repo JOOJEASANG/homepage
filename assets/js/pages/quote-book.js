@@ -1039,22 +1039,6 @@ function applyImagePreviewsToUI(root=document) {
                         <label class="block text-xs font-bold text-slate-500 mb-2">제본 방향 / 철 위치</label>
                         <input type="hidden" name="bindingDirection" class="bindingDirection" value="portrait-left">
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 binding-direction-options">
-                            <button type="button" class="option-card" data-value="landscape-top">
-                                <div class="w-14 h-10 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
-                                    <div class="absolute left-1 right-1 top-0 border-t-[3px] border-slate-700"></div>
-                                    <div class="absolute left-2 right-2 top-2 border-t border-dashed border-slate-200"></div>
-                                </div>
-                                <span class="title">가로상철</span>
-                                <span class="description">가로 · 위쪽 제본</span>
-                            </button>
-                            <button type="button" class="option-card" data-value="landscape-left">
-                                <div class="w-14 h-10 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
-                                    <div class="absolute top-1 bottom-1 left-0 border-l-[3px] border-slate-700"></div>
-                                    <div class="absolute top-2 bottom-2 left-2 border-l border-dashed border-slate-200"></div>
-                                </div>
-                                <span class="title">가로좌철</span>
-                                <span class="description">가로 · 왼쪽 제본</span>
-                            </button>
                             <button type="button" class="option-card selected" data-value="portrait-left">
                                 <div class="w-10 h-14 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
                                     <div class="absolute top-1 bottom-1 left-0 border-l-[3px] border-slate-700"></div>
@@ -1070,6 +1054,22 @@ function applyImagePreviewsToUI(root=document) {
                                 </div>
                                 <span class="title">세로상철</span>
                                 <span class="description">세로 · 위쪽 제본</span>
+                            </button>
+                            <button type="button" class="option-card" data-value="landscape-top">
+                                <div class="w-14 h-10 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
+                                    <div class="absolute left-1 right-1 top-0 border-t-[3px] border-slate-700"></div>
+                                    <div class="absolute left-2 right-2 top-2 border-t border-dashed border-slate-200"></div>
+                                </div>
+                                <span class="title">가로상철</span>
+                                <span class="description">가로 · 위쪽 제본</span>
+                            </button>
+                            <button type="button" class="option-card" data-value="landscape-left">
+                                <div class="w-14 h-10 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
+                                    <div class="absolute top-1 bottom-1 left-0 border-l-[3px] border-slate-700"></div>
+                                    <div class="absolute top-2 bottom-2 left-2 border-l border-dashed border-slate-200"></div>
+                                </div>
+                                <span class="title">가로좌철</span>
+                                <span class="description">가로 · 왼쪽 제본</span>
                             </button>
                         </div>
                     </div>
