@@ -605,7 +605,7 @@ function deepMerge(base, patch){
 
       newBtn.addEventListener('mousedown', (e)=>{ e.preventDefault(); });
 
-      newBtn.addEventListener('mousedown', (e)=>{
+      newBtn.addEventListener('mousedown', async (e)=>{
         e.preventDefault();
         const url = prompt('이미지 주소(URL)를 입력하세요:');
         if (url){
