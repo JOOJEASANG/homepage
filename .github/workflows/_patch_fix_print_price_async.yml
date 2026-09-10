@@ -1,0 +1,36 @@
+name: Fix print price admin async syntax
+on:
+  push:
+    branches: [fix/print-price-admin-async]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[patched-print-price-async]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/print-price-admin-async
+      - name: Patch syntax
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('assets/js/pages/quote-print-price.js')
+          s=p.read_text(encoding='utf-8')
+          old="newBtn.addEventListener('mousedown', (e)=>{\n        e.preventDefault();\n        const url = prompt('이미지 주소(URL)를 입력하세요:');"
+          new="newBtn.addEventListener('mousedown', async (e)=>{\n        e.preventDefault();\n        const url = prompt('이미지 주소(URL)를 입력하세요:');"
+          if old not in s:
+              raise SystemExit('target listener not found')
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+      - name: Validate
+        run: |
+          node --check assets/js/pages/quote-print-price.js
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/js/pages/quote-print-price.js
+          git commit -m "fix: restore digital print price admin script [patched-print-price-async]"
+          git push
