@@ -16,15 +16,15 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
+          import re
           p=Path('assets/js/pages/quote-print-price.js')
           s=p.read_text(encoding='utf-8')
-          old="""          editor.focus();
-          restoreSelection();
-          requestAnimationFrame(()=>{
-            try { document.execCommand('insertImage', false, url); } catch(err) {}
-            saveSelection();
-          });"""
-          new="""          editor.focus();
+          anchor="const url = await getDownloadURL(r);"
+          start=s.find(anchor)
+          if start < 0: raise SystemExit('download url anchor not found')
+          tail=s[start:]
+          pattern=r"editor\.focus\(\);\s*restoreSelection\(\);\s*requestAnimationFrame\(\(\)=>\{\s*try \{ document\.execCommand\('insertImage', false, url\); \} catch\(err\) \{\}\s*saveSelection\(\);\s*\}\);"
+          repl="""editor.focus();
           restoreSelection();
           await new Promise((resolve) => {
             requestAnimationFrame(()=>{
@@ -34,23 +34,17 @@ jobs:
             });
           });
 
-          // 파일로 첨부한 이미지도 공개 디지털인쇄 페이지에서 바로 보이도록
-          // 삽입 완료 후 이미지가 포함된 안내문 HTML을 Firestore에 즉시 저장합니다.
           const savedHtml = await persistGuideHtml(editor.innerHTML || '');
           if (el.guidePreview) el.guidePreview.innerHTML = savedHtml;
           try{
             localStorage.removeItem(GUIDE_DRAFT_KEY);
             localStorage.removeItem(GUIDE_DRAFT_AT_KEY);
           }catch(e){}"""
-          # URL 삽입 쪽은 이미 await 버전이므로, 남아 있는 단순 requestAnimationFrame 블록 1개만 교체
-          if old not in s:
-              raise SystemExit('file upload insertion block not found')
-          s=s.replace(old,new,1)
-          p.write_text(s,encoding='utf-8')
+          tail2,n=re.subn(pattern,repl,tail,count=1,flags=re.S)
+          if n != 1: raise SystemExit('file upload insertion block not found')
+          p.write_text(s[:start]+tail2,encoding='utf-8')
       - name: Validate
-        run: |
-          node --check assets/js/pages/quote-print-price.js
-          grep -q "파일로 첨부한 이미지도 공개 디지털인쇄 페이지" assets/js/pages/quote-print-price.js
+        run: node --check assets/js/pages/quote-print-price.js
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
