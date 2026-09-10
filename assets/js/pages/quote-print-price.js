@@ -663,11 +663,21 @@ function deepMerge(base, patch){
           const url = await getDownloadURL(r);
 
           editor.focus();
-          restoreSelection();
-          requestAnimationFrame(()=>{
-            try { document.execCommand('insertImage', false, url); } catch(err) {}
-            saveSelection();
-          });
+restoreSelection();
+await new Promise((resolve) => {
+  requestAnimationFrame(()=>{
+    try { document.execCommand('insertImage', false, url); } catch(err) {}
+    saveSelection();
+    resolve();
+  });
+});
+
+const savedHtml = await persistGuideHtml(editor.innerHTML || '');
+if (el.guidePreview) el.guidePreview.innerHTML = savedHtml;
+try{
+  localStorage.removeItem(GUIDE_DRAFT_KEY);
+  localStorage.removeItem(GUIDE_DRAFT_AT_KEY);
+}catch(e){}
         } catch (e) {
           console.error(e);
           alert('이미지 업로드 오류');
