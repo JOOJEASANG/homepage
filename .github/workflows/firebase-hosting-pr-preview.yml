@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install
 
+      - name: Test saddle calculator
+        run: npm run test:saddle
+
       - name: Build Tailwind CSS
         run: npm run build:css
 
