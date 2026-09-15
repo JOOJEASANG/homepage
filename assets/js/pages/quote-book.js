@@ -20,6 +20,7 @@ import { app, auth, db, storage,
 import { initHeader } from "../header.js";
 import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
 import { getPerfectInnerPricingMultiplier, getPerfectBindingMetrics } from "./quote-book/perfect-calculator.js";
+import { getWireCoverCost, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js";
 import "../session.js";
 
 // 페이지 로드 시 공통 헤더 렌더링
@@ -890,7 +891,7 @@ function applyImagePreviewsToUI(root=document) {
         const saddleOption = bindingOptions.querySelector('[data-value="saddle"]');
         const wireOption = bindingOptions.querySelector('[data-value="wire"]');
         if (saddleOption) saddleOption.classList.toggle('disabled', totalInnerPages > 40);
-        if (wireOption) wireOption.classList.toggle('disabled', totalInnerPages > 450);
+        if (wireOption) wireOption.classList.toggle('disabled', !isWireBindingAllowed(totalInnerPages));
         const selectedOption = bindingOptions.querySelector('.selected');
         if (selectedOption && selectedOption.classList.contains('disabled')) {
             selectedOption.classList.remove('selected');
@@ -1330,7 +1331,7 @@ function applyImagePreviewsToUI(root=document) {
                 const coverTiers = priceConfig.cover[coverKey] || [];
                 coverUnitPrice = findPriceTier(coverTiers, quantity) * largeSizeMultiplier;
                 totalCoverCost = coverUnitPrice * quantity;
-                if (itemEl.querySelector('.bindingType').value === 'wire') totalCoverCost /= 2;
+                if (selectedBindingType === 'wire') totalCoverCost = getWireCoverCost(totalCoverCost);
                 totalCoverCost = Math.floor(totalCoverCost / 100) * 100; // 100원 단위 절삭
 
                 if (totalCoverCost > 0) {
@@ -1356,8 +1357,8 @@ function applyImagePreviewsToUI(root=document) {
                 // 중철은 saddle-calculator 모듈에서 실제 상위 규격 출력 장수/배율을 별도로 계산합니다.
                 const sizeMultiplier = selectedBindingType === 'perfect'
           ? getPerfectInnerPricingMultiplier({ sectionSizeValue, normalSizeMultiplier, isColorPrint })
-          : (sectionSizeValue === 'a5'
-              ? (selectedBindingType === 'wire' ? 0.70 : normalSizeMultiplier)
+          : (selectedBindingType === 'wire'
+              ? getWireInnerPricingMultiplier({ sectionSizeValue, normalSizeMultiplier, isColorPrint })
               : (sectionSizeValue === '0.9' && isColorPrint ? 1 : normalSizeMultiplier));
                 const pages = parseInt(section.querySelector('.innerPages').value) || 0;
 
@@ -1445,21 +1446,28 @@ function applyImagePreviewsToUI(root=document) {
             let bindingUnitPrice = 0;
 
             if (bindingType !== 'none') {
-                const perfectBindingMetrics = bindingType === 'perfect'
+                const bindingMetrics = bindingType === 'perfect'
                     ? getPerfectBindingMetrics({
                         totalInnerPagesSpecified,
                         interleafSheets,
                         includeInterleafInTotal,
                         itemSizeMultiplier,
                     })
-                    : null;
-                const actualTotalPages = perfectBindingMetrics
-                    ? perfectBindingMetrics.actualTotalPages
+                    : (bindingType === 'wire'
+                        ? getWireBindingMetrics({
+                            totalInnerPagesSpecified,
+                            interleafSheets,
+                            includeInterleafInTotal,
+                            itemSizeMultiplier,
+                        })
+                        : null);
+                const actualTotalPages = bindingMetrics
+                    ? bindingMetrics.actualTotalPages
                     : (includeInterleafInTotal
                         ? totalInnerPagesSpecified
                         : (totalInnerPagesSpecified + interleafSheets));
-                const bindingSizeMultiplier = perfectBindingMetrics
-                    ? perfectBindingMetrics.sizeMultiplier
+                const bindingSizeMultiplier = bindingMetrics
+                    ? bindingMetrics.sizeMultiplier
                     : largeSizeMultiplier;
 
                 const bindingTiers = priceConfig.binding[bindingType] || [];
