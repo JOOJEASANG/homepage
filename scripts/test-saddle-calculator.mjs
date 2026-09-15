@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const modulePath = path.join(root, 'assets/js/pages/quote-book/saddle-calculator.js');
 const source = fs.readFileSync(modulePath, 'utf8');
 const moduleUrl = `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
@@ -56,4 +58,42 @@ assert.deepEqual(
   '18p A5 중철 3부는 권당 5장, 총 15장'
 );
 
-console.log('saddle-calculator tests passed');
+// quote-book.js 연결 회귀 검사: 모듈 import, 중철 장수 기준, 기존 제본비 경로 보존.
+const quoteBookPath = path.join(root, 'assets/js/pages/quote-book.js');
+const quoteBookSource = fs.readFileSync(quoteBookPath, 'utf8');
+assert.match(
+  quoteBookSource,
+  /import \{ getSaddleSectionMetrics \} from "\.\/quote-book\/saddle-calculator\.js";/,
+  'quote-book.js가 중철 계산 모듈을 import해야 함'
+);
+assert.match(
+  quoteBookSource,
+  /const priceLookupQuantity = saddleMetrics \? saddleMetrics\.totalSheets : \(billablePages \* quantity\);/,
+  '중철 단가 구간 조회는 실제 출력 장수를 사용해야 함'
+);
+assert.match(
+  quoteBookSource,
+  /const sectionUnits = saddleMetrics \? saddleMetrics\.totalSheets : \(billablePages \* quantity\);/,
+  '중철 내지 비용은 실제 출력 장수를 사용해야 함'
+);
+assert.match(
+  quoteBookSource,
+  /const bindingTiers = priceConfig\.binding\[bindingType\] \|\| \[\];/,
+  '관리자 제본 단가 경로는 유지되어야 함'
+);
+assert.doesNotMatch(
+  quoteBookSource,
+  /selectedBindingType === 'saddle' \? 0\.60/,
+  '기존 A5 중철 60% 하드코딩은 제거되어야 함'
+);
+
+// 브라우저 실행 전 JS 문법 자체도 Node parser로 확인한다. import 대상은 실행하지 않는다.
+const syntaxPath = path.join(os.tmpdir(), `quote-book-syntax-${process.pid}.mjs`);
+try {
+  fs.writeFileSync(syntaxPath, quoteBookSource, 'utf8');
+  execFileSync(process.execPath, ['--check', syntaxPath], { stdio: 'pipe' });
+} finally {
+  try { fs.unlinkSync(syntaxPath); } catch (_) {}
+}
+
+console.log('saddle-calculator and quote-book integration tests passed');
