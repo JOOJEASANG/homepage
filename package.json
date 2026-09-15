@@ -7,7 +7,8 @@
     "watch:css": "tailwindcss -i ./assets/css/input.css -o ./assets/css/tailwind.css --watch",
     "test:saddle": "node scripts/test-saddle-calculator.mjs",
     "test:perfect": "node scripts/test-perfect-calculator.mjs",
-    "test:book": "npm run test:saddle && npm run test:perfect"
+    "test:wire": "node scripts/test-wire-calculator.mjs",
+    "test:book": "npm run test:saddle && npm run test:perfect && npm run test:wire"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.0"
