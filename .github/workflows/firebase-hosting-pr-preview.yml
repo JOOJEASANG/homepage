@@ -25,8 +25,8 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install
 
-      - name: Test saddle calculator
-        run: npm run test:saddle
+      - name: Test book calculators
+        run: npm run test:book
 
       - name: Build Tailwind CSS
         run: npm run build:css
@@ -53,8 +53,12 @@ jobs:
 
           curl -fsSL "$BASE_URL/assets/js/pages/quote-book.js" -o /tmp/quote-book.js
           grep -F 'getSaddleSectionMetrics' /tmp/quote-book.js
-          grep -F 'const priceLookupQuantity = saddleMetrics ? saddleMetrics.totalSheets' /tmp/quote-book.js
+          grep -F 'getPerfectInnerPricingMultiplier' /tmp/quote-book.js
+          grep -F 'getPerfectBindingMetrics' /tmp/quote-book.js
 
           curl -fsSL "$BASE_URL/assets/js/pages/quote-book/saddle-calculator.js" -o /tmp/saddle-calculator.js
           grep -F 'export function getSaddleSheetsPerCopy' /tmp/saddle-calculator.js
-          grep -F "a5: { outputSize: 'A4', outputMultiplier: 1 }" /tmp/saddle-calculator.js
+
+          curl -fsSL "$BASE_URL/assets/js/pages/quote-book/perfect-calculator.js" -o /tmp/perfect-calculator.js
+          grep -F 'export function getPerfectInnerPricingMultiplier' /tmp/perfect-calculator.js
+          grep -F 'export function getPerfectBindingMetrics' /tmp/perfect-calculator.js

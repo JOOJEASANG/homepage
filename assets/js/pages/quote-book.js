@@ -19,6 +19,7 @@ import { app, auth, db, storage,
 } from "../firebase.js";
 import { initHeader } from "../header.js";
 import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
+import { getPerfectInnerPricingMultiplier, getPerfectBindingMetrics } from "./quote-book/perfect-calculator.js";
 import "../session.js";
 
 // 페이지 로드 시 공통 헤더 렌더링
@@ -1353,9 +1354,11 @@ function applyImagePreviewsToUI(root=document) {
                 const isColorPrint = printTypeValue === 'color_simplex' || printTypeValue === 'color_duplex';
                 // B5 컬러 내지는 A4와 동일한 100% 단가로 계산합니다. (B5 흑백은 기존 90% 유지)
                 // 중철은 saddle-calculator 모듈에서 실제 상위 규격 출력 장수/배율을 별도로 계산합니다.
-                const sizeMultiplier = sectionSizeValue === 'a5'
-          ? ((selectedBindingType === 'perfect' || selectedBindingType === 'wire') ? 0.70 : normalSizeMultiplier)
-          : (sectionSizeValue === '0.9' && isColorPrint ? 1 : normalSizeMultiplier);
+                const sizeMultiplier = selectedBindingType === 'perfect'
+          ? getPerfectInnerPricingMultiplier({ sectionSizeValue, normalSizeMultiplier, isColorPrint })
+          : (sectionSizeValue === 'a5'
+              ? (selectedBindingType === 'wire' ? 0.70 : normalSizeMultiplier)
+              : (sectionSizeValue === '0.9' && isColorPrint ? 1 : normalSizeMultiplier));
                 const pages = parseInt(section.querySelector('.innerPages').value) || 0;
 
                 totalInnerPagesSpecified += pages;
@@ -1442,12 +1445,25 @@ function applyImagePreviewsToUI(root=document) {
             let bindingUnitPrice = 0;
 
             if (bindingType !== 'none') {
-                const actualTotalPages = includeInterleafInTotal ? 
-                                         totalInnerPagesSpecified : 
-                                         (totalInnerPagesSpecified + interleafSheets);
+                const perfectBindingMetrics = bindingType === 'perfect'
+                    ? getPerfectBindingMetrics({
+                        totalInnerPagesSpecified,
+                        interleafSheets,
+                        includeInterleafInTotal,
+                        itemSizeMultiplier,
+                    })
+                    : null;
+                const actualTotalPages = perfectBindingMetrics
+                    ? perfectBindingMetrics.actualTotalPages
+                    : (includeInterleafInTotal
+                        ? totalInnerPagesSpecified
+                        : (totalInnerPagesSpecified + interleafSheets));
+                const bindingSizeMultiplier = perfectBindingMetrics
+                    ? perfectBindingMetrics.sizeMultiplier
+                    : largeSizeMultiplier;
 
                 const bindingTiers = priceConfig.binding[bindingType] || [];
-                bindingUnitPrice = findBindingPriceTier(bindingTiers, quantity, actualTotalPages) * largeSizeMultiplier;
+                bindingUnitPrice = findBindingPriceTier(bindingTiers, quantity, actualTotalPages) * bindingSizeMultiplier;
                 bindingCost = Math.floor((bindingUnitPrice * quantity) / 100) * 100; // 100원 단위 절삭
 
                 if (bindingCost > 0) {
