@@ -25,12 +25,36 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install
 
+      - name: Test saddle calculator
+        run: npm run test:saddle
+
       - name: Build Tailwind CSS
         run: npm run build:css
 
       - name: Deploy preview to Firebase Hosting
+        id: firebase_preview
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: worklist-1e83a
+
+      - name: Smoke test deployed book quote preview
+        env:
+          PREVIEW_URL: ${{ steps.firebase_preview.outputs.details_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$PREVIEW_URL"
+          BASE_URL="${PREVIEW_URL%/}"
+
+          curl -fsSL "$BASE_URL/quote-book.html" -o /tmp/quote-book.html
+          grep -F 'assets/js/pages/quote-book.js' /tmp/quote-book.html
+
+          curl -fsSL "$BASE_URL/assets/js/pages/quote-book.js" -o /tmp/quote-book.js
+          grep -F 'getSaddleSectionMetrics' /tmp/quote-book.js
+          grep -F 'const priceLookupQuantity = saddleMetrics ? saddleMetrics.totalSheets' /tmp/quote-book.js
+
+          curl -fsSL "$BASE_URL/assets/js/pages/quote-book/saddle-calculator.js" -o /tmp/saddle-calculator.js
+          grep -F 'export function getSaddleSheetsPerCopy' /tmp/saddle-calculator.js
+          grep -F "a5: { outputSize: 'A4', outputMultiplier: 1 }" /tmp/saddle-calculator.js
