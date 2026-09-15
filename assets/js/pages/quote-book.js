@@ -18,6 +18,7 @@ import { app, auth, db, storage,
          ref as storageRef, uploadBytes, getDownloadURL,
 } from "../firebase.js";
 import { initHeader } from "../header.js";
+import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
 import "../session.js";
 
 // 페이지 로드 시 공통 헤더 렌더링
@@ -1340,6 +1341,9 @@ function applyImagePreviewsToUI(root=document) {
             let totalInnerCost = 0;
             const innerSectionDetailsForSubmission = [];
             let totalInnerPagesSpecified = 0;
+            let saddleSheetsPerCopyTotal = 0;
+            let saddleTotalSheets = 0;
+            let saddleHasRoundedSection = false;
 
             itemEl.querySelectorAll('.inner-section').forEach((section, innerIndex) => {
                 const paperTypeValue = section.querySelector('.innerPaperType').value;
@@ -1348,8 +1352,9 @@ function applyImagePreviewsToUI(root=document) {
                 const normalSizeMultiplier = parseFloat(sectionSizeValue);
                 const isColorPrint = printTypeValue === 'color_simplex' || printTypeValue === 'color_duplex';
                 // B5 컬러 내지는 A4와 동일한 100% 단가로 계산합니다. (B5 흑백은 기존 90% 유지)
+                // 중철은 saddle-calculator 모듈에서 실제 상위 규격 출력 장수/배율을 별도로 계산합니다.
                 const sizeMultiplier = sectionSizeValue === 'a5'
-          ? (selectedBindingType === 'saddle' ? 0.60 : ((selectedBindingType === 'perfect' || selectedBindingType === 'wire') ? 0.70 : normalSizeMultiplier))
+          ? ((selectedBindingType === 'perfect' || selectedBindingType === 'wire') ? 0.70 : normalSizeMultiplier)
           : (sectionSizeValue === '0.9' && isColorPrint ? 1 : normalSizeMultiplier);
                 const pages = parseInt(section.querySelector('.innerPages').value) || 0;
 
@@ -1369,26 +1374,49 @@ function applyImagePreviewsToUI(root=document) {
                 const basePriceKey = isBasePaper ? 'base_general' : 'base_premium';
                 const a4Tiers = priceConfig.inner[basePriceKey]?.[printTypeValue] || [];
                 
-                const baseUnitPrice = findPriceTier(a4Tiers, billablePages * quantity);
+                const saddleMetrics = selectedBindingType === 'saddle'
+                    ? getSaddleSectionMetrics({
+                        pages: billablePages,
+                        quantity,
+                        sectionSizeValue,
+                        fallbackMultiplier: sizeMultiplier,
+                    })
+                    : null;
+                const priceLookupQuantity = saddleMetrics ? saddleMetrics.totalSheets : (billablePages * quantity);
+                const pricingMultiplier = saddleMetrics ? saddleMetrics.outputMultiplier : sizeMultiplier;
+                const baseUnitPrice = findPriceTier(a4Tiers, priceLookupQuantity);
                 const upcharge = priceConfig.inner.upcharges?.[paperTypeValue] || 0;
-                const finalInnerUnitPrice = (baseUnitPrice + upcharge) * sizeMultiplier;
+                const finalInnerUnitPrice = (baseUnitPrice + upcharge) * pricingMultiplier;
+                const sectionUnits = saddleMetrics ? saddleMetrics.totalSheets : (billablePages * quantity);
                 
-                const sectionCostRaw = finalInnerUnitPrice * billablePages * quantity;
+                const sectionCostRaw = finalInnerUnitPrice * sectionUnits;
                 const sectionCost = Math.floor(sectionCostRaw / 100) * 100; // 100원 단위 절삭
                 totalInnerCost += sectionCost;
 
+                if (saddleMetrics) {
+                    saddleSheetsPerCopyTotal += saddleMetrics.sheetsPerCopy;
+                    saddleTotalSheets += saddleMetrics.totalSheets;
+                    if (billablePages > 0 && !saddleMetrics.validPageMultiple) saddleHasRoundedSection = true;
+                }
+
                 innerSectionDetailsForSubmission.push({
                     index: innerIndex + 1,
-                    specs: `${getSpecText('innerPaperType', paperTypeValue)} / ${getSpecText('innerPrintType', printTypeValue)} / ${pages}p${deductedMsg}`,
+                    specs: `${getSpecText('innerPaperType', paperTypeValue)} / ${getSpecText('innerPrintType', printTypeValue)} / ${pages}p${deductedMsg}${saddleMetrics ? ` / 출력 ${saddleMetrics.outputSize}` : ''}`,
                     unitPricePerPage: finalInnerUnitPrice,
+                    pricingUnit: saddleMetrics ? 'sheet' : 'page',
                     pages: billablePages,
+                    sheetsPerCopy: saddleMetrics ? saddleMetrics.sheetsPerCopy : null,
+                    totalSheets: saddleMetrics ? saddleMetrics.totalSheets : null,
+                    outputSize: saddleMetrics ? saddleMetrics.outputSize : null,
                     amount: sectionCost
                 });
 
                 if (sectionCost > 0) {
-                    const innerSpecText = `${getSpecText('innerPaperType', paperTypeValue)}, ${getSpecText('innerPrintType', printTypeValue)}, ${pages}p${deductedMsg}`;
+                    const saddleOutputText = saddleMetrics ? `, 출력 ${saddleMetrics.outputSize} · 권당 ${saddleMetrics.sheetsPerCopy}장` : '';
+                    const innerSpecText = `${getSpecText('innerPaperType', paperTypeValue)}, ${getSpecText('innerPrintType', printTypeValue)}, ${pages}p${deductedMsg}${saddleOutputText}`;
+                    const innerUnitLabel = saddleMetrics ? '원/장' : '원/p';
                     if (billablePages > 0) {
-                        itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 내지 #${innerIndex + 1} (${innerSpecText})</span><span class="text-slate-500 text-xs">${Math.round(finalInnerUnitPrice).toLocaleString()}원/p</span></div><div class="flex justify-end font-medium text-slate-800">${sectionCost.toLocaleString()}원</div></li>`;
+                        itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 내지 #${innerIndex + 1} (${innerSpecText})</span><span class="text-slate-500 text-xs">${Math.round(finalInnerUnitPrice).toLocaleString()}${innerUnitLabel}</span></div><div class="flex justify-end font-medium text-slate-800">${sectionCost.toLocaleString()}원</div></li>`;
                     }
                 }
             });
@@ -1445,12 +1473,15 @@ function applyImagePreviewsToUI(root=document) {
                 }
             }
 
-            // 내지 총 장수: 페이지 수를 양면 기준 2로 나눈 실제 낱장 수 × 부수입니다.
-  // 홀수 페이지는 마지막 한 면도 종이 1장이 필요하므로 올림 처리합니다.
-  const innerSheetsPerCopy = Math.ceil(totalInnerPagesSpecified / 2);
-  const totalInnerSheets = innerSheetsPerCopy * quantity;
+            // 중철은 소책자 배치 기준 4p/장, 그 외 기존 방식은 양면 기준 2p/장 계산을 유지합니다.
+  const isSaddleBinding = selectedBindingType === 'saddle';
+  const innerSheetsPerCopy = isSaddleBinding ? saddleSheetsPerCopyTotal : Math.ceil(totalInnerPagesSpecified / 2);
+  const totalInnerSheets = isSaddleBinding ? saddleTotalSheets : (innerSheetsPerCopy * quantity);
+  const saddleSheetNote = isSaddleBinding
+      ? ` · 중철 4p/장${saddleHasRoundedSection ? ' · 4p 미만 잔여 올림' : ''}`
+      : '';
   if (totalInnerPagesSpecified > 0) {
-      itemBreakdownHtml += `<li class="mt-2 pt-2 border-t border-slate-100"><div class="flex justify-between items-center"><span class="text-slate-600 font-medium">내지 총 장수</span><span class="font-bold text-brand-600">${totalInnerSheets.toLocaleString()}장</span></div><div class="text-right text-[11px] text-slate-400 mt-0.5">권당 ${innerSheetsPerCopy.toLocaleString()}장 × ${quantity.toLocaleString()}부</div></li>`;
+      itemBreakdownHtml += `<li class="mt-2 pt-2 border-t border-slate-100"><div class="flex justify-between items-center"><span class="text-slate-600 font-medium">내지 총 장수</span><span class="font-bold text-brand-600">${totalInnerSheets.toLocaleString()}장</span></div><div class="text-right text-[11px] text-slate-400 mt-0.5">권당 ${innerSheetsPerCopy.toLocaleString()}장 × ${quantity.toLocaleString()}부${saddleSheetNote}</div></li>`;
   }
 
   itemTotalPrice = totalCoverCost + totalInnerCost + totalInterleafCost + bindingCost + etcDesignCost + etcOshiCost;
