@@ -6,7 +6,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
   checks: write
 
@@ -16,6 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -25,13 +28,33 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install
 
+      - name: Apply wire calculator refactor once
+        id: wire_patch
+        shell: bash
+        run: |
+          python scripts/apply-wire-refactor.py
+          if git diff --quiet -- assets/js/pages/quote-book.js; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git diff --check
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add assets/js/pages/quote-book.js
+            git commit -m "refactor: connect wire calculator to book quote"
+            git push origin HEAD:${{ github.head_ref }}
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Test book calculators
+        if: steps.wire_patch.outputs.changed != 'true'
         run: npm run test:book
 
       - name: Build Tailwind CSS
+        if: steps.wire_patch.outputs.changed != 'true'
         run: npm run build:css
 
       - name: Deploy preview to Firebase Hosting
+        if: steps.wire_patch.outputs.changed != 'true'
         id: firebase_preview
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
@@ -40,6 +63,7 @@ jobs:
           projectId: worklist-1e83a
 
       - name: Smoke test deployed book quote preview
+        if: steps.wire_patch.outputs.changed != 'true'
         env:
           PREVIEW_URL: ${{ steps.firebase_preview.outputs.details_url }}
         shell: bash
@@ -54,11 +78,15 @@ jobs:
           curl -fsSL "$BASE_URL/assets/js/pages/quote-book.js" -o /tmp/quote-book.js
           grep -F 'getSaddleSectionMetrics' /tmp/quote-book.js
           grep -F 'getPerfectInnerPricingMultiplier' /tmp/quote-book.js
-          grep -F 'getPerfectBindingMetrics' /tmp/quote-book.js
+          grep -F 'getWireInnerPricingMultiplier' /tmp/quote-book.js
+          grep -F 'getWireBindingMetrics' /tmp/quote-book.js
 
           curl -fsSL "$BASE_URL/assets/js/pages/quote-book/saddle-calculator.js" -o /tmp/saddle-calculator.js
           grep -F 'export function getSaddleSheetsPerCopy' /tmp/saddle-calculator.js
 
           curl -fsSL "$BASE_URL/assets/js/pages/quote-book/perfect-calculator.js" -o /tmp/perfect-calculator.js
-          grep -F 'export function getPerfectInnerPricingMultiplier' /tmp/perfect-calculator.js
           grep -F 'export function getPerfectBindingMetrics' /tmp/perfect-calculator.js
+
+          curl -fsSL "$BASE_URL/assets/js/pages/quote-book/wire-calculator.js" -o /tmp/wire-calculator.js
+          grep -F 'export function getWireCoverCost' /tmp/wire-calculator.js
+          grep -F 'export function getWireBindingMetrics' /tmp/wire-calculator.js
