@@ -4,7 +4,8 @@
   "description": "그린오피스 홈페이지",
   "scripts": {
     "build:css": "tailwindcss -i ./assets/css/input.css -o ./assets/css/tailwind.css --minify",
-    "watch:css": "tailwindcss -i ./assets/css/input.css -o ./assets/css/tailwind.css --watch"
+    "watch:css": "tailwindcss -i ./assets/css/input.css -o ./assets/css/tailwind.css --watch",
+    "test:saddle": "node scripts/test-saddle-calculator.mjs"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.0"
