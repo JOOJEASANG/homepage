@@ -21,6 +21,7 @@ import { initHeader } from "../header.js";
 import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
 import { getPerfectInnerPricingMultiplier, getPerfectBindingMetrics } from "./quote-book/perfect-calculator.js";
 import { getWireCoverCost, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js";
+import { findPriceTier, findBindingPriceTier, floorToHundred, getLargeSizeMultiplier } from "./quote-book/calculator-utils.js";
 import "../session.js";
 
 // 페이지 로드 시 공통 헤더 렌더링
@@ -342,25 +343,6 @@ const editState = { enabled: false, quoteId: null, adminEdit: false };
         });
     }
     
-    function findPriceTier(tiers = [], value) {
-        if (!Array.isArray(tiers) || tiers.length === 0) return 0;
-        const sortedTiers = [...tiers].sort((a, b) => b.threshold - a.threshold);
-        for (const tier of sortedTiers) {
-            if (value >= tier.threshold) return tier.price;
-        }
-        return tiers.length > 0 ? tiers[tiers.length - 1].price : 0;
-    }
-
-    function findBindingPriceTier(tiers = [], quantity, totalPages) {
-        if (!Array.isArray(tiers) || tiers.length === 0) return 0;
-        const sortedTiers = [...tiers].sort((a, b) => (a.pageThreshold !== b.pageThreshold) ? a.pageThreshold - b.pageThreshold : b.qtyThreshold - a.qtyThreshold);
-        for (const tier of sortedTiers) {
-            const pageCondition = tier.pageOperator === 'lte' ? totalPages <= tier.pageThreshold : totalPages >= tier.pageThreshold;
-            const qtyCondition = tier.qtyOperator === 'gte' ? quantity >= tier.qtyThreshold : quantity <= tier.qtyThreshold;
-            if (pageCondition && qtyCondition) return tier.price;
-        }
-        return 0;
-    }
     
     // 기본(하위호환) 목록 - Firestore settings/imagePreviews._meta.items 가 있으면 자동으로 대체됩니다.
     let baseInnerPapers = [ { value: 'mimoon80', text: '미색모조 80g' }, { value: 'mimoon100', text: '미색모조 100g' }, { value: 'baek80', text: '백색모조 80g' }, { value: 'baek100', text: '백색모조 100g' }, ];
@@ -1308,7 +1290,7 @@ function applyImagePreviewsToUI(root=document) {
             const bindingDirection = itemEl.querySelector('.bindingDirection')?.value || 'portrait-left';
             itemEl.querySelector('.binding-direction-section')?.classList.toggle('hidden', selectedBindingType === 'none');
             const bindingDirectionLabels = { 'landscape-top':'가로상철', 'landscape-left':'가로좌철', 'portrait-left':'세로좌철', 'portrait-top':'세로상철' };
-            const largeSizeMultiplier = itemSizeMultiplier >= 1 ? itemSizeMultiplier : 1;
+            const largeSizeMultiplier = getLargeSizeMultiplier(itemSizeMultiplier);
             // A5 내지 인쇄비는 제본 방식에 따라 별도 배율(중철 60%, 무선/와이어 70%)을 적용합니다.
 
             let itemTotalPrice = 0;
@@ -1332,7 +1314,7 @@ function applyImagePreviewsToUI(root=document) {
                 coverUnitPrice = findPriceTier(coverTiers, quantity) * largeSizeMultiplier;
                 totalCoverCost = coverUnitPrice * quantity;
                 if (selectedBindingType === 'wire') totalCoverCost = getWireCoverCost(totalCoverCost);
-                totalCoverCost = Math.floor(totalCoverCost / 100) * 100; // 100원 단위 절삭
+                totalCoverCost = floorToHundred(totalCoverCost); // 100원 단위 절삭
 
                 if (totalCoverCost > 0) {
                     const coverSpecText = `${getSpecText('coverPaperType', coverPaperType)} / ${getSpecText('coverPrintType', coverPrintType)}`;
@@ -1394,7 +1376,7 @@ function applyImagePreviewsToUI(root=document) {
                 const sectionUnits = saddleMetrics ? saddleMetrics.totalSheets : (billablePages * quantity);
                 
                 const sectionCostRaw = finalInnerUnitPrice * sectionUnits;
-                const sectionCost = Math.floor(sectionCostRaw / 100) * 100; // 100원 단위 절삭
+                const sectionCost = floorToHundred(sectionCostRaw); // 100원 단위 절삭
                 totalInnerCost += sectionCost;
 
                 if (saddleMetrics) {
@@ -1432,7 +1414,7 @@ function applyImagePreviewsToUI(root=document) {
                 const interleafTiers = priceConfig.interleaf[interleafColor] || [];
                 const totalInterleafSheets = interleafSheets * quantity;
                 interleafUnitPrice = findPriceTier(interleafTiers, totalInterleafSheets);
-                totalInterleafCost = Math.floor((interleafUnitPrice * totalInterleafSheets) / 100) * 100; // 100원 단위 절삭
+                totalInterleafCost = floorToHundred(interleafUnitPrice * totalInterleafSheets); // 100원 단위 절삭
 
                 if (totalInterleafCost > 0) {
                     const interleafSpecText = `${getSpecText('interleafColor', interleafColor)} / ${interleafSheets}p`;
@@ -1472,7 +1454,7 @@ function applyImagePreviewsToUI(root=document) {
 
                 const bindingTiers = priceConfig.binding[bindingType] || [];
                 bindingUnitPrice = findBindingPriceTier(bindingTiers, quantity, actualTotalPages) * bindingSizeMultiplier;
-                bindingCost = Math.floor((bindingUnitPrice * quantity) / 100) * 100; // 100원 단위 절삭
+                bindingCost = floorToHundred(bindingUnitPrice * quantity); // 100원 단위 절삭
 
                 if (bindingCost > 0) {
                     itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 제본 (${getSpecText('bindingType', bindingType)} / ${bindingDirectionLabels[bindingDirection] || '세로좌철'})</span><span class="text-slate-500 text-xs">${Math.round(bindingUnitPrice).toLocaleString()}원/부</span></div><div class="flex justify-end font-medium text-slate-800">${bindingCost.toLocaleString()}원</div></li>`;
@@ -1485,13 +1467,13 @@ function applyImagePreviewsToUI(root=document) {
             let etcOshiCost = 0;
 
             if (coverDesign) {
-                etcDesignCost = Math.floor((priceConfig.etc.coverDesign || 0) / 100) * 100; // 100원 단위 절삭
+                etcDesignCost = floorToHundred(priceConfig.etc.coverDesign || 0); // 100원 단위 절삭
                 if (etcDesignCost > 0) {
                     itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 디자인</span><div class="font-medium text-slate-800">${etcDesignCost.toLocaleString()}원</div></div></li>`;
                 }
             }
             if (coverOshi) {
-                etcOshiCost = Math.floor(((priceConfig.etc.coverOshi || 0) * quantity) / 100) * 100; // 100원 단위 절삭
+                etcOshiCost = floorToHundred((priceConfig.etc.coverOshi || 0) * quantity); // 100원 단위 절삭
                 if (etcOshiCost > 0) {
                     itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 오시</span><div class="font-medium text-slate-800">${etcOshiCost.toLocaleString()}원</div></div></li>`;
                 }
