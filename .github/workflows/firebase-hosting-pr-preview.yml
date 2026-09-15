@@ -6,7 +6,7 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
   checks: write
 
@@ -16,8 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -27,33 +25,13 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install
 
-      - name: Apply common calculator refactor once
-        id: apply_refactor
-        shell: bash
-        run: |
-          set -euo pipefail
-          python scripts/apply-calculator-utils-refactor.py
-          if git diff --quiet -- assets/js/pages/quote-book.js; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add assets/js/pages/quote-book.js
-            git commit -m "refactor: connect common book calculator utilities"
-            git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Test book calculators
-        if: steps.apply_refactor.outputs.changed != 'true'
         run: npm run test:book
 
       - name: Build Tailwind CSS
-        if: steps.apply_refactor.outputs.changed != 'true'
         run: npm run build:css
 
       - name: Deploy preview to Firebase Hosting
-        if: steps.apply_refactor.outputs.changed != 'true'
         id: firebase_preview
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
@@ -62,7 +40,6 @@ jobs:
           projectId: worklist-1e83a
 
       - name: Smoke test deployed book quote preview
-        if: steps.apply_refactor.outputs.changed != 'true'
         env:
           PREVIEW_URL: ${{ steps.firebase_preview.outputs.details_url }}
         shell: bash
@@ -79,6 +56,14 @@ jobs:
           grep -F 'getPerfectInnerPricingMultiplier' /tmp/quote-book.js
           grep -F 'getWireInnerPricingMultiplier' /tmp/quote-book.js
           grep -F 'getWireBindingMetrics' /tmp/quote-book.js
+          grep -F 'findBindingPriceTier' /tmp/quote-book.js
+          grep -F 'floorToHundred' /tmp/quote-book.js
+
+          curl -fsSL "$BASE_URL/assets/js/pages/quote-book/calculator-utils.js" -o /tmp/calculator-utils.js
+          grep -F 'export function findPriceTier' /tmp/calculator-utils.js
+          grep -F 'export function findBindingPriceTier' /tmp/calculator-utils.js
+          grep -F 'export function floorToHundred' /tmp/calculator-utils.js
+          grep -F 'export function getLargeSizeMultiplier' /tmp/calculator-utils.js
 
           curl -fsSL "$BASE_URL/assets/js/pages/quote-book/saddle-calculator.js" -o /tmp/saddle-calculator.js
           grep -F 'export function getSaddleSheetsPerCopy' /tmp/saddle-calculator.js
