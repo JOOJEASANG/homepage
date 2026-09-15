@@ -109,8 +109,8 @@ assert.doesNotMatch(
 );
 assert.match(
   quoteBookSource,
-  /selectedBindingType === 'wire' \? 0\.70 : normalSizeMultiplier/,
-  '와이어 A5 70% 경로는 이번 작업에서 그대로 유지해야 함'
+  /getWireInnerPricingMultiplier/,
+  '와이어 계산은 별도 모듈 경로를 사용해야 함'
 );
 assert.match(
   quoteBookSource,
