@@ -1,10 +1,10 @@
 {
   "name": "gprint-functions",
-  "description": "Firebase Functions for GreenOffice AI chat",
+  "description": "Firebase Functions for GreenOffice website",
   "engines": {
     "node": "22"
   },
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
     "serve": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
