@@ -60,8 +60,10 @@ jobs:
           grep -F 'floorToHundred' /tmp/quote-book.js
 
           curl -fsSL "$BASE_URL/assets/js/pages/quote-book/calculator-utils.js" -o /tmp/calculator-utils.js
+          grep -F 'export function positiveNumber' /tmp/calculator-utils.js
           grep -F 'export function findPriceTier' /tmp/calculator-utils.js
           grep -F 'export function findBindingPriceTier' /tmp/calculator-utils.js
+          grep -F 'export function getBindingPageCount' /tmp/calculator-utils.js
           grep -F 'export function floorToHundred' /tmp/calculator-utils.js
           grep -F 'export function getLargeSizeMultiplier' /tmp/calculator-utils.js
 
@@ -69,8 +71,10 @@ jobs:
           grep -F 'export function getSaddleSheetsPerCopy' /tmp/saddle-calculator.js
 
           curl -fsSL "$BASE_URL/assets/js/pages/quote-book/perfect-calculator.js" -o /tmp/perfect-calculator.js
+          grep -F "from './calculator-utils.js'" /tmp/perfect-calculator.js
           grep -F 'export function getPerfectBindingMetrics' /tmp/perfect-calculator.js
 
           curl -fsSL "$BASE_URL/assets/js/pages/quote-book/wire-calculator.js" -o /tmp/wire-calculator.js
+          grep -F "from './calculator-utils.js'" /tmp/wire-calculator.js
           grep -F 'export function getWireCoverCost' /tmp/wire-calculator.js
           grep -F 'export function getWireBindingMetrics' /tmp/wire-calculator.js
