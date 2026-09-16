@@ -24,6 +24,7 @@ assert.equal(
 );
 
 const session = fs.readFileSync(path.join(root, 'assets', 'js', 'session.js'), 'utf8');
+const header = fs.readFileSync(path.join(root, 'assets', 'js', 'header.js'), 'utf8');
 const printRuntime = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'quote-print', 'runtime.js'), 'utf8');
 const mypageRuntime = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'mypage', 'runtime.js'), 'utf8');
 const adminRuntime = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'admin', 'runtime.js'), 'utf8');
@@ -53,4 +54,18 @@ assert.ok(adminRuntime.includes("from '../shared/page-utils.js'"));
 assert.ok(adminRuntime.includes("import '../../admin-safety-patches.js'"));
 assert.ok(adminRuntime.includes('export function getAdminQuoteStatusMeta'));
 
-console.log('Shared page utilities and runtime module checks passed');
+// Firebase CDN 초기화 성공 여부와 무관하게 공통 헤더의 접근성/모바일 탐색 계약을 고정합니다.
+for (const expected of [
+  'id="btn-mobile-menu"',
+  'aria-label="메뉴 열기"',
+  'aria-label="그린오피스 홈"',
+  'id="mobile-menu"',
+  'mobileMenu?.classList.toggle("hidden")',
+]) {
+  assert.ok(header.includes(expected), `header navigation contract missing: ${expected}`);
+}
+for (const href of ['quote-book.html', 'quote-print.html', 'qna.html', 'work-guide.html']) {
+  assert.ok(header.includes(href), `header navigation destination missing: ${href}`);
+}
+
+console.log('Shared page utilities, runtime modules, and header navigation contract checks passed');
