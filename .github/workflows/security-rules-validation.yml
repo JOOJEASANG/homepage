@@ -1,0 +1,25 @@
+name: Validate Firebase security rules
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'firestore.rules'
+      - 'storage.rules'
+      - 'firebase.json'
+      - '.github/workflows/security-rules-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Parse Firestore and Storage rules with Firebase emulators
+        shell: bash
+        run: npx --yes firebase-tools@latest emulators:exec --only firestore,storage --project demo-greenoffice "echo Firebase rules parsed"
