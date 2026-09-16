@@ -3,13 +3,15 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const modulePath = path.join(root, 'assets/js/pages/quote-book/calculator-utils.js');
-const source = fs.readFileSync(modulePath, 'utf8');
-const moduleUrl = `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
-const utils = await import(moduleUrl);
+const utils = await import(pathToFileURL(modulePath).href);
+
+assert.equal(utils.positiveNumber(0.9, 1), 0.9, '정상 양수는 그대로 유지');
+assert.equal(utils.positiveNumber(0, 1), 1, '0은 fallback 사용');
+assert.equal(utils.positiveNumber(Number.NaN, 1), 1, 'NaN은 fallback 사용');
 
 // 일반 단가표: 높은 threshold부터 기존 정책대로 선택
 const priceTiers = [
@@ -42,6 +44,17 @@ assert.equal(utils.findBindingPriceTier(bindingTiers, 10, 30), 500, '40p 이하 
 assert.equal(utils.findBindingPriceTier(bindingTiers, 10, 80), 700, '100p 이하 구간');
 assert.equal(utils.findBindingPriceTier([], 10, 80), 0, '빈 제본 단가표는 0');
 
+assert.equal(
+  utils.getBindingPageCount({ totalInnerPagesSpecified: 80, interleafSheets: 4, includeInterleafInTotal: true }),
+  80,
+  '간지 포함이면 제본 페이지에 중복 합산하지 않음'
+);
+assert.equal(
+  utils.getBindingPageCount({ totalInnerPagesSpecified: 80, interleafSheets: 4, includeInterleafInTotal: false }),
+  84,
+  '추가 간지는 제본 페이지에 합산'
+);
+
 // 금액 절삭과 대형 규격 배율은 기존 계산과 동일해야 함
 assert.equal(utils.floorToHundred(1234), 1200, '1234원은 1200원으로 절삭');
 assert.equal(utils.floorToHundred(100), 100, '100원은 유지');
@@ -51,7 +64,7 @@ assert.equal(utils.getLargeSizeMultiplier(0.9), 1, 'B5 계열 표지/제본 배�
 assert.equal(utils.getLargeSizeMultiplier(1), 1, 'A4 배율은 1');
 assert.equal(utils.getLargeSizeMultiplier(1.8), 1.8, 'B4 배율은 1.8');
 assert.equal(utils.getLargeSizeMultiplier(2), 2, 'A3 배율은 2');
-assert.equal(utils.getLargeSizeMultiplier(Number.NaN), 1, '잘못된 배율은 기존 삼항식과 동일하게 1');
+assert.equal(utils.getLargeSizeMultiplier(Number.NaN), 1, '잘못된 배율은 1');
 
 const quoteBookPath = path.join(root, 'assets/js/pages/quote-book.js');
 const quoteBookSource = fs.readFileSync(quoteBookPath, 'utf8');
@@ -88,6 +101,13 @@ assert.match(
 assert.match(quoteBookSource, /getSaddleSectionMetrics/, '중철 모듈 연결 유지');
 assert.match(quoteBookSource, /getPerfectBindingMetrics/, '무선 모듈 연결 유지');
 assert.match(quoteBookSource, /getWireBindingMetrics/, '와이어 모듈 연결 유지');
+
+const perfectSource = fs.readFileSync(path.join(root, 'assets/js/pages/quote-book/perfect-calculator.js'), 'utf8');
+const wireSource = fs.readFileSync(path.join(root, 'assets/js/pages/quote-book/wire-calculator.js'), 'utf8');
+for (const [name, source] of [['perfect', perfectSource], ['wire', wireSource]]) {
+  assert.match(source, /from '\.\/calculator-utils\.js';/, `${name} 계산기가 공통 유틸을 import해야 함`);
+  assert.doesNotMatch(source, /function positiveNumber\(/, `${name} 계산기에 positiveNumber 중복 구현이 없어야 함`);
+}
 
 const syntaxPath = path.join(os.tmpdir(), `quote-book-utils-syntax-${process.pid}.mjs`);
 try {
