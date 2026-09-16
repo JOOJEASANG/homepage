@@ -1,0 +1,39 @@
+name: TEMP Warning Diagnostics
+
+on:
+  push:
+    branches:
+      - chore/ci-security-cleanup
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Node 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Install root dependencies
+        run: npm ci
+      - name: Root browser data dependency tree
+        run: |
+          npm ls browserslist caniuse-lite autoprefixer || true
+          echo '--- warning string locations ---'
+          grep -R -n -m 10 'caniuse-lite is outdated' node_modules 2>/dev/null || true
+          echo '--- Tailwind package dependency metadata ---'
+          node -e "const p=require('./node_modules/tailwindcss/package.json'); console.log(JSON.stringify({version:p.version,dependencies:p.dependencies},null,2))"
+      - name: Setup Functions Node 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Install Functions dependencies
+        working-directory: functions
+        run: npm ci
+      - name: Functions deprecated dependency paths
+        working-directory: functions
+        run: npm ls node-domexception glob --all || true
