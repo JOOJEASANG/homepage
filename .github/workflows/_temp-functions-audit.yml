@@ -1,0 +1,31 @@
+name: TEMP Functions Audit
+
+on:
+  push:
+    branches:
+      - chore/ci-security-cleanup
+
+permissions:
+  contents: read
+
+jobs:
+  audit_functions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Functions Node runtime
+        uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+      - name: Resolve Functions dependencies without changing source
+        working-directory: functions
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Audit Functions dependencies
+        working-directory: functions
+        run: npm audit --json || true
+      - name: Functions dependency updates
+        working-directory: functions
+        run: npm outdated || true
+      - name: Syntax check Functions entrypoint
+        working-directory: functions
+        run: node --check index.js
