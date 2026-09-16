@@ -1,4 +1,4 @@
-name: Deploy Firebase Functions on merge
+name: Validate / Deploy Firebase Functions
 
 on:
   push:
@@ -7,12 +7,13 @@ on:
     paths:
       - 'functions/**'
       - '.github/workflows/firebase-functions-deploy.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  validate_and_deploy_functions:
+  validate_functions:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -39,6 +40,24 @@ jobs:
       - name: Load Functions module
         working-directory: functions
         run: node -e "const m=require('./index.js'); if(!m.aiChat||!m.aiChatConfig) process.exit(1); console.log('functions module load passed')"
+
+  deploy_functions:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate_functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Functions Node runtime
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install Functions dependencies
+        working-directory: functions
+        run: npm ci
 
       - name: Configure Firebase service account
         shell: bash
