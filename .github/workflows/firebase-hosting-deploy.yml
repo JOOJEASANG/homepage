@@ -31,11 +31,11 @@ jobs:
 
       - name: Syntax check Functions entrypoint
         working-directory: functions
-        run: node --check index.js
+        run: node --check index.js && node --check guest-access.js
 
       - name: Load Functions module
         working-directory: functions
-        run: node -e "const m=require('./index.js'); if(!m.aiChat||!m.aiChatConfig) process.exit(1); console.log('functions module load passed')"
+        run: node -e "const m=require('./index.js'); if(!m.aiChat||!m.aiChatConfig||!m.guestQuoteAccess) process.exit(1); console.log('functions module load passed')"
 
   build_and_deploy:
     needs: validate_functions

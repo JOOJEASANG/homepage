@@ -88,7 +88,7 @@ try {
   }
 } catch (e) {}
 
-// 관리자페이지/메인페이지 보정 항목을 추가합니다.
+// 관리자페이지/메인페이지/로그인페이지 보정 항목을 추가합니다.
 try {
   const currentFile = getCurrentFile();
   if (currentFile === 'admin.html') {
@@ -98,6 +98,9 @@ try {
   }
   if (currentFile === 'index.html' || currentFile === '') {
     import('./portfolio-index-fix.js').catch(() => null);
+  }
+  if (currentFile === 'login.html') {
+    import('./guest-access-v2.js').catch(() => null);
   }
   import('./security-patches.js').catch(() => null);
   import('./customer-ui-fixes.js').catch(() => null);
@@ -137,6 +140,7 @@ export function getGuestKey() {
 export function clearClientState() {
   [
     "guestLookupKey", "guestLookupKeyLegacy",
+    "guestAccessToken",
     "guestName", "guestContact", "guestContactRaw",
     "guestContactHyphen", "guestPwLast4",
     "guestSession", "guestEmail", "guestUid",

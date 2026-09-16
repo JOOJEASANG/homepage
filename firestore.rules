@@ -49,20 +49,31 @@ service cloud.firestore {
       return signedIn() && ('userId' in quote.data) && quote.data.userId == request.auth.uid;
     }
 
+    function hasGuestLookupClaim(quote) {
+      return signedIn()
+        && ('guestLookupKey' in request.auth.token)
+        && ('guestLookupKey' in quote.data)
+        && request.auth.token.guestLookupKey == quote.data.guestLookupKey;
+    }
+
     function canReadGuestQuote(quote) {
       return signedIn()
         && quote.data.isGuest == true
         && quote.data.userId == 'guest'
-        && ('guestUid' in quote.data)
-        && quote.data.guestUid == request.auth.uid;
+        && (
+          (('guestUid' in quote.data) && quote.data.guestUid == request.auth.uid)
+          || hasGuestLookupClaim(quote)
+        );
     }
 
     function isGuestQuoteOwnerStrict(quote) {
       return signedIn()
         && quote.data.isGuest == true
         && quote.data.userId == 'guest'
-        && ('guestUid' in quote.data)
-        && quote.data.guestUid == request.auth.uid;
+        && (
+          (('guestUid' in quote.data) && quote.data.guestUid == request.auth.uid)
+          || hasGuestLookupClaim(quote)
+        );
     }
 
     function isEditableByCustomer() {
@@ -70,17 +81,8 @@ service cloud.firestore {
         && request.resource.data.status == resource.data.status;
     }
 
-    function isGuestQuoteOwnerByKey(quote) {
-      return signedIn()
-        && quote.data.isGuest == true
-        && quote.data.userId == 'guest'
-        && ('guestLookupKey' in quote.data)
-        && request.resource.data.guestLookupKey == quote.data.guestLookupKey
-        && (!('guestPwLast4' in quote.data) || request.resource.data.guestPwLast4 == quote.data.guestPwLast4);
-    }
-
     function isGuestOwnerUpdate() {
-      return (isGuestQuoteOwnerStrict(resource) || isGuestQuoteOwnerByKey(resource))
+      return isGuestQuoteOwnerStrict(resource)
         && request.resource.data.isGuest == true
         && request.resource.data.userId == 'guest'
         && (!('guestUid' in resource.data) || request.resource.data.guestUid == resource.data.guestUid)
@@ -255,6 +257,14 @@ service cloud.firestore {
         allow delete: if isAdmin() || (isCustomerForThisQuote() && resource.data.sender == 'customer');
         allow update: if isAdmin() || isCustomerReadReceiptUpdate() || isCustomerProofResponseUpdate();
       }
+    }
+
+    match /guest_lookup_limits/{id} {
+      allow read, write: if false;
+    }
+
+    match /guest_access_sessions/{id} {
+      allow read, write: if false;
     }
 
     match /recent_quotes/{id} {
