@@ -87,6 +87,7 @@ try {
   }
   if (currentFile === 'index.html' || currentFile === '') {
     import('./portfolio-index-fix.js').catch(() => null);
+    import('./public-feed-v2.js').catch(() => null);
   }
   if (currentFile === 'login.html') {
     import('./guest-access-v2.js').catch(() => null);

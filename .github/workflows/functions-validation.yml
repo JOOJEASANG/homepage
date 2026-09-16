@@ -33,7 +33,7 @@ jobs:
         run: npm audit
       - name: Syntax check modules
         working-directory: functions
-        run: node --check main.js && node --check index.js && node --check guest-access.js && node --check qna-api.js
+        run: node --check main.js && node --check index.js && node --check guest-access.js && node --check qna-api.js && node --check public-feed.js
       - name: Load all exported Functions
         working-directory: functions
-        run: node -e "const m=require('./main.js'); for (const k of ['aiChat','aiChatConfig','guestQuoteAccess','qnaSecure','scrubPublicQnaSecrets']) if(!m[k]) throw new Error('missing '+k); console.log(Object.keys(m).sort())"
+        run: node -e "const m=require('./main.js'); for (const k of ['aiChat','aiChatConfig','guestQuoteAccess','qnaSecure','scrubPublicQnaSecrets','syncRecentQuotePublicFeed','refreshRecentQuotePublicFeed']) if(!m[k]) throw new Error('missing '+k); console.log(Object.keys(m).sort())"

@@ -1,3 +1,4 @@
+import './public-feed-v2.js';
 import { db, doc, onSnapshot } from './firebase.js';
 
 function esc(v){return String(v||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
