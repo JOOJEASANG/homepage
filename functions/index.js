@@ -1,9 +1,10 @@
-const admin = require('firebase-admin');
+const { initializeApp } = require('firebase-admin/app');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { onRequest } = require('firebase-functions/v2/https');
 const { defineSecret } = require('firebase-functions/params');
 
-admin.initializeApp();
-const db = admin.firestore();
+initializeApp();
+const db = getFirestore();
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 const MODELS = {
   lite: 'gemini-2.5-flash-lite',
@@ -125,8 +126,8 @@ async function consume(req, body, cfg) {
     const c = cs.exists ? Number(cs.data().count || 0) : 0;
     if (g >= cfg.globalLimit) throw new Error('GLOBAL_LIMIT');
     if (c >= cfg.clientLimit) throw new Error('CLIENT_LIMIT');
-    tx.set(ref, { count: g + 1, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
-    tx.set(cref, { count: c + 1, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    tx.set(ref, { count: g + 1, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    tx.set(cref, { count: c + 1, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
   });
 }
 
