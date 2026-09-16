@@ -5,7 +5,7 @@ const PAGES = [
   ['/quote-book.html', '책자'],
   ['/quote-print.html', '인쇄'],
   ['/qna.html', '고객'],
-  ['/login.html', '로그인'],
+  ['/login.html', '주문 조회'],
 ];
 
 // 운영 Firestore의 점검모드 값이 E2E 대상 페이지를 maintenance.html로 보내지 않도록
@@ -82,28 +82,30 @@ test('quote-print form accepts core specification inputs without submitting', as
   await expect(page.locator('#paperSize')).toHaveValue('A4');
 });
 
-test('critical navigation controls expose accessible names', async ({ page }) => {
+test('critical page controls expose accessible names', async ({ page }) => {
   await page.goto('/quote-print.html', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#helpBtnPrint')).toHaveAttribute('aria-label', /도움말/);
 
   await page.goto('/quote-book.html', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#helpBtnBook')).toHaveAttribute('aria-label', /도움말/);
 
-  // 공통 헤더는 ES module 초기화 후 주입됩니다. 외부 CDN 지연 시에도 제한된 시간 내에 나타나야 합니다.
-  await page.waitForSelector('#btn-mobile-menu', { state: 'attached', timeout: 12_000 });
-  await expect(page.locator('#btn-mobile-menu')).toHaveAttribute('aria-label', /메뉴/);
-  await expect(page.locator('#main-header a[aria-label="그린오피스 홈"]')).toBeAttached();
+  // 공통 동적 헤더는 Firebase CDN 초기화에 의존하므로 source contract에서 검증합니다.
+  // 브라우저 E2E에서는 외부 네트워크와 무관한 정적 모바일 탐색 구조를 확인합니다.
+  await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#closeMobileNavBtn')).toHaveAttribute('aria-label', /메뉴 닫기/);
+  await expect(page.locator('#mobileNavModal a[href="index.html"]')).toContainText('홈');
+  await expect(page.locator('#mobileNavModal a[href="quote-book.html"]')).toContainText('책자');
+  await expect(page.locator('#mobileNavModal a[href="quote-print.html"]')).toContainText('디지털');
+  await expect(page.locator('#mobileNavModal a[href="qna.html"]')).toContainText('고객');
 });
 
 test.describe('mobile responsiveness', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test('homepage mobile navigation opens and has no horizontal overflow', async ({ page }) => {
+  test('homepage fits mobile viewport and exposes mobile navigation destinations', async ({ page }) => {
     await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('#btn-mobile-menu', { state: 'visible', timeout: 12_000 });
-    await page.locator('#btn-mobile-menu').click();
-    await expect(page.locator('#mobile-menu')).toBeVisible();
-    await expect(page.locator('#mobile-menu a[href="quote-book.html"]')).toContainText('책자');
+    await expect(page.locator('#mobileNavModal a[href="quote-book.html"]')).toContainText('책자');
+    await expect(page.locator('#mobileNavModal a[href="quote-print.html"]')).toContainText('디지털');
     await assertNoHorizontalOverflow(page);
   });
 
