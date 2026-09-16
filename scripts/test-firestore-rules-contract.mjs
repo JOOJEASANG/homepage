@@ -6,8 +6,12 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const rulesPath = path.resolve(here, '..', 'firestore.rules');
 const guestAccessPath = path.resolve(here, '..', 'functions', 'guest-access.js');
+const publicFeedPath = path.resolve(here, '..', 'functions', 'public-feed.js');
+const publicFeedClientPath = path.resolve(here, '..', 'assets', 'js', 'public-feed-v2.js');
 const rules = fs.readFileSync(rulesPath, 'utf8');
 const guestAccess = fs.readFileSync(guestAccessPath, 'utf8');
+const publicFeed = fs.readFileSync(publicFeedPath, 'utf8');
+const publicFeedClient = fs.readFileSync(publicFeedClientPath, 'utf8');
 
 function includesAll(source, label, values) {
   for (const value of values) {
@@ -59,9 +63,27 @@ includesAll(guestAccess, 'guest access endpoint', [
   "where('guestLookupKey', '==', lookupKey)",
 ]);
 
+includesAll(rules, 'legacy public feed write protection', [
+  'match /recent_quotes/{id}',
+  'allow create, update, delete: if isAdmin();',
+]);
+
+includesAll(publicFeed, 'server-built anonymized feed', [
+  'function maskName(value)',
+  "db.collection('quotes').orderBy('createdAt', 'desc').limit(10)",
+  "db.doc('settings/site').set",
+  'recentQuotesPublic',
+]);
+
+includesAll(publicFeedClient, 'homepage consumes public projection only', [
+  "onSnapshot(doc(db, 'settings', 'site')",
+  'recentQuotesPublic',
+]);
+assert.ok(!publicFeedClient.includes("collection(db, 'quotes')"), 'homepage public feed must not read quotes directly');
+
 assert.ok(
   !rules.includes('match /{document=**} { allow read, write: if true;'),
   'rules must not contain a global public read/write fallback',
 );
 
-console.log('Firestore and guest access security contract checks passed');
+console.log('Firestore, guest access, and public feed security contract checks passed');
