@@ -28,6 +28,7 @@ import { getPreviewUrl, inferInnerGroup } from "./quote-book/preview-utils.js";
 import { openImagePreview, openPreviewLayer, closeImagePreview } from "./quote-book/preview-ui.js";
 import { getBookTempStorageKey, writeBookDraft, readBookDraft, hasBookDraft, clearBookDraft, readLastQuoteCache, writeLastQuoteCache, clearLastQuoteCache } from "./quote-book/quote-storage.js";
 import { serializeQuoteItems } from "./quote-book/quote-form-data.js";
+import { buildQuoteRequestData, buildQuoteUpdatePayload } from "./quote-book/quote-request-data.js";
 import { isAdminEditSearch, parseQuoteReloadPayload } from "./quote-book/page-state.js";
 import { readGuestSubmitSession, readGuestMenuSession, getGuestMyPageLookupKey, restoreGuestSessionFromReload, persistGuestSessionAfterSubmit } from "./quote-book/guest-session.js";
 import { acquireBookSubmitLock, releaseBookSubmitLock } from "./quote-book/submit-lock.js";
@@ -1250,32 +1251,22 @@ DOMElements.signupModal.classList.remove('hidden');
 
         const allItemsData = serializeQuoteItems(document.querySelectorAll('.quote-item'), 'submission');
         
-        const quoteRequestData = {
-            ...lastCalculatedQuote,
-            userId: isGuest ? 'guest' : user.uid, 
-            isGuest: isGuest,
-            guestName: isGuest ? ordererName : null,
-            guestContact: isGuest ? normalizedContact : null,
-            guestContactRaw: isGuest ? (opts.guestContactRaw || null) : null,
-            guestContactHyphen: isGuest ? (formatPhoneHyphen(normalizedContact) || null) : null,
-            guestLookupKey: isGuest ? guestLookupKey : null, 
-            
-            guestUid: isGuest ? (auth.currentUser ? auth.currentUser.uid : null) : null,
-guestPwLast4: isGuest ? (normalizedContact || "").slice(-4) : null,
-            guestNameNorm: isGuest ? (ordererName || "").replace(/\s+/g, "").trim() : null,
-
-            ordererName: ordererName,
-            ordererContact: isGuest ? normalizedContact : ordererContact,
-            ordererCompany: ordererCompany,
-            status: '접수완료',
+        const quoteRequestData = buildQuoteRequestData({
+            calculatedQuote: lastCalculatedQuote,
+            userId: user ? user.uid : null,
+            isGuest,
+            ordererName,
+            ordererContact,
+            normalizedContact,
+            ordererCompany,
+            guestLookupKey,
+            guestContactRaw: opts.guestContactRaw || null,
+            guestContactHyphen: formatPhoneHyphen(normalizedContact) || null,
+            guestUid: auth.currentUser ? auth.currentUser.uid : null,
             createdAt: Timestamp.now(),
-            hasUnreadAdminMessage: false,
-            hasUnreadCustomerMessage: false,
             breakdownHtml: DOMElements.priceBreakdownEl.innerHTML,
-            breakdownData: JSON.stringify(lastCalculatedQuote.breakdown || []),
-            formData: JSON.stringify(allItemsData),
-            productType: 'book'
-        };
+            allItemsData,
+        });
 
         try {
             const submitBtn = DOMElements.submitQuoteBtn;
@@ -1316,51 +1307,15 @@ let savedDocId = null;
                         throw new Error('CUSTOMER_EDIT_LOCKED');
                     }
 
-                    // 진행중 상태를 덮어쓰지 않도록 기존 상태를 우선 유지
-                    const payload = { ...quoteRequestData };
-                    delete payload.createdAt;
-
-                    // ✅ 관리자 수정 모드: "대상 견적"의 소유/신원 정보를 절대 변경하지 않음
-                    // - 관리자 계정(uid)로 userId가 덮이거나, 회원 견적이 비회원으로 변하는 문제 방지
-                    if (__isAdminEditMode()) {
-                        const keep = [
-                            'userId','isGuest',
-                            'guestUid','guestLookupKey','guestPwLast4',
-                            'guestName','guestContact','guestContactRaw','guestContactHyphen','guestNameNorm',
-                            'ordererName','ordererContact','ordererCompany'
-                        ];
-                        keep.forEach((k)=>{
-                            if (existing[k] !== undefined) payload[k] = existing[k];
-                        });
-                    }
-
-                    // ✅ 비회원(guest) 수정 시, Rules에서 신원/키 필드는 보통 immutable 이므로 기존 값을 유지
-                    // (guestUid, guestLookupKey, guestPwLast4, userId/isGuest 등)
-                    if (existing.isGuest === true || existing.userId === 'guest' || existing.userId === 'GUEST') {
-                        const immutable = [
-                            'userId','isGuest','guestUid','guestLookupKey','guestPwLast4',
-                            'guestName','guestContact','guestContactRaw','guestContactHyphen','guestNameNorm',
-                            'ordererName','ordererContact','ordererCompany'
-                        ];
-                        immutable.forEach((k)=>{
-                            if (existing[k] !== undefined && existing[k] !== null) payload[k] = existing[k];
-                        });
-                    }
-
-                    payload.updatedAt = Timestamp.now();
-                    payload.status = existing.status || payload.status;
-
-                    // ✅ Rules 호환: 회원/비회원 공통 불변 필드(소유/타입)는 항상 기존값 유지
-                    if (!__isAdminEditMode()) {
-                        if (existing.userId !== undefined) payload.userId = existing.userId;
-                        if (existing.isGuest !== undefined) payload.isGuest = existing.isGuest;
-                        if (existing.productType !== undefined) payload.productType = existing.productType;
-                    }
-
-                    payload.lastEditedBy = editState.adminEdit ? 'admin' : 'customer';
-                    payload.lastEditedAt = Timestamp.now();
-                    payload.hasUnreadAdminMessage = editState.adminEdit ? false : true;
-                    payload.hasUnreadCustomerMessage = editState.adminEdit ? true : false;
+                    // 진행중 상태/소유권/읽음 상태 보존 규칙은 순수 helper에서 생성합니다.
+                    const payload = buildQuoteUpdatePayload({
+                        quoteRequestData,
+                        existing,
+                        isAdminEditMode: __isAdminEditMode(),
+                        adminEditFlag: editState.adminEdit,
+                        updatedAt: Timestamp.now(),
+                        lastEditedAt: Timestamp.now(),
+                    });
 payload.receiptNo = existing.receiptNo || payload.receiptNo || await generateReceiptNo();
 const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니다.' : '견적이 수정되었습니다.';
                     await updateDoc(targetRef, payload);
