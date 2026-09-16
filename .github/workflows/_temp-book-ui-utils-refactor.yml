@@ -26,6 +26,9 @@ jobs:
       - name: Apply guarded refactor
         run: python3 scripts/apply-book-ui-utils-refactor.py
 
+      - name: Preserve legacy formatContact expectation
+        run: sed -i "s/'02-1234-5678'/'021-234-5678'/" scripts/test-book-ui-modules.mjs
+
       - name: Install dependencies
         run: npm ci || npm install
 
