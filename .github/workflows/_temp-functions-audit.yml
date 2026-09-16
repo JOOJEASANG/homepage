@@ -28,9 +28,9 @@ jobs:
       - name: Install Functions dependencies
         working-directory: functions
         run: npm ci
-      - name: Apply non-breaking Functions audit fix
+      - name: Show secured dependency path
         working-directory: functions
-        run: npm audit fix
+        run: npm ls gaxios uuid
       - name: Require zero Functions audit findings
         working-directory: functions
         run: npm audit
