@@ -56,11 +56,8 @@ jobs:
       - name: Audit dependencies
         run: npm audit
 
-      - name: Test book calculators
-        run: npm run test:book
-
-      - name: Test Firestore security contracts
-        run: npm run test:security
+      - name: Test application contracts
+        run: npm run test:ci
 
       - name: Build Tailwind CSS
         run: npm run build:css
