@@ -61,6 +61,9 @@ jobs:
           grep -F 'quote-form-data.js' /tmp/quote-book.js
           grep -F 'contact-utils.js' /tmp/quote-book.js
           grep -F 'preview-ui.js' /tmp/quote-book.js
+          grep -F 'page-state.js' /tmp/quote-book.js
+          grep -F 'guest-session.js' /tmp/quote-book.js
+          grep -F 'submit-lock.js' /tmp/quote-book.js
 
           curl -fsSL "$BASE_URL/assets/js/pages/quote-book/calculator-utils.js" -o /tmp/calculator-utils.js
           grep -F 'export function positiveNumber' /tmp/calculator-utils.js
@@ -82,7 +85,7 @@ jobs:
           grep -F 'export function getWireCoverCost' /tmp/wire-calculator.js
           grep -F 'export function getWireBindingMetrics' /tmp/wire-calculator.js
 
-          for file in contact-utils.js preview-utils.js preview-ui.js quote-storage.js quote-item-template.js quote-id.js quote-form-data.js; do
+          for file in contact-utils.js preview-utils.js preview-ui.js quote-storage.js quote-item-template.js quote-id.js quote-form-data.js page-state.js guest-session.js submit-lock.js; do
             curl -fsSL "$BASE_URL/assets/js/pages/quote-book/$file" -o "/tmp/$file"
             test -s "/tmp/$file"
           done
@@ -92,6 +95,11 @@ jobs:
           grep -F 'export function readLastQuoteCache' /tmp/quote-storage.js
           grep -F 'export function writeBookDraft' /tmp/quote-storage.js
           grep -F 'export function serializeQuoteItems' /tmp/quote-form-data.js
+          grep -F 'export function isAdminEditSearch' /tmp/page-state.js
+          grep -F 'export function parseQuoteReloadPayload' /tmp/page-state.js
+          grep -F 'export function readGuestSubmitSession' /tmp/guest-session.js
+          grep -F 'export function restoreGuestSessionFromReload' /tmp/guest-session.js
+          grep -F 'export function acquireBookSubmitLock' /tmp/submit-lock.js
           grep -F 'export function renderQuoteItemTemplate' /tmp/quote-item-template.js
           grep -F 'export async function generateBookReceiptNo' /tmp/quote-id.js
 
