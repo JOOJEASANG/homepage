@@ -30,26 +30,37 @@ service firebase.storage {
         );
     }
 
-    function allowedUpload(fileName) {
+    function allowedUpload() {
       return request.resource != null
         && request.resource.size <= 300 * 1024 * 1024
-        && fileName.lower().matches('.*\\.(pdf|jpg|jpeg|png|gif|webp|heic|tif|tiff|zip|doc|docx|xls|xlsx|ppt|pptx|hwp|hwpx|ai|eps|psd|indd)$');
+        && (
+          request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf'
+          || request.resource.contentType == 'application/zip'
+          || request.resource.contentType == 'application/x-zip-compressed'
+          || request.resource.contentType == 'application/msword'
+          || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          || request.resource.contentType == 'application/vnd.ms-excel'
+          || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          || request.resource.contentType == 'application/vnd.ms-powerpoint'
+          || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+          || request.resource.contentType == 'application/postscript'
+          || request.resource.contentType == 'application/octet-stream'
+        );
     }
 
     match /quotes/{quoteId}/attachments/{fileName} {
       allow read: if canAccessQuote(quoteId);
-      allow create, update: if canAccessQuote(quoteId) && allowedUpload(fileName);
+      allow create, update: if canAccessQuote(quoteId) && allowedUpload();
       allow delete: if canAccessQuote(quoteId);
     }
 
-    // 마이페이지/관리자 1:1 상담 파일은 현재 quotes/{quoteId}/{timestamp}_{filename} 경로를 사용합니다.
     match /quotes/{quoteId}/{fileName} {
       allow read: if canAccessQuote(quoteId);
-      allow create, update: if canAccessQuote(quoteId) && allowedUpload(fileName);
+      allow create, update: if canAccessQuote(quoteId) && allowedUpload();
       allow delete: if canAccessQuote(quoteId);
     }
 
-    // 공개 콘텐츠는 다운로드 URL 또는 아래 공개 폴더에서만 읽을 수 있습니다.
     match /portfolio/{allPaths=**} {
       allow read: if true;
       allow write: if isAdmin();
@@ -67,7 +78,6 @@ service firebase.storage {
       allow write: if isAdmin();
     }
 
-    // 그 밖의 저장소 경로는 관리자만 접근합니다.
     match /{allPaths=**} {
       allow read, write: if isAdmin();
     }
