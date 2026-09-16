@@ -1,5 +1,5 @@
 import {
-  db, collection, query, where, orderBy, limit, onSnapshot,
+  db, doc, collection, query, where, orderBy, limit, onSnapshot,
 } from './firebase.js';
 
 function escapeHtml(value) {
@@ -16,16 +16,16 @@ function dateText(value) {
   } catch (_) { return '-'; }
 }
 
-function renderQuotes(snapshot) {
+function renderQuoteItems(items) {
   const container = document.getElementById('recent-quotes-container');
   if (!container) return;
-  if (snapshot.empty) {
+  const list = Array.isArray(items) ? items : [];
+  if (!list.length) {
     container.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400 text-sm gap-2 mt-10"><p>최근 접수 내역이 없습니다.</p></div>';
     return;
   }
   container.innerHTML = '';
-  snapshot.docs.forEach(docSnap => {
-    const data = docSnap.data() || {};
+  list.slice(0, 10).forEach(data => {
     const typeLabel = data.productType === 'book' ? '책자' : '인쇄';
     const row = document.createElement('div');
     row.className = 'grid grid-cols-12 gap-2 px-6 py-3 border-b border-slate-100 items-center text-sm';
@@ -69,8 +69,9 @@ function renderQna(snapshot) {
 function init() {
   if (!/(^|\/)index\.html$/i.test(location.pathname) && location.pathname !== '/') return;
   try {
-    const recentQuotes = query(collection(db, 'recent_quotes'), orderBy('createdAt', 'desc'), limit(10));
-    onSnapshot(recentQuotes, renderQuotes, () => renderQuotes({ empty: true, docs: [] }));
+    onSnapshot(doc(db, 'settings', 'site'), snap => {
+      renderQuoteItems(snap.exists() ? snap.data()?.recentQuotesPublic : []);
+    }, () => renderQuoteItems([]));
   } catch (_) {}
   try {
     const publicQna = query(collection(db, 'qna'), where('isSecret', '==', false), orderBy('createdAt', 'desc'), limit(8));
