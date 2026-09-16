@@ -78,12 +78,17 @@ try {
   }
 } catch (e) {}
 
+// 페이지별 보정/표시 로직은 각 runtime을 단일 진입점으로 사용합니다.
 try {
   const currentFile = getCurrentFile();
   if (currentFile === 'admin.html') {
-    import('./customer-center-admin-menu.js').catch(() => null);
-    import('./portfolio-crop-helper.js').catch(() => null);
-    import('./admin-safety-patches.js').catch(() => null);
+    import('./pages/admin/runtime.js').catch(() => null);
+  }
+  if (currentFile === 'mypage.html') {
+    import('./pages/mypage/runtime.js').catch(() => null);
+  }
+  if (currentFile === 'quote-print.html') {
+    import('./pages/quote-print/runtime.js').catch(() => null);
   }
   if (currentFile === 'index.html' || currentFile === '') {
     import('./portfolio-index-fix.js').catch(() => null);
