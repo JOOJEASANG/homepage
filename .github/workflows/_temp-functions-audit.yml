@@ -20,6 +20,8 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: '22'
+      - name: Apply guarded Admin 14 migration
+        run: python3 scripts/apply-functions-admin14.py
       - name: Generate reproducible Functions lockfile
         working-directory: functions
         run: npm install --package-lock-only --ignore-scripts
@@ -35,16 +37,17 @@ jobs:
       - name: Load Functions module
         working-directory: functions
         run: node -e "const m=require('./index.js'); if(!m.aiChat||!m.aiChatConfig) process.exit(1); console.log('functions module load passed')"
-      - name: Commit Functions lockfile
+      - name: Commit validated Functions migration
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- functions/package-lock.json; then
-            echo "No Functions lockfile changes to commit"
-            exit 0
-          fi
+          git status --short
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add functions/package-lock.json
-          git commit -m "chore: lock Functions dependencies"
+          git add functions/index.js functions/package-lock.json
+          if git diff --cached --quiet; then
+            echo "No Functions changes to commit"
+            exit 0
+          fi
+          git commit -m "chore: secure Firebase Functions dependencies"
           git push origin HEAD:chore/ci-security-cleanup
