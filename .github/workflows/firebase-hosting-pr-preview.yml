@@ -48,10 +48,14 @@ jobs:
           test -n "$PREVIEW_URL"
           BASE_URL="${PREVIEW_URL%/}"
 
-          curl -fsSL "$BASE_URL/quote-book.html" -o /tmp/quote-book.html
+          fetch_preview() {
+            curl --retry 6 --retry-delay 2 --retry-all-errors -fsSL "$1" -o "$2"
+          }
+
+          fetch_preview "$BASE_URL/quote-book.html" /tmp/quote-book.html
           grep -F 'assets/js/pages/quote-book.js' /tmp/quote-book.html
 
-          curl -fsSL "$BASE_URL/assets/js/pages/quote-book.js" -o /tmp/quote-book.js
+          fetch_preview "$BASE_URL/assets/js/pages/quote-book.js" /tmp/quote-book.js
           grep -F 'getSaddleSectionMetrics' /tmp/quote-book.js
           grep -F 'getPerfectInnerPricingMultiplier' /tmp/quote-book.js
           grep -F 'getWireInnerPricingMultiplier' /tmp/quote-book.js
@@ -59,7 +63,7 @@ jobs:
           grep -F 'findBindingPriceTier' /tmp/quote-book.js
           grep -F 'floorToHundred' /tmp/quote-book.js
 
-          curl -fsSL "$BASE_URL/assets/js/pages/quote-book/calculator-utils.js" -o /tmp/calculator-utils.js
+          fetch_preview "$BASE_URL/assets/js/pages/quote-book/calculator-utils.js" /tmp/calculator-utils.js
           grep -F 'export function positiveNumber' /tmp/calculator-utils.js
           grep -F 'export function findPriceTier' /tmp/calculator-utils.js
           grep -F 'export function findBindingPriceTier' /tmp/calculator-utils.js
@@ -67,14 +71,14 @@ jobs:
           grep -F 'export function floorToHundred' /tmp/calculator-utils.js
           grep -F 'export function getLargeSizeMultiplier' /tmp/calculator-utils.js
 
-          curl -fsSL "$BASE_URL/assets/js/pages/quote-book/saddle-calculator.js" -o /tmp/saddle-calculator.js
+          fetch_preview "$BASE_URL/assets/js/pages/quote-book/saddle-calculator.js" /tmp/saddle-calculator.js
           grep -F 'export function getSaddleSheetsPerCopy' /tmp/saddle-calculator.js
 
-          curl -fsSL "$BASE_URL/assets/js/pages/quote-book/perfect-calculator.js" -o /tmp/perfect-calculator.js
+          fetch_preview "$BASE_URL/assets/js/pages/quote-book/perfect-calculator.js" /tmp/perfect-calculator.js
           grep -F "from './calculator-utils.js'" /tmp/perfect-calculator.js
           grep -F 'export function getPerfectBindingMetrics' /tmp/perfect-calculator.js
 
-          curl -fsSL "$BASE_URL/assets/js/pages/quote-book/wire-calculator.js" -o /tmp/wire-calculator.js
+          fetch_preview "$BASE_URL/assets/js/pages/quote-book/wire-calculator.js" /tmp/wire-calculator.js
           grep -F "from './calculator-utils.js'" /tmp/wire-calculator.js
           grep -F 'export function getWireCoverCost' /tmp/wire-calculator.js
           grep -F 'export function getWireBindingMetrics' /tmp/wire-calculator.js
