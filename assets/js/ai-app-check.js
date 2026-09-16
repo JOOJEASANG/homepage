@@ -1,19 +1,33 @@
 // AI 상담 요청에 Firebase App Check 토큰을 선택적으로 첨부합니다.
-// settings/aiChatPublic.appCheckSiteKey가 설정되어 있을 때만 활성화됩니다.
+// 공개 Firestore 설정에 키가 없으면 공개 설정 API에서 App Check 설정만 보완합니다.
 
 import { app, db, doc, getDoc } from './firebase.js';
 
 const AI_CHAT_ENDPOINT = 'https://asia-northeast3-worklist-1e83a.cloudfunctions.net/aiChat';
+const AI_CONFIG_ENDPOINT = 'https://asia-northeast3-worklist-1e83a.cloudfunctions.net/aiChatConfig';
 const CONFIG_REF = doc(db, 'settings', 'aiChatPublic');
 
 let configPromise = null;
 let appCheckPromise = null;
+const originalFetch = window.fetch.bind(window);
 
 async function readConfig() {
   if (!configPromise) {
-    configPromise = getDoc(CONFIG_REF)
-      .then(snap => snap.exists() ? (snap.data() || {}) : {})
-      .catch(() => ({}));
+    configPromise = (async () => {
+      let local = {};
+      try {
+        const snap = await getDoc(CONFIG_REF);
+        if (snap.exists()) local = snap.data() || {};
+      } catch (_) {}
+
+      if (local.appCheckSiteKey && typeof local.requireAppCheck === 'boolean') return local;
+      try {
+        const res = await originalFetch(AI_CONFIG_ENDPOINT, { method: 'GET', cache: 'no-store' });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data?.ok && data.config) return { ...data.config, ...local };
+      } catch (_) {}
+      return local;
+    })();
   }
   return configPromise;
 }
@@ -50,7 +64,6 @@ async function appCheckToken() {
   }
 }
 
-const originalFetch = window.fetch.bind(window);
 window.fetch = async function secureAiFetch(input, init = undefined) {
   const url = typeof input === 'string' ? input : input?.url;
   if (url !== AI_CHAT_ENDPOINT) return originalFetch(input, init);
