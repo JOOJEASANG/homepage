@@ -1,0 +1,55 @@
+name: Deploy Firebase Functions on merge
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'functions/**'
+      - '.github/workflows/firebase-functions-deploy.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate_and_deploy_functions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Functions Node runtime
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install Functions dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Audit Functions dependencies
+        working-directory: functions
+        run: npm audit
+
+      - name: Syntax check Functions entrypoint
+        working-directory: functions
+        run: node --check index.js
+
+      - name: Load Functions module
+        working-directory: functions
+        run: node -e "const m=require('./index.js'); if(!m.aiChat||!m.aiChatConfig) process.exit(1); console.log('functions module load passed')"
+
+      - name: Configure Firebase service account
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+          CREDENTIALS_FILE="$RUNNER_TEMP/firebase-service-account.json"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$CREDENTIALS_FILE"
+          chmod 600 "$CREDENTIALS_FILE"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$CREDENTIALS_FILE" >> "$GITHUB_ENV"
+
+      - name: Deploy Firebase Functions
+        run: npx --yes firebase-tools@latest deploy --only functions --project worklist-1e83a --non-interactive
