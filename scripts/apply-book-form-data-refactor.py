@@ -17,7 +17,6 @@ if source.count(old_import) != 1:
     raise RuntimeError('quote-storage import anchor mismatch')
 source = source.replace(old_import, new_import, 1)
 
-# Draft save block: replace DOM traversal with shared serializer.
 start = source.find('    function saveFormData() {')
 end = source.find('\n\n    async function restoreFormData()', start)
 if start < 0 or end < 0:
@@ -54,13 +53,12 @@ new_check = '''    function checkForTempData() {
     }'''
 source = source.replace(old_check, new_check, 1)
 
-# Reset uses the same storage adapter.
-if source.count('localStorage.removeItem(tempStorageKey)') != 1:
-    raise RuntimeError('draft clear anchor mismatch')
-source = source.replace('localStorage.removeItem(tempStorageKey)', 'clearBookDraft(tempStorageKey)', 1)
+old_reset = 'const tempStorageKey = getTempStorageKey(); if (tempStorageKey) localStorage.removeItem(tempStorageKey);'
+new_reset = 'const tempStorageKey = getTempStorageKey(); clearBookDraft(tempStorageKey);'
+if source.count(old_reset) != 1:
+    raise RuntimeError('draft reset anchor mismatch')
+source = source.replace(old_reset, new_reset, 1)
 
-# Submission serializer block. The draft inline serializer has already been removed,
-# so the remaining allItemsData block must be the Firestore submission path.
 start = source.find('        const allItemsData = [];')
 end = source.find('        \n        const quoteRequestData = {', start)
 if start < 0 or end < 0:
@@ -71,7 +69,6 @@ if "itemData.interleafSheets = interleafSection.classList.contains('hidden')" no
 new_submit = "        const allItemsData = serializeQuoteItems(document.querySelectorAll('.quote-item'), 'submission');\n"
 source = source[:start] + new_submit + source[end:]
 
-# Safety: no inline duplicate serializers should remain.
 if "document.querySelectorAll('.quote-item').forEach(itemEl => {\n            const itemData = {};" in source:
     raise RuntimeError('inline quote-item serializer still remains')
 for required in [
@@ -80,6 +77,8 @@ for required in [
     'async function initializePage(',
     "serializeQuoteItems(document.querySelectorAll('.quote-item'), 'draft')",
     "serializeQuoteItems(document.querySelectorAll('.quote-item'), 'submission')",
+    'writeBookDraft(tempStorageKey, allItemsData)',
+    'const savedData = readBookDraft(tempStorageKey);',
 ]:
     if required not in source:
         raise RuntimeError(f'critical integration missing: {required}')
