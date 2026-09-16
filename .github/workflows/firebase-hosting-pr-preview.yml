@@ -63,6 +63,9 @@ jobs:
       - name: Test book calculators
         run: npm run test:book
 
+      - name: Test Firestore security contracts
+        run: npm run test:security
+
       - name: Build Tailwind CSS
         run: npm run build:css
 
