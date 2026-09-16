@@ -1,15 +1,10 @@
 // ============================================================
 // session.js — 세션/스토리지 헬퍼 (비회원 전용 운영 기준)
-//
-// 역할:
-//   - sessionStorage / localStorage 안전 읽기·쓰기·삭제
-//   - 비회원 조회키(SHA-256 해시) 조회
-//   - 로그아웃 시 클라이언트 상태 전체 초기화
-//   - 현재 세션 상태(비회원·회원·비로그인) 판단
 // ============================================================
 
 import { auth, signOut, onAuthStateChanged } from "./firebase.js";
 import "./ux-refresh-v2.js";
+import "./file-upload-policy.js";
 
 function getCurrentFile() {
   try {
@@ -132,18 +127,12 @@ export function getGuestKey() {
 
 export function clearClientState() {
   [
-    "guestLookupKey", "guestLookupKeyLegacy",
-    "guestAccessToken",
-    "guestName", "guestContact", "guestContactRaw",
-    "guestContactHyphen", "guestPwLast4",
-    "guestSession", "guestEmail", "guestUid",
-    "mp_guest_cached", "mp_user_cached",
-    "mp_last_tab", "mp_last_filter",
-    "admin_session",
-    "managerPublicView",
-    "userRole", "userName", "userEmail",
-    "postLoginRedirect", "quoteToReload", "quoteDraft", "lastQuoteDraft",
-    "temp_quote_print", "autoSubmitBook", "autoSubmitPrint",
+    "guestLookupKey", "guestLookupKeyLegacy", "guestAccessToken",
+    "guestName", "guestContact", "guestContactRaw", "guestContactHyphen", "guestPwLast4",
+    "guestSession", "guestEmail", "guestUid", "mp_guest_cached", "mp_user_cached",
+    "mp_last_tab", "mp_last_filter", "admin_session", "managerPublicView",
+    "userRole", "userName", "userEmail", "postLoginRedirect", "quoteToReload",
+    "quoteDraft", "lastQuoteDraft", "temp_quote_print", "autoSubmitBook", "autoSubmitPrint",
   ].forEach(safeRemove);
 }
 
@@ -161,7 +150,6 @@ window.hardLogout = hardLogout;
 
 const _IDLE_MS = 30 * 60 * 1000;
 let _idleTimer = null;
-
 function _resetIdleTimer() {
   clearTimeout(_idleTimer);
   _idleTimer = setTimeout(async () => {
@@ -174,29 +162,22 @@ function _resetIdleTimer() {
 (function _initIdleWatch() {
   const evs = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll', 'click'];
   evs.forEach(ev => window.addEventListener(ev, _resetIdleTimer, { passive: true }));
-
   try {
     onAuthStateChanged(auth, (user) => {
-      if (user && !user.isAnonymous) {
-        _resetIdleTimer();
-      } else if (getGuestKey()) {
-        _resetIdleTimer();
-      } else {
-        clearTimeout(_idleTimer);
-      }
+      if (user && !user.isAnonymous) _resetIdleTimer();
+      else if (getGuestKey()) _resetIdleTimer();
+      else clearTimeout(_idleTimer);
     });
     if (getGuestKey()) _resetIdleTimer();
   } catch(e) {}
 })();
 
 export function getSessionState() {
-  const guestKey    = getGuestKey();
-  const user        = auth.currentUser;
-  const isMember    = !!(user && !user.isAnonymous);
-  const isAnon      = !!(user && user.isAnonymous);
-  const isGuest     = !!guestKey;
-  const displayName = (
-    safeGet("guestName") || safeGet("userName") || user?.displayName || ""
-  ).trim();
+  const guestKey = getGuestKey();
+  const user = auth.currentUser;
+  const isMember = !!(user && !user.isAnonymous);
+  const isAnon = !!(user && user.isAnonymous);
+  const isGuest = !!guestKey;
+  const displayName = (safeGet("guestName") || safeGet("userName") || user?.displayName || "").trim();
   return { user, isMember, isGuest, isAnon, displayName, guestKey };
 }
