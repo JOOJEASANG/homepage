@@ -6,26 +6,45 @@ on:
       - chore/ci-security-cleanup
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   audit_functions:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: chore/ci-security-cleanup
       - name: Setup Functions Node runtime
         uses: actions/setup-node@v7
         with:
-          node-version: '20'
-      - name: Resolve Functions dependencies without changing source
+          node-version: '22'
+      - name: Generate reproducible Functions lockfile
         working-directory: functions
         run: npm install --package-lock-only --ignore-scripts
-      - name: Audit Functions dependencies
+      - name: Install Functions dependencies
         working-directory: functions
-        run: npm audit --json || true
-      - name: Functions dependency updates
+        run: npm ci
+      - name: Require zero Functions audit findings
         working-directory: functions
-        run: npm outdated || true
+        run: npm audit
       - name: Syntax check Functions entrypoint
         working-directory: functions
         run: node --check index.js
+      - name: Load Functions module
+        working-directory: functions
+        run: node -e "const m=require('./index.js'); if(!m.aiChat||!m.aiChatConfig) process.exit(1); console.log('functions module load passed')"
+      - name: Commit Functions lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- functions/package-lock.json; then
+            echo "No Functions lockfile changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add functions/package-lock.json
+          git commit -m "chore: lock Functions dependencies"
+          git push origin HEAD:chore/ci-security-cleanup
