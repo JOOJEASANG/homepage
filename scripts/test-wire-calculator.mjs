@@ -3,13 +3,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const modulePath = path.join(root, 'assets/js/pages/quote-book/wire-calculator.js');
-const source = fs.readFileSync(modulePath, 'utf8');
-const moduleUrl = `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
-const wire = await import(moduleUrl);
+const wire = await import(pathToFileURL(modulePath).href);
 
 assert.equal(wire.getWireCoverCost(10000), 5000, '와이어 표지비는 1/2');
 assert.equal(wire.getWireCoverCost(0), 0, '표지비 0원은 그대로 0');
