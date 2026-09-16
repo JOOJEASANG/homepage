@@ -3,13 +3,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const modulePath = path.join(root, 'assets/js/pages/quote-book/perfect-calculator.js');
-const source = fs.readFileSync(modulePath, 'utf8');
-const moduleUrl = `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
-const perfect = await import(moduleUrl);
+const perfect = await import(pathToFileURL(modulePath).href);
 
 assert.equal(
   perfect.getPerfectInnerPricingMultiplier({
