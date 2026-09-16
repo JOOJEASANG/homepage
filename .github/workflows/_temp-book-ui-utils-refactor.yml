@@ -55,7 +55,8 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/js/pages/quote-book.js assets/js/pages/quote-book package.json scripts/test-book-ui-modules.mjs .github/workflows/firebase-hosting-pr-preview.yml
+          git restore .github/workflows/firebase-hosting-pr-preview.yml
+          git add assets/js/pages/quote-book.js assets/js/pages/quote-book package.json scripts/test-book-ui-modules.mjs
           if git diff --cached --quiet; then
             echo "No generated changes to commit"
             exit 0
