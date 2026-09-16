@@ -218,3 +218,5 @@ exports.aiChat = onRequest({ region: 'asia-northeast3', cors: true, timeoutSecon
     return res.status(limited ? 429 : 500).json({ ok: false, error: limited ? '오늘 사용할 수 있는 AI 상담 횟수를 모두 사용했습니다.' : 'AI 상담 연결에 실패했습니다.' });
   }
 });
+
+exports.guestQuoteAccess = require('./guest-access').guestQuoteAccess;
