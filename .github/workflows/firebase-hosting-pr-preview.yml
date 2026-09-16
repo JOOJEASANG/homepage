@@ -49,7 +49,7 @@ jobs:
           BASE_URL="${PREVIEW_URL%/}"
 
           fetch_preview() {
-            curl --retry 6 --retry-delay 2 --retry-all-errors -fsSL "$1" -o "$2"
+            curl --retry 20 --retry-delay 3 --retry-all-errors -fsSL "$1" -o "$2"
           }
 
           fetch_preview "$BASE_URL/quote-book.html" /tmp/quote-book.html
