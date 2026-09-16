@@ -18,7 +18,8 @@
     "test:qna-security": "node scripts/test-qna-security-contract.mjs",
     "test:storage-security": "node scripts/test-storage-rules-contract.mjs",
     "test:public-feed": "node scripts/test-public-feed-contract.mjs",
-    "test:security": "npm run test:firestore-security && npm run test:qna-security && npm run test:storage-security && npm run test:public-feed",
+    "test:ai-security": "node scripts/test-ai-security-contract.mjs",
+    "test:security": "npm run test:firestore-security && npm run test:qna-security && npm run test:storage-security && npm run test:public-feed && npm run test:ai-security",
     "test:book": "npm run test:saddle && npm run test:perfect && npm run test:wire && npm run test:utils && npm run test:book-ui && npm run test:book-form && npm run test:book-state && npm run test:book-request",
     "test:ci": "npm run test:book && npm run test:security"
   },

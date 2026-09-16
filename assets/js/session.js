@@ -102,6 +102,8 @@ try {
 try {
   const currentFile = getCurrentFile();
   if (!['admin.html', 'admin-ai-chat.html', 'maintenance.html'].includes(currentFile)) {
+    // fetch wrapper를 먼저 설치해야 ai-chat.js의 첫 요청부터 App Check 토큰이 붙습니다.
+    await import('./ai-app-check.js').catch(() => null);
     import('./ai-chat.js').catch(() => null);
   }
 } catch (e) {}
