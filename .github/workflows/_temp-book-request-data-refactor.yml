@@ -1,0 +1,43 @@
+name: TEMP Book Request Data Refactor
+
+on:
+  push:
+    branches:
+      - refactor/book-request-data
+
+permissions:
+  contents: write
+
+jobs:
+  apply_refactor:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/book-request-data
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Apply guarded request data refactor
+        run: python3 scripts/apply-book-request-data-refactor.py
+      - name: Install dependencies
+        run: npm ci || npm install
+      - name: Run all book tests
+        run: npm run test:book
+      - name: Syntax check quote book
+        run: node --check assets/js/pages/quote-book.js
+      - name: Commit generated integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No integration changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/js/pages/quote-book.js
+          git commit -m "refactor: connect quote request data helpers"
+          git push origin HEAD:refactor/book-request-data
