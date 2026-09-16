@@ -8,6 +8,19 @@ const PAGES = [
   ['/login.html', '로그인'],
 ];
 
+// 운영 Firestore의 점검모드 값이 E2E 대상 페이지를 maintenance.html로 보내지 않도록
+// 테스트 브라우저 안에서 maintenance-check 모듈만 no-op으로 격리합니다.
+// 실제 배포 파일과 운영 점검모드 동작은 변경하지 않습니다.
+test.beforeEach(async ({ page }) => {
+  await page.route('**/assets/js/maintenance-check.js*', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/javascript; charset=utf-8',
+      body: '// Playwright E2E: live maintenance redirect intentionally isolated.\n',
+    });
+  });
+});
+
 function watchFatalRuntimeErrors(page) {
   const errors = [];
   page.on('pageerror', error => {
