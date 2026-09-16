@@ -1,0 +1,39 @@
+name: Validate Firebase Functions modules
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'functions/**'
+      - '.github/workflows/functions-validation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'functions/**'
+      - '.github/workflows/functions-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - name: Install dependencies
+        working-directory: functions
+        run: npm ci
+      - name: Audit dependencies
+        working-directory: functions
+        run: npm audit
+      - name: Syntax check modules
+        working-directory: functions
+        run: node --check main.js && node --check index.js && node --check guest-access.js && node --check qna-api.js
+      - name: Load all exported Functions
+        working-directory: functions
+        run: node -e "const m=require('./main.js'); for (const k of ['aiChat','aiChatConfig','guestQuoteAccess','qnaSecure','scrubPublicQnaSecrets']) if(!m[k]) throw new Error('missing '+k); console.log(Object.keys(m).sort())"

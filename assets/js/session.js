@@ -22,8 +22,6 @@ function getCurrentFile() {
   }
 }
 
-// admin.html 또는 /admin은 관리자 권한 검사 전에 Firebase 로그인 복원이 끝나야 합니다.
-// 비로그인 상태라면 공개 메인으로 보내지 않고 관리자 로그인 탭으로 보냅니다.
 try {
   const currentFile = getCurrentFile();
   if (currentFile === 'admin.html') {
@@ -58,8 +56,6 @@ try {
   }
 } catch (e) {}
 
-// 클라이언트 저장소 값만으로 관리자 권한을 승격하지 않습니다.
-// 과거 보정용 managerPublicView/manager-view 값은 권한 오판을 막기 위해 제거만 합니다.
 try {
   const marker = sessionStorage.getItem('managerPublicView') || localStorage.getItem('managerPublicView');
   const role = sessionStorage.getItem('userRole') || localStorage.getItem('userRole');
@@ -71,7 +67,6 @@ try {
   }
 } catch (e) {}
 
-// 비회원 마이페이지 조회는 연락처 단독 조회가 아닌 guestLookupKey 기반 fallback을 우선하도록 보정합니다.
 try {
   const currentFile = getCurrentFile();
   const hasGuestKey = !!(
@@ -88,7 +83,6 @@ try {
   }
 } catch (e) {}
 
-// 관리자페이지/메인페이지/로그인페이지 보정 항목을 추가합니다.
 try {
   const currentFile = getCurrentFile();
   if (currentFile === 'admin.html') {
@@ -102,13 +96,13 @@ try {
   if (currentFile === 'login.html') {
     import('./guest-access-v2.js').catch(() => null);
   }
+  if (currentFile === 'qna.html') {
+    import('./qna-secure-v2.js').catch(() => null);
+  }
   import('./security-patches.js').catch(() => null);
   import('./customer-ui-fixes.js').catch(() => null);
 } catch (e) {}
 
-// AI 상담 위젯을 공통 로드합니다.
-// ai-chat.js 내부에서 admin/admin-ai-chat/maintenance 페이지는 제외하고,
-// settings/aiChatPublic.enabled === false 이면 모든 페이지에서 제거합니다.
 try {
   const currentFile = getCurrentFile();
   if (!['admin.html', 'admin-ai-chat.html', 'maintenance.html'].includes(currentFile)) {
@@ -116,7 +110,6 @@ try {
   }
 } catch (e) {}
 
-// ── 스토리지 안전 헬퍼 ──────────────────────────────────────
 export function safeGet(key) {
   try { return sessionStorage.getItem(key) ?? localStorage.getItem(key); }
   catch(e) { return null; }
