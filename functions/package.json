@@ -2,7 +2,7 @@
   "name": "gprint-functions",
   "description": "Firebase Functions for GreenOffice AI chat",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "index.js",
   "scripts": {
@@ -11,8 +11,13 @@
     "logs": "firebase functions:log"
   },
   "dependencies": {
-    "firebase-admin": "^12.7.0",
-    "firebase-functions": "^6.3.2"
+    "firebase-admin": "^14.4.0",
+    "firebase-functions": "^7.4.0"
+  },
+  "overrides": {
+    "gaxios": {
+      "uuid": "11.1.1"
+    }
   },
   "private": true
 }

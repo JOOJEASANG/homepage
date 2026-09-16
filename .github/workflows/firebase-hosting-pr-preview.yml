@@ -11,25 +11,63 @@ permissions:
   checks: write
 
 jobs:
-  build_and_preview:
+  validate_functions:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+
+      - name: Setup Functions Node runtime
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install Functions dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Audit Functions dependencies
+        working-directory: functions
+        run: npm audit
+
+      - name: Syntax check Functions entrypoint
+        working-directory: functions
+        run: node --check index.js
+
+      - name: Load Functions module
+        working-directory: functions
+        run: node -e "const m=require('./index.js'); if(!m.aiChat||!m.aiChatConfig) process.exit(1); console.log('functions module load passed')"
+
+  build_and_preview:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    needs: validate_functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci || npm install
+        run: npm ci
+
+      - name: Audit dependencies
+        run: npm audit
 
       - name: Test book calculators
         run: npm run test:book
 
       - name: Build Tailwind CSS
         run: npm run build:css
+
+      - name: Syntax check book entrypoint
+        run: node --check assets/js/pages/quote-book.js
 
       - name: Smoke test book quote files locally
         shell: bash
@@ -110,7 +148,7 @@ jobs:
 
       - name: Deploy preview to Firebase Hosting
         id: firebase_preview
-        uses: FirebaseExtended/action-hosting-deploy@v0
+        uses: FirebaseExtended/action-hosting-deploy@v0.11.0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
