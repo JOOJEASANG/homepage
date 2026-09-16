@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   // 스캔 대상: 루트 HTML + assets/js 모든 파일 (program 폴더 제외)
   content: [
     './*.html',
@@ -39,7 +39,7 @@ module.exports = {
         'hard':  '0 4px 0 0 rgba(21, 128, 61, 0.2)',
         'card':  '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
         'paper': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-        'float': '0 10px 30px -5px rgba(0, 0, 0, 0.05)',
+        'float': '0 10px 30px -5px rgba(0,0,0,0.05)',
       },
       animation: {
         'fade-in':       'fadeIn 0.5s ease-out forwards',
