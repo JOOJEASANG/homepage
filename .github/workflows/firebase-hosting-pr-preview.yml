@@ -56,6 +56,10 @@ jobs:
           grep -F 'getWireBindingMetrics' /tmp/quote-book.js
           grep -F 'findBindingPriceTier' /tmp/quote-book.js
           grep -F 'floorToHundred' /tmp/quote-book.js
+          grep -F 'quote-item-template.js' /tmp/quote-book.js
+          grep -F 'quote-storage.js' /tmp/quote-book.js
+          grep -F 'contact-utils.js' /tmp/quote-book.js
+          grep -F 'preview-ui.js' /tmp/quote-book.js
 
           curl -fsSL "$BASE_URL/assets/js/pages/quote-book/calculator-utils.js" -o /tmp/calculator-utils.js
           grep -F 'export function positiveNumber' /tmp/calculator-utils.js
@@ -76,6 +80,17 @@ jobs:
           grep -F "from './calculator-utils.js'" /tmp/wire-calculator.js
           grep -F 'export function getWireCoverCost' /tmp/wire-calculator.js
           grep -F 'export function getWireBindingMetrics' /tmp/wire-calculator.js
+
+          for file in contact-utils.js preview-utils.js preview-ui.js quote-storage.js quote-item-template.js quote-id.js; do
+            curl -fsSL "$BASE_URL/assets/js/pages/quote-book/$file" -o "/tmp/$file"
+            test -s "/tmp/$file"
+          done
+          grep -F 'export function sha256HexSync' /tmp/contact-utils.js
+          grep -F 'export function getPreviewUrl' /tmp/preview-utils.js
+          grep -F 'export function openPreviewLayer' /tmp/preview-ui.js
+          grep -F 'export function readLastQuoteCache' /tmp/quote-storage.js
+          grep -F 'export function renderQuoteItemTemplate' /tmp/quote-item-template.js
+          grep -F 'export async function generateBookReceiptNo' /tmp/quote-id.js
 
       - name: Deploy preview to Firebase Hosting
         id: firebase_preview

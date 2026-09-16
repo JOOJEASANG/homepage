@@ -22,6 +22,12 @@ import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
 import { getPerfectInnerPricingMultiplier, getPerfectBindingMetrics } from "./quote-book/perfect-calculator.js";
 import { getWireCoverCost, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js";
 import { findPriceTier, findBindingPriceTier, floorToHundred, getLargeSizeMultiplier } from "./quote-book/calculator-utils.js";
+import { generateBookReceiptNo } from "./quote-book/quote-id.js";
+import { normalizeContactDigits, formatPhoneHyphen, formatContact, pickContactFromUserData, sha256Hex } from "./quote-book/contact-utils.js";
+import { getPreviewUrl, inferInnerGroup } from "./quote-book/preview-utils.js";
+import { openImagePreview, openPreviewLayer, closeImagePreview } from "./quote-book/preview-ui.js";
+import { getBookTempStorageKey, readLastQuoteCache, writeLastQuoteCache, clearLastQuoteCache } from "./quote-book/quote-storage.js";
+import { renderQuoteItemTemplate, renderInnerSectionTemplate } from "./quote-book/quote-item-template.js";
 import "../session.js";
 
 // 페이지 로드 시 공통 헤더 렌더링
@@ -55,29 +61,8 @@ if (!__initialUser) {
             // (patched) 자동 익명 로그인 비활성화: 회원 세션이 사라지는 문제 방지
             // 비회원 기능이 필요하면 비회원 조회/접수 흐름에서 명시적으로 signInAnonymously를 호출하세요.
         }
-// ── 접수번호(영수증 번호) 자동 생성 ─────────────────────────
-// 형식: YYYYMMDD-XXXX (날짜 + 4자리 랜덤) Firestore transaction 으로 중복 방지
-    const _pad4 = (n) => String(n).padStart(4, '0');
-    const _ymd = () => {
-        const d = new Date();
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const da = String(d.getDate()).padStart(2, '0');
-        return `${y}${m}${da}`;
-    };
-
-    async function generateReceiptNo() {
-    // meta/quoteReceiptCounter를 읽지 않는 버전(비회원 권한 문제 방지)
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const da = String(d.getDate()).padStart(2, '0');
-    const ymd = `${y}${m}${da}`;
-    // 6자리 시간 + 3자리 랜덤 (충돌 가능성 낮춤)
-    const t = String(Date.now()).slice(-6);
-    const r = String(Math.floor(Math.random() * 900) + 100);
-    return `Q${ymd}-${t}${r}`;
-}
+// 접수번호 생성은 quote-id.js에서 관리합니다.
+const generateReceiptNo = generateBookReceiptNo;
 // =========================
 	    // 공통: 관리자 라우팅 + 강제 로그아웃
 	    // =========================
@@ -173,45 +158,14 @@ if (!__initialUser) {
   location.replace(redirectUrl || 'index.html');
 }
 
-    let lastCalculatedQuote = {};
     // ✅ 로그인/새로고침 시 견적 계산값 유지(회원 로그인 후 '견적정보가 계산되지 않았습니다' 방지)
     const __LAST_QUOTE_CACHE_KEY_BOOK = 'lastCalculatedQuote_book_v1';
-    try {
-        const __saved = sessionStorage.getItem(__LAST_QUOTE_CACHE_KEY_BOOK) || localStorage.getItem(__LAST_QUOTE_CACHE_KEY_BOOK);
-        if (__saved) {
-            const __parsed = JSON.parse(__saved);
-            if (__parsed && typeof __parsed === 'object') lastCalculatedQuote = __parsed;
-        }
-    } catch(e) { /* ignore */ }
+    let lastCalculatedQuote = readLastQuoteCache(__LAST_QUOTE_CACHE_KEY_BOOK);
     const BLOCKED_INNER_PAPER_KEYS = new Set(['snow200','snow250','arte190']);
 let unitPriceConfig = {};
     let imagePreviewsCache = { coverPaper: {}, innerPaper: {}, binding: {} };
     let __lastPreviewRequest = null; // 마지막 미리보기 요청(초기 로딩/실시간 갱신 시 재렌더용)
-    // 이미지 미리보기 값 정규화 (string URL 또는 {url, path} 객체 모두 지원)
-    function getPreviewUrl(val) {
-        if (!val) return '';
-        if (typeof val === 'string') return val;
 
-        if (typeof val === 'object') {
-            // Most common shapes used across admin versions
-            const candidates = [
-                val.url,
-                val.downloadURL,
-                val.downloadUrl,
-                val.src,
-                val.imageUrl,
-                val.previewUrl
-            ].filter(Boolean);
-            if (candidates.length) return candidates[0];
-
-            // Some admin UIs store nested objects
-            if (val.meta && typeof val.meta === 'object') {
-                const nested = [val.meta.url, val.meta.downloadURL, val.meta.downloadUrl].filter(Boolean);
-                if (nested.length) return nested[0];
-            }
-        }
-        return '';
-    }
 
     let currentUser = null;
     let unsubscribeImagePreviews = null;
@@ -281,8 +235,7 @@ const editState = { enabled: false, quoteId: null, adminEdit: false };
     };
     
     function getTempStorageKey() {
-        const uid = currentUser ? currentUser.uid : 'anonymous';
-        return `${TEMP_STORAGE_KEY_PREFIX}${uid}`;
+        return getBookTempStorageKey(currentUser, TEMP_STORAGE_KEY_PREFIX);
     }
     
     function closeSignupModal() {
@@ -349,11 +302,7 @@ const editState = { enabled: false, quoteId: null, adminEdit: false };
     let premiumInnerPapers = [ { value: 'snow120', text: '스노우지 120g' }, { value: 'snow150', text: '스노우지 150g' }, ];
     let coverPaperOptions = [ { value: 'none', text: '표지없음' }, { value: 'snow200', text: '스노우지 (200g)' }, { value: 'snow250', text: '스노우지 (250g)' }, { value: 'arte190', text: '아르떼 (190g)' } ];
 
-    function inferInnerGroup(key) {
-        // 기본 휴리스틱 (meta에 group 없을 때)
-        const premiumKeys = new Set(['snow120','snow150','snow200','snow250','arte190']);
-        return premiumKeys.has(key) ? 'premium' : 'general';
-    }
+
 
     function applyPaperMetaFromImagePreviews() {
         const metaItems = imagePreviewsCache?._meta?.items || {};
@@ -449,99 +398,7 @@ const editState = { enabled: false, quoteId: null, adminEdit: false };
         }
     }
 
-    function openImagePreview(title, url) {
-        // 하위 호환: 단일 URL 미리보기
-        openPreviewLayer({
-            title: title || '미리보기',
-            selectedUrl: url || '',
-            items: url ? [{ key: 'single', label: title || '미리보기', url }] : [],
-            emptyText: '등록된 이미지가 없습니다.',
-            categoryKey: null,
-            categoryLabel: null
-        });
-    }
 
-    function openPreviewLayer({ title, selectedUrl, items = [], emptyText = '등록된 이미지가 없습니다.', categoryKey = null, categoryLabel = null } = {}) {
-        const modal = document.getElementById('image-preview-modal');
-        const img = document.getElementById('image-preview-img');
-        const t = document.getElementById('image-preview-title');
-        const msg = document.getElementById('image-preview-message');
-        const thumbs = document.getElementById('image-preview-thumbs');
-        const count = document.getElementById('image-preview-count');
-        const badge = document.getElementById('image-preview-badge');
-
-        if (!modal || !img || !t || !msg || !thumbs) return;
-
-        // 제목/배지
-        t.textContent = title || '미리보기';
-        if (badge) {
-            badge.className = 'hidden text-[11px] px-2 py-1 rounded-full font-extrabold border';
-            badge.textContent = '';
-            if (categoryKey) {
-                const map = {
-                    coverPaper: { text: '표지', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
-                    innerPaper: { text: '내지', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-                    binding: { text: '제본', cls: 'bg-violet-50 text-violet-700 border-violet-200' },
-                };
-                const info = map[categoryKey] || { text: (categoryLabel || '구분'), cls: 'bg-slate-50 text-slate-700 border-slate-200' };
-                badge.textContent = categoryLabel || info.text;
-                badge.classList.remove('hidden');
-                badge.classList.add(...info.cls.split(' '));
-            }
-        }
-        if (modal) {
-            modal.dataset.category = categoryKey || '';
-        }
-
-        // 메시지 / 메인이미지
-        const hasMain = !!selectedUrl;
-        if (hasMain) {
-            img.src = selectedUrl;
-            img.classList.remove('hidden');
-            msg.classList.add('hidden');
-            msg.textContent = '';
-        } else {
-            img.src = '';
-            img.classList.add('hidden');
-            msg.textContent = emptyText;
-            msg.classList.remove('hidden');
-        }
-
-        // 썸네일(등록된 것만)
-        thumbs.innerHTML = '';
-        const safeItems = (items || []).filter(it => it && it.url);
-        if (count) count.textContent = safeItems.length ? `${safeItems.length}개` : '';
-
-        if (safeItems.length === 0) {
-            // 등록된 이미지가 하나도 없으면 안내만
-            if (!hasMain) {
-                msg.textContent = emptyText;
-                msg.classList.remove('hidden');
-            }
-        } else {
-            for (const it of safeItems) {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'group bg-white rounded-xl overflow-hidden border border-slate-100 shadow-sm hover:shadow transition flex flex-col w-[calc((100%-24px)/3)] max-w-[220px]';
-                btn.innerHTML = `
-                    <div class="aspect-[4/3] bg-slate-50 overflow-hidden">
-                        <img src="${it.url}" alt="${(it.label||it.key||'').replace(/"/g,'&quot;')}" class="w-full h-full object-cover group-hover:scale-[1.02] transition">
-                    </div>
-                    <div class="p-2 text-xs text-slate-600 truncate">${(it.label || it.key || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-                `;
-                btn.addEventListener('click', () => {
-                    img.src = it.url;
-                    img.classList.remove('hidden');
-                    msg.classList.add('hidden');
-                    msg.textContent = '';
-                });
-                thumbs.appendChild(btn);
-            }
-        }
-
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
 
     function openCategoryPreview({ categoryKey, specKey, selectedKey, titlePrefix = '' } = {}) {
         __lastPreviewRequest = { categoryKey, specKey, selectedKey, titlePrefix };
@@ -639,104 +496,14 @@ const hasImage = (k) => {
         });
     }
 
-    function closeImagePreview() {
-        const modal = document.getElementById('image-preview-modal');
-        const img = document.getElementById('image-preview-img');
-        const msg = document.getElementById('image-preview-message');
-        const thumbs = document.getElementById('image-preview-thumbs');
-        const count = document.getElementById('image-preview-count');
 
-        if (img) img.src = '';
-        if (msg) { msg.textContent = ''; msg.classList.add('hidden'); }
-        if (thumbs) thumbs.innerHTML = '';
-        if (count) count.textContent = '';
 
-        modal?.classList.add('hidden');
-        modal?.classList.remove('flex');
-    }
 
-    function sha256HexSync(str) {
-        function rightRotate(value, amount) { return (value >>> amount) | (value << (32 - amount)); }
-        const mathPow = Math.pow;
-        const maxWord = mathPow(2, 32);
-        let result = '';
-        const words = [];
-        const asciiBitLength = str.length * 8;
-        let hash = sha256HexSync.h || [];
-        let k = sha256HexSync.k || [];
-        let primeCounter = k.length;
-        if (!primeCounter) {
-            const isPrime = n => { for (let i = 2; i*i <= n; i++) if (n % i === 0) return false; return true; };
-            const frac = x => (x - Math.floor(x));
-            let n = 2;
-            while (primeCounter < 64) {
-                if (isPrime(n)) {
-                    if (primeCounter < 8) hash[primeCounter] = (frac(mathPow(n, 1/2)) * maxWord) | 0;
-                    k[primeCounter] = (frac(mathPow(n, 1/3)) * maxWord) | 0;
-                    primeCounter++;
-                }
-                n++;
-            }
-            sha256HexSync.h = hash; sha256HexSync.k = k;
-        }
-        str = unescape(encodeURIComponent(str));
-        for (let i = 0; i < str.length; i++) words[i >> 2] |= str.charCodeAt(i) << ((3 - i) % 4) * 8;
-        words[asciiBitLength >> 5] |= 0x80 << (24 - asciiBitLength % 32);
-        words[((asciiBitLength + 64 >> 9) << 4) + 15] = asciiBitLength;
-        for (let j = 0; j < words.length; ) {
-            const w = words.slice(j, j += 16);
-            const oldHash = hash.slice(0);
-            for (let i = 0; i < 64; i++) {
-                const w15 = w[i - 15], w2 = w[i - 2];
-                const a = hash[0], e = hash[4];
-                const temp1 = (hash[7] + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) + ((e & hash[5]) ^ ((~e) & hash[6])) + k[i] + (w[i] = (i < 16) ? w[i] : (w[i - 16] + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3)) + w[i - 7] + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))) | 0)) | 0;
-                const temp2 = ((rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]))) | 0;
-                hash = [(temp1 + temp2) | 0].concat(hash); hash[4] = (hash[4] + temp1) | 0; hash.pop();
-            }
-            for (let i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
-        }
-        for (let i = 0; i < 8; i++) {
-            for (let j = 3; j + 1; j--) {
-                const b = (hash[i] >> (j * 8)) & 255;
-                result += (b < 16 ? '0' : '') + b.toString(16);
-            }
-        }
-        return result;
-    }
 
     
-    const normalizeContactDigits = (v) => (v || '').toString().replace(/[^0-9]/g, '');
-    const formatPhoneHyphen = (v) => {
-        const d = normalizeContactDigits(v);
-        if (!d) return '';
-        if (d.length === 11) return `${d.slice(0,3)}-${d.slice(3,7)}-${d.slice(7)}`;
-        if (d.length === 10) {
-            if (d.startsWith('02')) return `${d.slice(0,2)}-${d.slice(2,6)}-${d.slice(6)}`;
-            return `${d.slice(0,3)}-${d.slice(3,6)}-${d.slice(6)}`;
-        }
-        if (d.length === 9 && d.startsWith('02')) return `${d.slice(0,2)}-${d.slice(2,5)}-${d.slice(5)}`;
-        return v.toString();
-    };
 
-        function pickContactFromUserData(userData){
-            if(!userData) return '';
-            const cands = [];
-            const push = (v)=>{ if(v!==undefined && v!==null && String(v).trim()!=='') cands.push(v); };
-            if (typeof userData.contact === 'string' || typeof userData.contact === 'number') push(userData.contact);
-            if (userData.contact && typeof userData.contact === 'object') {
-                push(userData.contact.phone); push(userData.contact.tel); push(userData.contact.mobile); push(userData.contact.value);
-            }
-            push(userData.phone); push(userData.phoneNumber); push(userData.phone_number);
-            push(userData.mobile); push(userData.cell); push(userData.tel); push(userData.telephone);
-            if (userData.profile && typeof userData.profile === 'object') {
-                push(userData.profile.phone); push(userData.profile.tel); push(userData.profile.mobile);
-            }
-            for (const v of cands) {
-                const d = normalizeContactDigits(v);
-                if (d) return d;
-            }
-            return '';
-        }
+
+
         async function resolveMemberContact(uid){
             if(!uid) return '';
             try{
@@ -749,20 +516,6 @@ const hasImage = (k) => {
             }
         }
 
-
-async function sha256Hex(text) {
-        try {
-            if (window.crypto && window.crypto.subtle && typeof window.crypto.subtle.digest === 'function') {
-                const enc = new TextEncoder();
-                const data = enc.encode(text);
-                const digest = await window.crypto.subtle.digest('SHA-256', data);
-                return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
-            }
-        } catch (e) {
-            console.warn('crypto.subtle SHA-256 실패, 폴백 사용:', e);
-        }
-        return sha256HexSync(text);
-    }
 
 window.sha256 = sha256Hex;
 
@@ -892,186 +645,7 @@ function applyImagePreviewsToUI(root=document) {
         const designPrice = unitPriceConfig?.book?.etc?.coverDesign || 0;
         const oshiPrice = unitPriceConfig?.book?.etc?.coverOshi || 0;
 
-        newItem.innerHTML = `
-            <div class="quote-item-header">
-                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-full bg-brand-100 text-brand-600 text-xs flex items-center justify-center">${quoteItemCounter}</span>
-                    견적 항목
-                </h3>
-                <button type="button" class="remove-quote-item-btn text-red-400 hover:text-red-600 transition-colors p-2 ${quoteItemCounter === 1 ? 'hidden' : ''}" title="삭제"><i class="fas fa-trash-alt"></i></button>
-            </div>
-
-            <div class="mb-8">
-                <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
-                    <i class="fas fa-pen-nib"></i> 기본 정보
-                </h2>
-                <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
-                    <label class="block text-xs font-bold text-slate-500 mb-1">제작물 제목 (품명)</label>
-                    <input type="text" name="orderName" class="form-input w-full orderName font-medium" placeholder="예: 2025년 상반기 자료집" required>
-                </div>
-            </div>
-
-            <div class="mb-8">
-                <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
-                    <i class="fas fa-book-open"></i> 표지 설정
-                </h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">표지 용지 <button type="button" class="ml-1 text-[10px] text-blue-700 underline cover-paper-preview-btn">📘 미리보기</button></label>
-                        <select name="coverPaperType" class="form-select w-full coverPaperType"></select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">표지 인쇄</label>
-                        <select name="coverPrintType" class="form-select w-full coverPrintType">
-                            <option value="none">인쇄 안함</option>
-                            <option value="color_simplex" selected>컬러 단면</option>
-                            <option value="color_duplex">컬러 양면</option>
-                        </select>
-                    </div>
-                    <div class="md:col-span-2 pt-2 flex flex-wrap gap-4 border-t border-slate-200 mt-2">
-                        <label class="flex items-center cursor-pointer gap-2">
-                            <input type="checkbox" name="coverDesign" class="coverDesign rounded text-brand-600 focus:ring-brand-500">
-                            <span class="text-sm text-slate-700">표지 디자인 의뢰 (+${designPrice.toLocaleString()}원)</span>
-                        </label>
-                        <label class="flex items-center cursor-pointer gap-2">
-                            <input type="checkbox" name="coverOshi" class="coverOshi rounded text-brand-600 focus:ring-brand-500">
-                            <span class="text-sm text-slate-700">표지 오시 1줄 (+${oshiPrice.toLocaleString()}원/부)</span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mb-8">
-                <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
-                    <i class="fas fa-file-alt"></i> 내지 설정
-                </h2>
-                <div class="space-y-3 inner-sections-container"></div>
-                <div class="mt-3 grid grid-cols-2 gap-3">
-                    <button type="button" class="add-inner-section-btn py-2 px-3 border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
-                        <i class="fas fa-plus text-xs mr-1"></i> 내지 추가
-                    </button>
-                    <button type="button" class="add-interleaf-btn py-2 px-3 border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
-                        <i class="fas fa-palette text-xs mr-1"></i> 색지(간지) 추가
-                    </button>
-                </div>
-                
-                <div class="interleaf-section mt-4 bg-orange-50 border border-orange-100 p-4 rounded-lg hidden">
-                    <h3 class="text-sm font-bold text-orange-800 mb-3">🎨 간지(색지) 설정</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">간지 색상 (90g)</label>
-                            <select name="interleafColor" class="form-select w-full interleafColor">
-                                <option value="sky">하늘색</option>
-                                <option value="green">연두색</option>
-                                <option value="pink">분홍색</option>
-                                <option value="yellow">노란색</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">간지 수량 (페이지)</label>
-                            <input type="number" name="interleafSheets" value="0" min="0" class="form-input w-full interleafSheets">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" name="includeInterleaf" class="includeInterleaf rounded text-brand-600 focus:ring-brand-500">
-                                <span class="text-sm text-slate-700">전체 페이지 수에 간지 포함 (내지 페이지에서 차감)</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mb-8">
-                <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
-                    <i class="fas fa-cogs"></i> 제본 및 수량
-                </h2>
-                <div class="space-y-4">
-                     <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-2">제본 방식</label>
-                        <input type="hidden" name="bindingType" class="bindingType" value="none">
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 binding-options">
-                            <button type="button" class="option-card" data-value="perfect">
-                                <div class="relative w-12 h-12 mb-2 rounded overflow-hidden border border-slate-100">
-                                    <img class="binding-preview-thumb w-full h-full object-cover" data-binding-key="perfect" alt="무선 제본">
-                                </div>
-                                <span class="title">무선 제본</span>
-                                <span class="description">책자 형태</span>
-                            </button>
-                            <button type="button" class="option-card" data-value="wire">
-                                <div class="relative w-12 h-12 mb-2 rounded overflow-hidden border border-slate-100">
-                                    <img class="binding-preview-thumb w-full h-full object-cover" data-binding-key="wire" alt="와이어 제본">
-                                </div>
-                                <span class="title">와이어 제본</span>
-                                <span class="description">스프링 방식</span>
-                            </button>
-                            <button type="button" class="option-card" data-value="saddle">
-                                <div class="relative w-12 h-12 mb-2 rounded overflow-hidden border border-slate-100">
-                                    <img class="binding-preview-thumb w-full h-full object-cover" data-binding-key="saddle" alt="중철 제본">
-                                </div>
-                                <span class="title">중철 제본</span>
-                                <span class="description">스테이플러</span>
-                            </button>
-                            <button type="button" class="option-card selected" data-value="none">
-                                <div class="w-12 h-12 mb-2 rounded bg-slate-100 flex items-center justify-center text-slate-400">
-                                    <i class="fas fa-file text-xl m-0"></i>
-                                </div>
-                                <span class="title">제본 안함</span>
-                                <span class="description">낱장 인쇄</span>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="binding-direction-section hidden">
-                        <label class="block text-xs font-bold text-slate-500 mb-2">제본 방향 / 철 위치</label>
-                        <input type="hidden" name="bindingDirection" class="bindingDirection" value="portrait-left">
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 binding-direction-options">
-                            <button type="button" class="option-card selected" data-value="portrait-left">
-                                <div class="w-10 h-14 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
-                                    <div class="absolute top-1 bottom-1 left-0 border-l-[3px] border-slate-700"></div>
-                                    <div class="absolute top-2 bottom-2 left-2 border-l border-dashed border-slate-200"></div>
-                                </div>
-                                <span class="title">세로좌철</span>
-                                <span class="description">세로 · 왼쪽 제본</span>
-                            </button>
-                            <button type="button" class="option-card" data-value="portrait-top">
-                                <div class="w-10 h-14 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
-                                    <div class="absolute left-1 right-1 top-0 border-t-[3px] border-slate-700"></div>
-                                    <div class="absolute left-2 right-2 top-2 border-t border-dashed border-slate-200"></div>
-                                </div>
-                                <span class="title">세로상철</span>
-                                <span class="description">세로 · 위쪽 제본</span>
-                            </button>
-                            <button type="button" class="option-card" data-value="landscape-top">
-                                <div class="w-14 h-10 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
-                                    <div class="absolute left-1 right-1 top-0 border-t-[3px] border-slate-700"></div>
-                                    <div class="absolute left-2 right-2 top-2 border-t border-dashed border-slate-200"></div>
-                                </div>
-                                <span class="title">가로상철</span>
-                                <span class="description">가로 · 위쪽 제본</span>
-                            </button>
-                            <button type="button" class="option-card" data-value="landscape-left">
-                                <div class="w-14 h-10 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
-                                    <div class="absolute top-1 bottom-1 left-0 border-l-[3px] border-slate-700"></div>
-                                    <div class="absolute top-2 bottom-2 left-2 border-l border-dashed border-slate-200"></div>
-                                </div>
-                                <span class="title">가로좌철</span>
-                                <span class="description">가로 · 왼쪽 제본</span>
-                            </button>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">주문 수량 (부)</label>
-                        <input type="number" name="quantity" value="1" min="1" class="form-input w-full quantity text-lg font-bold text-brand-700">
-                    </div>
-                </div>
-            </div>
-            
-             <div>
-                <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
-                    <i class="fas fa-comment-dots"></i> 비고 (요청사항)
-                </h2>
-                <textarea name="remarks" rows="2" class="form-textarea w-full remarks resize-none" placeholder="특별히 요청하실 내용이 있다면 적어주세요."></textarea>
-            </div>
-        `;
+        newItem.innerHTML = renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPrice });
 
         DOMElements.quoteItemsContainer.appendChild(newItem);
         try { applyImagePreviewsToUI(newItem); } catch(e) {}
@@ -1123,36 +697,7 @@ function applyImagePreviewsToUI(root=document) {
         const sectionCount = container.children.length;
         const newSection = document.createElement('div');
         newSection.className = 'inner-section bg-slate-50 p-4 rounded-lg border border-slate-200 relative animate-fade-in';
-        newSection.innerHTML = `
-            ${sectionCount > 0 ? `<button type="button" class="remove-inner-section-btn absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-200 text-slate-500 hover:bg-red-100 hover:text-red-500 flex items-center justify-center transition-colors" title="삭제"><i class="fas fa-times text-xs"></i></button>` : ''}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1">규격 (사이즈) 단위(mm)</label>
-                    <select name="paperSize" class="form-select w-full paperSize">
-                        <option value="1" selected>A4 (210×297)</option>
-                        <option value="0.9">B5 (182×257)</option>
-                        <option value="1.8">B4 (257×364)</option>
-                        <option value="2">A3 (297×420)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1">내지 용지 <button type="button" class="ml-1 text-[10px] text-emerald-700 underline inner-paper-preview-btn">📄 미리보기</button></label>
-                    <select name="innerPaperType" class="form-select w-full innerPaperType"></select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1">내지 인쇄</label>
-                    <select name="innerPrintType" class="form-select w-full innerPrintType">
-                        <option value="bw_simplex">흑백 단면</option>
-                        <option value="bw_duplex" selected>흑백 양면</option>
-                        <option value="color_simplex">컬러 단면</option>
-                        <option value="color_duplex">컬러 양면</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1">페이지 수</label>
-                    <input name="innerPages" type="number" value="50" min="1" class="form-input w-full innerPages">
-                </div>
-            </div>`;
+        newSection.innerHTML = renderInnerSectionTemplate({ sectionCount });
         const paperSelect = newSection.querySelector('.innerPaperType');
         updateInnerPaperOptions(paperSelect);
         if (data.paperSize) newSection.querySelector('.paperSize').value = data.paperSize;
@@ -1554,22 +1099,17 @@ function applyImagePreviewsToUI(root=document) {
         
         lastCalculatedQuote = { orderName: firstItemName, items: JSON.stringify(allItemsForSubmission), supplyPrice: grandTotalSupplyPrice, vat: grandTotalVat, finalPrice: grandTotalPriceCut, quantity: allItemsForSubmission.reduce((sum, item) => sum + item.quantity, 0), remarks: allRemarks, breakdown: breakdownForLastQuote };
         // ✅ 계산 완료 시 캐시 저장(로그인/리로드 대비)
-        try {
-            const __payload = JSON.stringify(lastCalculatedQuote || {});
-            sessionStorage.setItem(__LAST_QUOTE_CACHE_KEY_BOOK, __payload);
-            localStorage.setItem(__LAST_QUOTE_CACHE_KEY_BOOK, __payload);
-        } catch(e) { /* ignore */ }
+        writeLastQuoteCache(lastCalculatedQuote, __LAST_QUOTE_CACHE_KEY_BOOK);
     }
 
     function resetFormAndStorage() {
         quoteItemCounter = 0; DOMElements.quoteItemsContainer.innerHTML = ''; createNewQuoteItem();
         const tempStorageKey = getTempStorageKey(); if (tempStorageKey) localStorage.removeItem(tempStorageKey);
-        try { sessionStorage.removeItem(__LAST_QUOTE_CACHE_KEY_BOOK); } catch(e) {}
-        try { localStorage.removeItem(__LAST_QUOTE_CACHE_KEY_BOOK); } catch(e) {}
+        clearLastQuoteCache(__LAST_QUOTE_CACHE_KEY_BOOK);
         calculateQuote(); window.scrollTo(0, 0); showToast('모든 내용이 초기화되었습니다.', 'success');
     }
 
-    function formatContact(contact) { return contact.replace(/[^0-9]/g, '').replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, `$1-$2-$3`); };
+
 
     function renderAttachmentsList() {
         const listEl = DOMElements.attachmentsList;
