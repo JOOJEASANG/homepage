@@ -1,5 +1,11 @@
 // 책자 견적 공통 계산 유틸
-// quote-book.js에 있던 공통 단가 조회/절삭/규격 배율 규칙을 결과 변경 없이 분리합니다.
+// 제본 방식과 무관하게 재사용되는 숫자 보정, 단가 조회, 절삭, 페이지/규격 계산을 관리합니다.
+
+/** 양수 숫자로 정규화합니다. 잘못된 값은 fallback을 반환합니다. */
+export function positiveNumber(value, fallback = 1) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
 
 /** 일반 단가표에서 수량/장수 기준 단가를 찾습니다. */
 export function findPriceTier(tiers = [], value) {
@@ -33,6 +39,17 @@ export function findBindingPriceTier(tiers = [], quantity, totalPages) {
   return 0;
 }
 
+/** 간지 포함 정책을 반영한 제본 단가표 조회용 실제 페이지 수입니다. */
+export function getBindingPageCount({
+  totalInnerPagesSpecified = 0,
+  interleafSheets = 0,
+  includeInterleafInTotal = false,
+} = {}) {
+  const innerPages = Math.max(0, Number.parseInt(totalInnerPagesSpecified, 10) || 0);
+  const extraInterleaf = Math.max(0, Number.parseInt(interleafSheets, 10) || 0);
+  return includeInterleafInTotal ? innerPages : innerPages + extraInterleaf;
+}
+
 /** 기존 정책대로 금액을 100원 단위로 절삭합니다. */
 export function floorToHundred(value) {
   return Math.floor(value / 100) * 100;
@@ -40,5 +57,6 @@ export function floorToHundred(value) {
 
 /** A4 이상만 표지/제본에 규격 배율을 적용하고 A5/B5는 1배를 사용합니다. */
 export function getLargeSizeMultiplier(itemSizeMultiplier = 1) {
-  return itemSizeMultiplier >= 1 ? itemSizeMultiplier : 1;
+  const multiplier = positiveNumber(itemSizeMultiplier, 1);
+  return multiplier >= 1 ? multiplier : 1;
 }
