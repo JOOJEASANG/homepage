@@ -14,7 +14,9 @@
     "test:book-form": "node scripts/test-book-form-data.mjs",
     "test:book-state": "node scripts/test-book-page-state.mjs",
     "test:book-request": "node scripts/test-book-request-data.mjs",
-    "test:book": "npm run test:saddle && npm run test:perfect && npm run test:wire && npm run test:utils && npm run test:book-ui && npm run test:book-form && npm run test:book-state && npm run test:book-request"
+    "test:security": "node scripts/test-firestore-rules-contract.mjs",
+    "test:book": "npm run test:saddle && npm run test:perfect && npm run test:wire && npm run test:utils && npm run test:book-ui && npm run test:book-form && npm run test:book-state && npm run test:book-request",
+    "test:ci": "npm run test:book && npm run test:security"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.0"
