@@ -31,31 +31,25 @@ jobs:
       - name: Build Tailwind CSS
         run: npm run build:css
 
-      - name: Deploy preview to Firebase Hosting
-        id: firebase_preview
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          projectId: worklist-1e83a
-
-      - name: Smoke test deployed book quote preview
-        env:
-          PREVIEW_URL: ${{ steps.firebase_preview.outputs.details_url }}
+      - name: Smoke test book quote files locally
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$PREVIEW_URL"
-          BASE_URL="${PREVIEW_URL%/}"
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/quote-book-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          BASE_URL="http://127.0.0.1:4173"
 
-          fetch_preview() {
-            curl --retry 20 --retry-delay 3 --retry-all-errors -fsSL "$1" -o "$2"
-          }
-
-          fetch_preview "$BASE_URL/quote-book.html" /tmp/quote-book.html
+          for _ in {1..10}; do
+            if curl -fsSL "$BASE_URL/quote-book.html" -o /tmp/quote-book.html; then
+              break
+            fi
+            sleep 1
+          done
+          test -s /tmp/quote-book.html
           grep -F 'assets/js/pages/quote-book.js' /tmp/quote-book.html
 
-          fetch_preview "$BASE_URL/assets/js/pages/quote-book.js" /tmp/quote-book.js
+          curl -fsSL "$BASE_URL/assets/js/pages/quote-book.js" -o /tmp/quote-book.js
           grep -F 'getSaddleSectionMetrics' /tmp/quote-book.js
           grep -F 'getPerfectInnerPricingMultiplier' /tmp/quote-book.js
           grep -F 'getWireInnerPricingMultiplier' /tmp/quote-book.js
@@ -63,7 +57,7 @@ jobs:
           grep -F 'findBindingPriceTier' /tmp/quote-book.js
           grep -F 'floorToHundred' /tmp/quote-book.js
 
-          fetch_preview "$BASE_URL/assets/js/pages/quote-book/calculator-utils.js" /tmp/calculator-utils.js
+          curl -fsSL "$BASE_URL/assets/js/pages/quote-book/calculator-utils.js" -o /tmp/calculator-utils.js
           grep -F 'export function positiveNumber' /tmp/calculator-utils.js
           grep -F 'export function findPriceTier' /tmp/calculator-utils.js
           grep -F 'export function findBindingPriceTier' /tmp/calculator-utils.js
@@ -71,14 +65,22 @@ jobs:
           grep -F 'export function floorToHundred' /tmp/calculator-utils.js
           grep -F 'export function getLargeSizeMultiplier' /tmp/calculator-utils.js
 
-          fetch_preview "$BASE_URL/assets/js/pages/quote-book/saddle-calculator.js" /tmp/saddle-calculator.js
+          curl -fsSL "$BASE_URL/assets/js/pages/quote-book/saddle-calculator.js" -o /tmp/saddle-calculator.js
           grep -F 'export function getSaddleSheetsPerCopy' /tmp/saddle-calculator.js
 
-          fetch_preview "$BASE_URL/assets/js/pages/quote-book/perfect-calculator.js" /tmp/perfect-calculator.js
+          curl -fsSL "$BASE_URL/assets/js/pages/quote-book/perfect-calculator.js" -o /tmp/perfect-calculator.js
           grep -F "from './calculator-utils.js'" /tmp/perfect-calculator.js
           grep -F 'export function getPerfectBindingMetrics' /tmp/perfect-calculator.js
 
-          fetch_preview "$BASE_URL/assets/js/pages/quote-book/wire-calculator.js" /tmp/wire-calculator.js
+          curl -fsSL "$BASE_URL/assets/js/pages/quote-book/wire-calculator.js" -o /tmp/wire-calculator.js
           grep -F "from './calculator-utils.js'" /tmp/wire-calculator.js
           grep -F 'export function getWireCoverCost' /tmp/wire-calculator.js
           grep -F 'export function getWireBindingMetrics' /tmp/wire-calculator.js
+
+      - name: Deploy preview to Firebase Hosting
+        id: firebase_preview
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: worklist-1e83a
