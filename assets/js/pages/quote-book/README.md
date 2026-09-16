@@ -30,6 +30,9 @@
 - `contact-utils.js`: 연락처 정규화/표시, 회원 연락처 추출, SHA-256 헬퍼입니다.
 - `quote-storage.js`: 마지막 계산 견적 캐시, 임시저장 키, draft 저장/복원 접근을 담당합니다.
 - `quote-form-data.js`: 견적 폼 DOM을 draft/Firestore 제출 데이터로 직렬화합니다. 두 경로의 기존 간지 0장 처리 차이를 유지합니다.
+- `page-state.js`: 관리자 수정 URL 플래그와 `quoteToReload` payload 해석을 담당합니다.
+- `guest-session.js`: 비회원 조회 세션 읽기/복원/접수 후 저장 및 마이페이지 lookup 우선순위를 담당합니다.
+- `submit-lock.js`: 자동접수/중복접수 방지 잠금을 담당합니다.
 - `quote-id.js`: 책자 견적 접수번호 생성을 담당합니다.
 
-가격 계산식이나 Firestore 문서 쓰기 자체는 위 UI/저장 보조 모듈에 넣지 않습니다. `quote-book.js`는 페이지 흐름, 계산 조합, Firebase 저장 orchestration을 담당합니다.
+가격 계산식이나 Firestore 문서 쓰기 자체는 위 UI/상태 보조 모듈에 넣지 않습니다. `quote-book.js`는 페이지 흐름, 계산 조합, Firebase 인증/저장 orchestration을 담당합니다.

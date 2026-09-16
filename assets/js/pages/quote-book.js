@@ -28,6 +28,9 @@ import { getPreviewUrl, inferInnerGroup } from "./quote-book/preview-utils.js";
 import { openImagePreview, openPreviewLayer, closeImagePreview } from "./quote-book/preview-ui.js";
 import { getBookTempStorageKey, writeBookDraft, readBookDraft, hasBookDraft, clearBookDraft, readLastQuoteCache, writeLastQuoteCache, clearLastQuoteCache } from "./quote-book/quote-storage.js";
 import { serializeQuoteItems } from "./quote-book/quote-form-data.js";
+import { isAdminEditSearch, parseQuoteReloadPayload } from "./quote-book/page-state.js";
+import { readGuestSubmitSession, readGuestMenuSession, getGuestMyPageLookupKey, restoreGuestSessionFromReload, persistGuestSessionAfterSubmit } from "./quote-book/guest-session.js";
+import { acquireBookSubmitLock, releaseBookSubmitLock } from "./quote-book/submit-lock.js";
 import { renderQuoteItemTemplate, renderInnerSectionTemplate } from "./quote-book/quote-item-template.js";
 import "../session.js";
 
@@ -193,15 +196,9 @@ function makeDiffSummaryBook(oldDoc, newPayload){
 }
 // /DIFF_SUMMARY_BOOK_V6
 
-const editState = { enabled: false, quoteId: null, adminEdit: false };
-    // adminEdit 플래그(관리자에서 고객 견적 수정으로 진입한 경우)
-    try{
-        const p = new URLSearchParams(location.search || '');
-        editState.adminEdit = (p.get('adminEdit') === '1' || p.get('admin_edit') === '1');
-
-        // 관리자 수정 모드에서는 버튼 문구를 '관리자 수정'으로 표시
-        try { if (editState.adminEdit) { document.getElementById('submitQuoteBtn')?.querySelector('.btn-text') && (document.getElementById('submitQuoteBtn').querySelector('.btn-text').textContent = '관리자 수정'); } } catch(e) {}
-    }catch(e){}
+const editState = { enabled: false, quoteId: null, adminEdit: isAdminEditSearch(location.search || '') };
+    // 관리자 수정 모드에서는 버튼 문구를 '관리자 수정'으로 표시
+    try { if (editState.adminEdit) { document.getElementById('submitQuoteBtn')?.querySelector('.btn-text') && (document.getElementById('submitQuoteBtn').querySelector('.btn-text').textContent = '관리자 수정'); } } catch(e) {}
 
     let quoteItemCounter = 0;
     const TEMP_STORAGE_KEY_PREFIX = 'multiQuoteFormData_';
@@ -1159,16 +1156,15 @@ function applyImagePreviewsToUI(root=document) {
 
         // ✅ 비회원(익명 로그인) 상태라면: 정보가 이미 저장돼 있으면 모달 없이 바로 접수/수정
         try {
-            const k = (sessionStorage.getItem('guestLookupKey') || localStorage.getItem('guestLookupKey') || '').trim();
-            const n = (sessionStorage.getItem('guestName') || localStorage.getItem('guestName') || '').trim();
-            const cRaw = (sessionStorage.getItem('guestContactRaw') || localStorage.getItem('guestContactRaw') || '').trim();
-            const c = ((sessionStorage.getItem('guestContact') || localStorage.getItem('guestContact') || '')).trim().replace(/[^0-9]/g, '');
-            const cr = (cRaw || c || '').trim();
-
+            const guestSession = readGuestSubmitSession();
             // 비회원(익명) 로그인 상태이고, 필수 정보가 있으면 바로 진행
-            if ((!currentUser || currentUser.isAnonymous) && k && n && c) {
+            if ((!currentUser || currentUser.isAnonymous) && guestSession.lookupKey && guestSession.name && guestSession.contact) {
                 await ensureGuestAuth();
-                await submitQuoteRequest(null, n, c, '', { isGuest: true, guestLookupKey: k, guestContactRaw: cr });
+                await submitQuoteRequest(null, guestSession.name, guestSession.contact, '', {
+                    isGuest: true,
+                    guestLookupKey: guestSession.lookupKey,
+                    guestContactRaw: guestSession.contactForSubmission,
+                });
                 return;
             }
         } catch(e) {}
@@ -1431,24 +1427,14 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
                 let legacyKey = null;
                 try { if (contactRaw) legacyKey = await sha256Hex(`${ordererName}|${contactRaw}|${pwLast4}`); } catch(e) {}
 
-                // sessionStorage (same-tab)
-                sessionStorage.setItem('guestLookupKey', guestLookupKey);
-                if (legacyKey) sessionStorage.setItem('guestLookupKeyLegacy', legacyKey);
-                sessionStorage.setItem('guestName', ordererName);
-                sessionStorage.setItem('guestContact', normalizedContact);
-                sessionStorage.setItem('guestContactRaw', contactRaw);
-                sessionStorage.setItem('guestPwLast4', pwLast4);
-                sessionStorage.setItem('guestContactHyphen', formatPhoneHyphen(normalizedContact));
-
-                // localStorage (refresh/new tab safe)
-                try {
-                    localStorage.setItem('guestLookupKey', guestLookupKey);
-                    if (legacyKey) localStorage.setItem('guestLookupKeyLegacy', legacyKey);
-                    localStorage.setItem('guestName', ordererName);
-                    localStorage.setItem('guestContact', normalizedContact);
-                    localStorage.setItem('guestContactRaw', contactRaw);
-                    localStorage.setItem('guestPwLast4', pwLast4);
-                } catch(e) {}
+                persistGuestSessionAfterSubmit({
+                    guestLookupKey,
+                    legacyKey,
+                    ordererName,
+                    normalizedContact,
+                    contactRaw,
+                    pwLast4,
+                });
             }
 
             if (DOMElements.attachmentsInput) DOMElements.attachmentsInput.value = '';
@@ -1506,8 +1492,7 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
                 userMenuGuestLookupBtn?.classList.add('hidden');
                 return;
             }
-            const guestName = sessionStorage.getItem('guestName');
-            const hasGuestSession = !!guestName || !!localStorage.getItem('guestLookupKey') || !!localStorage.getItem('guestPwLast4');
+            const { guestName, hasGuestSession } = readGuestMenuSession();
 
             if (hasGuestSession) {
                 userMenuStatus.innerHTML = guestName
@@ -1561,7 +1546,7 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
         closeUserMenuBtn?.addEventListener('click', closeUserMenu);
         userMenuModal?.addEventListener('click', (e) => { if (e.target === userMenuModal) closeUserMenu(); });
 
-        userMenuGoMyPageBtn?.addEventListener('click', () => { const _k = localStorage.getItem('guestLookupKey') || sessionStorage.getItem('guestLookupKey') || localStorage.getItem('guestLookupKeyLegacy') || ''; location.href = _k ? 'mypage.html?guest=1' : 'mypage.html'; });
+        userMenuGoMyPageBtn?.addEventListener('click', () => { const _k = getGuestMyPageLookupKey(); location.href = _k ? 'mypage.html?guest=1' : 'mypage.html'; });
         userMenuGoLoginBtn?.addEventListener('click', () => {
             // 상단 메뉴에서 로그인할 경우 autoSubmitBook 플래그가 설정되지 않으면
             // "입력 후 로그인했는데 접수 안됨" 증상이 발생할 수 있음.
@@ -1746,33 +1731,7 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
         });
     }
 
-    // ===============================
-    // 중복 접수 방지
-    // - 로그인 전환 과정에서 initializePage가 2회 이상 호출되거나
-    //   자동접수(autoSubmitBook)와 다른 트리거가 겹치면 2번 접수될 수 있음.
-    // - 페이지 로드 1회당 접수는 1회만 허용
-    // ===============================
-    let __BOOK_SUBMIT_LOCK = false;
-    // ── 중복 접수 방지 잠금 ──────────────────────────────────
-    // 제출 버튼 연타로 Firestore 문서가 중복 생성되는 것을 방지합니다.
-    function __acquireBookSubmitLock() {
-        try {
-            if (__BOOK_SUBMIT_LOCK) return false;
-            if (sessionStorage.getItem('__BOOK_SUBMIT_LOCK') === '1') return false;
-            __BOOK_SUBMIT_LOCK = true;
-            sessionStorage.setItem('__BOOK_SUBMIT_LOCK', '1');
-            return true;
-        } catch (e) {
-            // sessionStorage 사용 불가 환경이면 메모리 락만 사용
-            if (__BOOK_SUBMIT_LOCK) return false;
-            __BOOK_SUBMIT_LOCK = true;
-            return true;
-        }
-    }
-    function __releaseBookSubmitLock() {
-        __BOOK_SUBMIT_LOCK = false;
-        try { sessionStorage.removeItem('__BOOK_SUBMIT_LOCK'); } catch (e) {}
-    }
+    // 중복 접수 잠금은 submit-lock.js에서 관리합니다.
 
     // ── 페이지 초기화 ─────────────────────────────────────────
     // Firebase Auth 상태 확인 → 편집 모드 설정 → 단가 데이터 로드 → 이벤트 바인딩
@@ -1839,11 +1798,7 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
                 await restoreFormData();
 
                 // 계산 캐시도 즉시 저장(혹시 모를 리로드 대비)
-                try {
-                    const __payload = JSON.stringify(lastCalculatedQuote || {});
-                    sessionStorage.setItem(__LAST_QUOTE_CACHE_KEY_BOOK, __payload);
-                    localStorage.setItem(__LAST_QUOTE_CACHE_KEY_BOOK, __payload);
-                } catch(e) {}
+                writeLastQuoteCache(lastCalculatedQuote, __LAST_QUOTE_CACHE_KEY_BOOK);
 
                 showToast('로그인이 확인되어 자동 접수합니다.', 'info');
 
@@ -1857,7 +1812,7 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
                 closeSignupModal();
 
                 // 중복 접수 방지 락
-                if (!__acquireBookSubmitLock()) {
+                if (!acquireBookSubmitLock()) {
                     return;
                 }
                 try {
@@ -1865,7 +1820,7 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
                     await submitQuoteRequest(currentUser, ordererName, ordererContact, '', { isGuest: false, forceDocId: __rid });
                     try { if (__rid) { localStorage.removeItem('autoSubmitBookRequestId'); } } catch(e) {}
                 } finally {
-                    __releaseBookSubmitLock();
+                    releaseBookSubmitLock();
                 }
             }
 
@@ -1874,83 +1829,18 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
             if (quoteToReload) {
                 localStorage.removeItem('quoteToReload');
                 try {
-                    const parsed = JSON.parse(quoteToReload);
+                    const reloadState = parseQuoteReloadPayload(quoteToReload);
+                    const items = reloadState.items || [];
 
-                    // (1) 기존 방식: 배열만 저장되어 있을 때
-                    // (2) 신규 방식: { mode:'edit', quoteId, formData } 형태
-                    let items = [];
-                    if (Array.isArray(parsed)) {
-                        items = parsed;
-                    } else if (parsed && typeof parsed === 'object') {
-                        // admin.html 에서 mode:'admin_edit' 로 넘기는 케이스도 '수정'으로 처리
-                        if ((parsed.mode === 'edit' || parsed.mode === 'admin_edit') && parsed.quoteId) {
-                            editState.enabled = true;
-                            editState.quoteId = parsed.quoteId;
-                            // 버튼 문구 변경
-                            if (DOMElements.submitQuoteBtn) {
-                                DOMElements.submitQuoteBtn.innerHTML = editState.adminEdit ? '<i class="fas fa-pen-to-square mr-2"></i>관리자 수정 저장' : '<i class="fas fa-pen-to-square mr-2"></i>견적 수정';
-                            }
-
-                            // 비회원 수정 모드: 마이페이지에서 전달된 비회원 정보를 세션/로컬에 복구
-                            // ⚠️ mypage는 가능하면 guestLookupKey + guestPwLast4 로 조회하므로 pwLast4도 함께 복구해야 함
-                            try {
-                                if (parsed.isGuest && parsed.guestLookupKey) {
-                                    const gContact = (parsed.guestContact || '').toString().replace(/[^0-9]/g, '');
-                                    const pw4 = (parsed.guestPwLast4 || gContact.slice(-4) || '').toString();
-
-                                    // 기존 키가 있으면 legacy로 보관 (수정 후 마이페이지에서 두 견적 모두 보이도록)
-                                    try{
-                                        const prevKey = (sessionStorage.getItem('guestLookupKey') || localStorage.getItem('guestLookupKey') || '').trim();
-                                        if (prevKey && prevKey !== parsed.guestLookupKey) {
-                                            sessionStorage.setItem('guestLookupKeyLegacy', prevKey);
-                                            try{ localStorage.setItem('guestLookupKeyLegacy', prevKey); }catch(_){}
-                                        }
-                                    }catch(_){}
-                                    sessionStorage.setItem('guestLookupKey', parsed.guestLookupKey);
-                                    try{ localStorage.setItem('guestLookupKey', parsed.guestLookupKey); }catch(_){ }
-
-                                    if (parsed.guestLookupKeyLegacy) {
-                                        sessionStorage.setItem('guestLookupKeyLegacy', parsed.guestLookupKeyLegacy);
-                                        try{ localStorage.setItem('guestLookupKeyLegacy', parsed.guestLookupKeyLegacy); }catch(_){ }
-                                    }
-
-                                    if (parsed.guestName) {
-                                        sessionStorage.setItem('guestName', parsed.guestName);
-                                        try{ localStorage.setItem('guestName', parsed.guestName); }catch(_){ }
-                                    }
-
-                                    if (gContact) {
-                                        sessionStorage.setItem('guestContact', gContact);
-                                        try{ localStorage.setItem('guestContact', gContact); }catch(_){ }
-                                        sessionStorage.setItem('guestContactHyphen', formatPhoneHyphen(gContact));
-                                    }
-
-                                    if (parsed.guestContactRaw) {
-                                        sessionStorage.setItem('guestContactRaw', parsed.guestContactRaw);
-                                        try{ localStorage.setItem('guestContactRaw', parsed.guestContactRaw); }catch(_){ }
-                                    }
-
-                                    if (pw4) {
-                                        sessionStorage.setItem('guestPwLast4', pw4);
-                                        try{ localStorage.setItem('guestPwLast4', pw4); }catch(_){ }
-                                    }
-                                }
-                            } catch(err) {}
+                    if (reloadState.editEnabled && reloadState.quoteId) {
+                        editState.enabled = true;
+                        editState.quoteId = reloadState.quoteId;
+                        if (DOMElements.submitQuoteBtn) {
+                            DOMElements.submitQuoteBtn.innerHTML = editState.adminEdit ? '<i class="fas fa-pen-to-square mr-2"></i>관리자 수정 저장' : '<i class="fas fa-pen-to-square mr-2"></i>견적 수정';
                         }
-try {
-                            if (Array.isArray(parsed.formData)) {
-                                items = parsed.formData;
-                            } else if (typeof parsed.formData === 'string') {
-                                items = JSON.parse(parsed.formData || '[]');
-                            } else if (parsed.formData && typeof parsed.formData === 'object') {
-                                // tolerate single item object
-                                items = [parsed.formData];
-                            } else {
-                                items = [];
-                            }
-                        } catch (e) {
-                            items = [];
-                        }
+                        try {
+                            if (reloadState.guestRestore) restoreGuestSessionFromReload(reloadState.guestRestore);
+                        } catch(err) {}
                     }
 
                     DOMElements.quoteItemsContainer.innerHTML = '';
