@@ -1,0 +1,85 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function quoteData(quoteId) {
+      return firestore.get(/databases/(default)/documents/quotes/$(quoteId)).data;
+    }
+
+    function canAccessQuote(quoteId) {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/quotes/$(quoteId))
+        && (
+          isAdmin()
+          || quoteData(quoteId).userId == request.auth.uid
+          || (quoteData(quoteId).isGuest == true && quoteData(quoteId).guestUid == request.auth.uid)
+          || (
+            quoteData(quoteId).isGuest == true
+            && request.auth.token.guestLookupKey != null
+            && quoteData(quoteId).guestLookupKey == request.auth.token.guestLookupKey
+          )
+        );
+    }
+
+    function allowedUpload() {
+      return request.resource != null
+        && request.resource.size <= 300 * 1024 * 1024
+        && (
+          request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf'
+          || request.resource.contentType == 'application/zip'
+          || request.resource.contentType == 'application/x-zip-compressed'
+          || request.resource.contentType == 'application/msword'
+          || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          || request.resource.contentType == 'application/vnd.ms-excel'
+          || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          || request.resource.contentType == 'application/vnd.ms-powerpoint'
+          || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+          || request.resource.contentType == 'application/postscript'
+          || request.resource.contentType == 'application/octet-stream'
+        );
+    }
+
+    match /quotes/{quoteId}/attachments/{fileName} {
+      allow read: if canAccessQuote(quoteId);
+      allow create, update: if canAccessQuote(quoteId) && allowedUpload();
+      allow delete: if canAccessQuote(quoteId);
+    }
+
+    match /quotes/{quoteId}/{fileName} {
+      allow read: if canAccessQuote(quoteId);
+      allow create, update: if canAccessQuote(quoteId) && allowedUpload();
+      allow delete: if canAccessQuote(quoteId);
+    }
+
+    match /portfolio/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /previews/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /imagePreviews/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

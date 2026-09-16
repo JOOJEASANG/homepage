@@ -34,8 +34,8 @@ jobs:
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-service-account.json"
           chmod 600 "$RUNNER_TEMP/firebase-service-account.json"
 
-      - name: Deploy Firestore rules
+      - name: Deploy Firestore and Storage rules
         shell: bash
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
-        run: npx --yes firebase-tools@latest deploy --only firestore:rules --project worklist-1e83a --non-interactive
+        run: npx --yes firebase-tools@latest deploy --only firestore:rules,storage --project worklist-1e83a --non-interactive
