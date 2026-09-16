@@ -31,7 +31,7 @@ jobs:
 
       - name: Syntax check Functions entrypoint
         working-directory: functions
-        run: node --check index.js
+        run: node --check index.js && node --check guest-access.js
 
       - name: Load Functions module
         working-directory: functions
