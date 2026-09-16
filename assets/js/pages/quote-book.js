@@ -26,7 +26,8 @@ import { generateBookReceiptNo } from "./quote-book/quote-id.js";
 import { normalizeContactDigits, formatPhoneHyphen, formatContact, pickContactFromUserData, sha256Hex } from "./quote-book/contact-utils.js";
 import { getPreviewUrl, inferInnerGroup } from "./quote-book/preview-utils.js";
 import { openImagePreview, openPreviewLayer, closeImagePreview } from "./quote-book/preview-ui.js";
-import { getBookTempStorageKey, readLastQuoteCache, writeLastQuoteCache, clearLastQuoteCache } from "./quote-book/quote-storage.js";
+import { getBookTempStorageKey, writeBookDraft, readBookDraft, hasBookDraft, clearBookDraft, readLastQuoteCache, writeLastQuoteCache, clearLastQuoteCache } from "./quote-book/quote-storage.js";
+import { serializeQuoteItems } from "./quote-book/quote-form-data.js";
 import { renderQuoteItemTemplate, renderInnerSectionTemplate } from "./quote-book/quote-item-template.js";
 import "../session.js";
 
@@ -742,44 +743,14 @@ function applyImagePreviewsToUI(root=document) {
     function saveFormData() {
         const tempStorageKey = getTempStorageKey();
         if (!tempStorageKey) return;
-        const allItemsData = [];
-        document.querySelectorAll('.quote-item').forEach(itemEl => {
-            const itemData = {};
-            itemData.orderName = itemEl.querySelector('.orderName').value;
-            itemData.coverPaperType = itemEl.querySelector('.coverPaperType').value;
-            itemData.coverPrintType = itemEl.querySelector('.coverPrintType').value;
-            itemData.coverDesign = itemEl.querySelector('.coverDesign').checked;
-            itemData.coverOshi = itemEl.querySelector('.coverOshi').checked;
-            itemData.bindingType = itemEl.querySelector('.bindingType').value;
-            itemData.bindingDirection = itemEl.querySelector('.bindingDirection')?.value || 'portrait-left';
-            itemData.quantity = itemEl.querySelector('.quantity').value;
-            itemData.remarks = itemEl.querySelector('.remarks').value;
-            const interleafSection = itemEl.querySelector('.interleaf-section');
-            if (!interleafSection.classList.contains('hidden')) {
-                itemData.interleafColor = interleafSection.querySelector('.interleafColor').value;
-                itemData.interleafSheets = interleafSection.querySelector('.interleafSheets').value;
-                itemData.includeInterleaf = interleafSection.querySelector('.includeInterleaf').checked;
-            } else {
-                itemData.interleafSheets = 0;
-            }
-            itemData.innerSections = [];
-            itemEl.querySelectorAll('.inner-section').forEach(section => {
-                itemData.innerSections.push({
-                    paperSize: section.querySelector('.paperSize').value,
-                    innerPaperType: section.querySelector('.innerPaperType').value,
-                    innerPrintType: section.querySelector('.innerPrintType').value,
-                    innerPages: section.querySelector('.innerPages').value
-                });
-            });
-            allItemsData.push(itemData);
-        });
-        localStorage.setItem(tempStorageKey, JSON.stringify(allItemsData));
+        const allItemsData = serializeQuoteItems(document.querySelectorAll('.quote-item'), 'draft');
+        writeBookDraft(tempStorageKey, allItemsData);
     }
 
     async function restoreFormData(){
         const tempStorageKey = getTempStorageKey();
         if (!tempStorageKey) return;
-        const savedData = JSON.parse(localStorage.getItem(tempStorageKey) || '[]');
+        const savedData = readBookDraft(tempStorageKey);
         if (savedData.length === 0) return;
         DOMElements.quoteItemsContainer.innerHTML = '';
         quoteItemCounter = 0;
@@ -793,7 +764,7 @@ function applyImagePreviewsToUI(root=document) {
     
     function checkForTempData() {
         const tempStorageKey = getTempStorageKey();
-        if(tempStorageKey && localStorage.getItem(tempStorageKey)) {
+        if (hasBookDraft(tempStorageKey)) {
             showToast('이전에 작성하던 견적이 있습니다.', 'restore');
         }
     }
@@ -1104,7 +1075,7 @@ function applyImagePreviewsToUI(root=document) {
 
     function resetFormAndStorage() {
         quoteItemCounter = 0; DOMElements.quoteItemsContainer.innerHTML = ''; createNewQuoteItem();
-        const tempStorageKey = getTempStorageKey(); if (tempStorageKey) localStorage.removeItem(tempStorageKey);
+        const tempStorageKey = getTempStorageKey(); clearBookDraft(tempStorageKey);
         clearLastQuoteCache(__LAST_QUOTE_CACHE_KEY_BOOK);
         calculateQuote(); window.scrollTo(0, 0); showToast('모든 내용이 초기화되었습니다.', 'success');
     }
@@ -1281,35 +1252,7 @@ DOMElements.signupModal.classList.remove('hidden');
             return; 
         }
 
-        const allItemsData = [];
-        document.querySelectorAll('.quote-item').forEach(itemEl => {
-            const itemData = {};
-            itemData.orderName = itemEl.querySelector('.orderName').value;
-            itemData.coverPaperType = itemEl.querySelector('.coverPaperType').value;
-            itemData.coverPrintType = itemEl.querySelector('.coverPrintType').value;
-            itemData.coverDesign = itemEl.querySelector('.coverDesign').checked;
-            itemData.coverOshi = itemEl.querySelector('.coverOshi').checked;
-            itemData.bindingType = itemEl.querySelector('.bindingType').value;
-            itemData.bindingDirection = itemEl.querySelector('.bindingDirection')?.value || 'portrait-left';
-            itemData.quantity = itemEl.querySelector('.quantity').value;
-            itemData.remarks = itemEl.querySelector('.remarks').value;
-            const interleafSection = itemEl.querySelector('.interleaf-section');
-            itemData.interleafSheets = interleafSection.classList.contains('hidden') ? 0 : (itemEl.querySelector('.interleafSheets').value || 0);
-            if(itemData.interleafSheets > 0){
-                itemData.interleafColor = itemEl.querySelector('.interleafColor').value;
-                itemData.includeInterleaf = itemEl.querySelector('.includeInterleaf').checked;
-            }
-            itemData.innerSections = [];
-            itemEl.querySelectorAll('.inner-section').forEach(section => {
-                itemData.innerSections.push({
-                    paperSize: section.querySelector('.paperSize').value,
-                    innerPaperType: section.querySelector('.innerPaperType').value,
-                    innerPrintType: section.querySelector('.innerPrintType').value,
-                    innerPages: section.querySelector('.innerPages').value
-                });
-            });
-            allItemsData.push(itemData);
-        });
+        const allItemsData = serializeQuoteItems(document.querySelectorAll('.quote-item'), 'submission');
         
         const quoteRequestData = {
             ...lastCalculatedQuote,

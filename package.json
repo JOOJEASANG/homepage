@@ -9,8 +9,9 @@
     "test:perfect": "node scripts/test-perfect-calculator.mjs",
     "test:wire": "node scripts/test-wire-calculator.mjs",
     "test:utils": "node scripts/test-book-calculator-utils.mjs",
-    "test:book": "npm run test:saddle && npm run test:perfect && npm run test:wire && npm run test:utils && npm run test:book-ui",
-    "test:book-ui": "node scripts/test-book-ui-modules.mjs"
+    "test:book-ui": "node scripts/test-book-ui-modules.mjs",
+    "test:book-form": "node scripts/test-book-form-data.mjs",
+    "test:book": "npm run test:saddle && npm run test:perfect && npm run test:wire && npm run test:utils && npm run test:book-ui && npm run test:book-form"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.0"

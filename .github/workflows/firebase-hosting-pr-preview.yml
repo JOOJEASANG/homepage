@@ -58,6 +58,7 @@ jobs:
           grep -F 'floorToHundred' /tmp/quote-book.js
           grep -F 'quote-item-template.js' /tmp/quote-book.js
           grep -F 'quote-storage.js' /tmp/quote-book.js
+          grep -F 'quote-form-data.js' /tmp/quote-book.js
           grep -F 'contact-utils.js' /tmp/quote-book.js
           grep -F 'preview-ui.js' /tmp/quote-book.js
 
@@ -81,7 +82,7 @@ jobs:
           grep -F 'export function getWireCoverCost' /tmp/wire-calculator.js
           grep -F 'export function getWireBindingMetrics' /tmp/wire-calculator.js
 
-          for file in contact-utils.js preview-utils.js preview-ui.js quote-storage.js quote-item-template.js quote-id.js; do
+          for file in contact-utils.js preview-utils.js preview-ui.js quote-storage.js quote-item-template.js quote-id.js quote-form-data.js; do
             curl -fsSL "$BASE_URL/assets/js/pages/quote-book/$file" -o "/tmp/$file"
             test -s "/tmp/$file"
           done
@@ -89,6 +90,8 @@ jobs:
           grep -F 'export function getPreviewUrl' /tmp/preview-utils.js
           grep -F 'export function openPreviewLayer' /tmp/preview-ui.js
           grep -F 'export function readLastQuoteCache' /tmp/quote-storage.js
+          grep -F 'export function writeBookDraft' /tmp/quote-storage.js
+          grep -F 'export function serializeQuoteItems' /tmp/quote-form-data.js
           grep -F 'export function renderQuoteItemTemplate' /tmp/quote-item-template.js
           grep -F 'export async function generateBookReceiptNo' /tmp/quote-id.js
 
