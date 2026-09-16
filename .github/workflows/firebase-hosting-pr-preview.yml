@@ -60,11 +60,8 @@ jobs:
       - name: Audit dependencies
         run: npm audit
 
-      - name: Test book calculators
-        run: npm run test:book
-
-      - name: Test Firestore security contracts
-        run: npm run test:security
+      - name: Test application contracts
+        run: npm run test:ci
 
       - name: Build Tailwind CSS
         run: npm run build:css
@@ -72,11 +69,11 @@ jobs:
       - name: Syntax check book entrypoint
         run: node --check assets/js/pages/quote-book.js
 
-      - name: Smoke test book quote files locally
+      - name: Smoke test application modules locally
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/quote-book-http.log 2>&1 &
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/app-http.log 2>&1 &
           SERVER_PID=$!
           trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
           BASE_URL="http://127.0.0.1:4173"
@@ -152,6 +149,19 @@ jobs:
           grep -F 'export function acquireBookSubmitLock' /tmp/submit-lock.js
           grep -F 'export function renderQuoteItemTemplate' /tmp/quote-item-template.js
           grep -F 'export async function generateBookReceiptNo' /tmp/quote-id.js
+
+          for file in \
+            assets/js/pages/shared/page-utils.js \
+            assets/js/pages/quote-print/runtime.js \
+            assets/js/pages/mypage/runtime.js \
+            assets/js/pages/admin/runtime.js; do
+            curl -fsSL "$BASE_URL/$file" -o "/tmp/$(basename "$file").smoke"
+            test -s "/tmp/$(basename "$file").smoke"
+          done
+          curl -fsSL "$BASE_URL/assets/js/session.js" -o /tmp/session.js
+          grep -F "./pages/quote-print/runtime.js" /tmp/session.js
+          grep -F "./pages/mypage/runtime.js" /tmp/session.js
+          grep -F "./pages/admin/runtime.js" /tmp/session.js
 
       - name: Deploy preview to Firebase Hosting
         id: firebase_preview
