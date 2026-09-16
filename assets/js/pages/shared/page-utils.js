@@ -15,6 +15,8 @@ export function quoteStatusKind(value) {
   const status = String(value || '').trim();
   if (!status) return 'waiting';
   if (/취소|반려|거절/.test(status)) return 'cancelled';
+  // '접수완료'는 제작 완료가 아니라 정상 접수된 대기 상태입니다.
+  if (/^접수완료$|접수대기|접수중/.test(status)) return 'waiting';
   if (/완료|발송|출고/.test(status)) return 'done';
   if (/제작|진행|인쇄|결제완료|확정/.test(status)) return 'progress';
   return 'waiting';
