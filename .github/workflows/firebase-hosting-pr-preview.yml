@@ -56,6 +56,14 @@ jobs:
           grep -F 'getPerfectInnerPricingMultiplier' /tmp/quote-book.js
           grep -F 'getWireInnerPricingMultiplier' /tmp/quote-book.js
           grep -F 'getWireBindingMetrics' /tmp/quote-book.js
+          grep -F 'findBindingPriceTier' /tmp/quote-book.js
+          grep -F 'floorToHundred' /tmp/quote-book.js
+
+          curl -fsSL "$BASE_URL/assets/js/pages/quote-book/calculator-utils.js" -o /tmp/calculator-utils.js
+          grep -F 'export function findPriceTier' /tmp/calculator-utils.js
+          grep -F 'export function findBindingPriceTier' /tmp/calculator-utils.js
+          grep -F 'export function floorToHundred' /tmp/calculator-utils.js
+          grep -F 'export function getLargeSizeMultiplier' /tmp/calculator-utils.js
 
           curl -fsSL "$BASE_URL/assets/js/pages/quote-book/saddle-calculator.js" -o /tmp/saddle-calculator.js
           grep -F 'export function getSaddleSheetsPerCopy' /tmp/saddle-calculator.js
