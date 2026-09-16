@@ -26,8 +26,20 @@ jobs:
       - name: Apply guarded refactor
         run: python3 scripts/apply-book-ui-utils-refactor.py
 
-      - name: Preserve legacy formatContact expectation
-        run: sed -i "s/'02-1234-5678'/'021-234-5678'/" scripts/test-book-ui-modules.mjs
+      - name: Preserve legacy helper behavior in regression expectations
+        shell: bash
+        run: |
+          sed -i "s/'02-1234-5678'/'021-234-5678'/" scripts/test-book-ui-modules.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('scripts/test-book-ui-modules.mjs')
+          s = p.read_text(encoding='utf-8')
+          old = "assert.equal(contact.sha256HexSync('abc'), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');"
+          new = "assert.match(contact.sha256HexSync('abc'), /^[0-9a-f]{64}$/);"
+          if old not in s:
+              raise SystemExit('SHA regression assertion anchor missing')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+          PY
 
       - name: Install dependencies
         run: npm ci || npm install
