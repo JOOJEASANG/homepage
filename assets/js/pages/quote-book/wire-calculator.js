@@ -1,13 +1,10 @@
 // 와이어제본 전용 계산 모듈
-// 기존 quote-book.js의 와이어제본 계산 규칙을 결과 변경 없이 분리합니다.
+// 와이어제본에만 필요한 규칙만 유지하고 공통 계산은 calculator-utils.js를 사용합니다.
+
+import { getBindingPageCount, getLargeSizeMultiplier, positiveNumber } from './calculator-utils.js';
 
 export const WIRE_A5_INNER_MULTIPLIER = 0.70;
 export const WIRE_MAX_INNER_PAGES = 450;
-
-function positiveNumber(value, fallback = 1) {
-  const n = Number(value);
-  return Number.isFinite(n) && n > 0 ? n : fallback;
-}
 
 /** 와이어제본 표지는 기존 정책대로 일반 표지비의 1/2을 적용합니다. */
 export function getWireCoverCost(rawCoverCost) {
@@ -39,24 +36,17 @@ export function isWireBindingAllowed(totalInnerPages) {
   return pages <= WIRE_MAX_INNER_PAGES;
 }
 
-/** 제본비 단가표 조회에 사용할 실제 페이지 수 */
-export function getWireBindingPageCount({
-  totalInnerPagesSpecified = 0,
-  interleafSheets = 0,
-  includeInterleafInTotal = false,
-} = {}) {
-  const innerPages = Math.max(0, Number.parseInt(totalInnerPagesSpecified, 10) || 0);
-  const extraInterleaf = Math.max(0, Number.parseInt(interleafSheets, 10) || 0);
-  return includeInterleafInTotal ? innerPages : innerPages + extraInterleaf;
+/** 제본비 단가표 조회에 사용할 실제 페이지 수입니다. */
+export function getWireBindingPageCount(options = {}) {
+  return getBindingPageCount(options);
 }
 
-/** A5/B5는 제본비 배율 1, A4 이상은 기존 규격 배율을 유지합니다. */
+/** A5/B5는 제본비 배율 1, A4 이상은 규격 배율을 사용합니다. */
 export function getWireBindingSizeMultiplier(itemSizeMultiplier = 1) {
-  const multiplier = positiveNumber(itemSizeMultiplier, 1);
-  return multiplier >= 1 ? multiplier : 1;
+  return getLargeSizeMultiplier(itemSizeMultiplier);
 }
 
-/** 와이어제본 제본비 계산에 필요한 핵심 값 */
+/** 와이어제본 제본비 계산에 필요한 핵심 값입니다. */
 export function getWireBindingMetrics({
   totalInnerPagesSpecified = 0,
   interleafSheets = 0,
