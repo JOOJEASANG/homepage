@@ -5,6 +5,27 @@ export function getBookTempStorageKey(currentUser, prefix = 'multiQuoteFormData_
     return `${prefix}${uid}`;
 }
 
+// Draft 저장/복원은 기존 localStorage 동작을 그대로 유지합니다.
+// JSON 파싱 오류도 기존 호출부와 동일하게 상위로 전달합니다.
+export function writeBookDraft(key, items) {
+    if (!key) return;
+    localStorage.setItem(key, JSON.stringify(items));
+}
+
+export function readBookDraft(key) {
+    if (!key) return [];
+    return JSON.parse(localStorage.getItem(key) || '[]');
+}
+
+export function hasBookDraft(key) {
+    return !!(key && localStorage.getItem(key));
+}
+
+export function clearBookDraft(key) {
+    if (!key) return;
+    localStorage.removeItem(key);
+}
+
 export function readLastQuoteCache(key = 'lastCalculatedQuote_book_v1') {
     try {
         const saved = sessionStorage.getItem(key) || localStorage.getItem(key);
