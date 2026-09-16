@@ -14,6 +14,8 @@ const MODELS = {
 };
 
 const DEFAULT_ORIGINS = new Set([
+  'https://www.g-print.co.kr',
+  'https://g-print.co.kr',
   'https://worklist-1e83a.web.app',
   'https://worklist-1e83a.firebaseapp.com',
 ]);
