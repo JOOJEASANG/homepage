@@ -72,6 +72,23 @@ async function assertSharedHeaderNavigation(page) {
   await expect(header.locator('a[aria-label="그린오피스 홈"]').first()).toBeVisible();
 }
 
+async function assertHeaderAboveLoadingOverlay(page) {
+  const stacking = await page.evaluate(() => {
+    const header = document.querySelector('#main-header');
+    const overlay = document.querySelector('#loading-overlay');
+    if (!header) return { header: -1, overlay: -1, overlayVisible: false };
+    const headerZ = Number.parseInt(getComputedStyle(header).zIndex, 10) || 0;
+    if (!overlay) return { header: headerZ, overlay: -1, overlayVisible: false };
+    const overlayStyle = getComputedStyle(overlay);
+    const overlayVisible = overlayStyle.display !== 'none' && overlayStyle.visibility !== 'hidden' && Number(overlayStyle.opacity || 1) > 0;
+    const overlayZ = Number.parseInt(overlayStyle.zIndex, 10) || 0;
+    return { header: headerZ, overlay: overlayZ, overlayVisible };
+  });
+  if (stacking.overlayVisible) {
+    expect(stacking.header, `header z-index ${stacking.header} must be above loading overlay ${stacking.overlay}`).toBeGreaterThan(stacking.overlay);
+  }
+}
+
 test.describe('public page browser smoke', () => {
   for (const [url, titleHint] of PAGES) {
     test(`${url} loads without fatal syntax errors`, async ({ page }) => {
@@ -106,8 +123,6 @@ test('critical page controls expose accessible names', async ({ page }) => {
   await page.goto('/quote-book.html', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#helpBtnBook')).toHaveAttribute('aria-label', /도움말/);
 
-  // 공통 동적 헤더는 Firebase CDN 초기화에 의존하므로 source contract에서 검증합니다.
-  // 브라우저 E2E에서는 외부 네트워크와 무관한 정적 모바일 탐색 구조를 확인합니다.
   await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#closeMobileNavBtn')).toHaveAttribute('aria-label', /메뉴 닫기/);
   await expect(page.locator('#mobileNavModal a[href="index.html"]')).toContainText('홈');
@@ -139,6 +154,7 @@ test('shared navigation survives Firebase module failure', async ({ page }) => {
   for (const url of ['/quote-book.html', '/quote-print.html', '/qna.html']) {
     await page.goto(url, { waitUntil: 'domcontentloaded' });
     await assertSharedHeaderNavigation(page);
+    await assertHeaderAboveLoadingOverlay(page);
   }
 });
 
@@ -146,5 +162,27 @@ test('shared navigation is visible on quote and customer pages during normal loa
   for (const url of ['/quote-book.html', '/quote-print.html', '/qna.html']) {
     await page.goto(url, { waitUntil: 'domcontentloaded' });
     await assertSharedHeaderNavigation(page);
+    await assertHeaderAboveLoadingOverlay(page);
+  }
+});
+
+test('header remains visible while navigating through its menu links', async ({ page }) => {
+  await page.goto('/quote-book.html', { waitUntil: 'domcontentloaded' });
+  await assertSharedHeaderNavigation(page);
+  await assertHeaderAboveLoadingOverlay(page);
+
+  for (const [href, pathname] of [
+    ['quote-print.html', '/quote-print.html'],
+    ['qna.html', '/qna.html'],
+    ['quote-book.html', '/quote-book.html'],
+  ]) {
+    const link = page.locator(`#main-header a[href="${href}"]`).first();
+    await Promise.all([
+      page.waitForURL(url => url.pathname === pathname),
+      link.click(),
+    ]);
+    await expect(page.locator('#main-header')).toBeVisible();
+    await assertSharedHeaderNavigation(page);
+    await assertHeaderAboveLoadingOverlay(page);
   }
 });
