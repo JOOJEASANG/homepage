@@ -13,7 +13,18 @@ for (const file of pages) {
 }
 
 const shell = fs.readFileSync('assets/js/header-shell.js', 'utf8');
-for (const token of ['quote-book.html', 'quote-print.html', 'qna.html', 'work-guide.html', 'id="main-header"', 'data-header-shell="fallback"']) {
+for (const token of [
+  'quote-book.html',
+  'quote-print.html',
+  'qna.html',
+  'work-guide.html',
+  'id="main-header"',
+  'data-header-shell="fallback"',
+  'header-shell-critical-style',
+  'z-index: 150 !important',
+  'MutationObserver',
+  "window.addEventListener('pageshow', boot)",
+]) {
   assert.ok(shell.includes(token), `header-shell contract missing: ${token}`);
 }
 assert.ok(!/from\s+["']\.\/firebase\.js|import\s*\(/.test(shell), 'fallback header must not depend on Firebase or dynamic imports');
