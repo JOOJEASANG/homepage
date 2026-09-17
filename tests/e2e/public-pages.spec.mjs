@@ -89,6 +89,22 @@ async function assertHeaderAboveLoadingOverlay(page) {
   }
 }
 
+async function clickVisibleHeaderLink(page, href) {
+  let link = page.locator(`#main-header a[href="${href}"]:visible`).first();
+  if (await link.count()) {
+    await link.click();
+    return;
+  }
+
+  const mobileToggle = page.locator('#main-header #btn-mobile-menu:visible, #main-header #btn-mobile-menu-shell:visible').first();
+  await expect(mobileToggle, `mobile menu toggle should be visible before navigating to ${href}`).toBeVisible();
+  await mobileToggle.click();
+
+  link = page.locator(`#main-header a[href="${href}"]:visible`).first();
+  await expect(link, `mobile navigation link ${href} should become visible`).toBeVisible();
+  await link.click();
+}
+
 test.describe('public page browser smoke', () => {
   for (const [url, titleHint] of PAGES) {
     test(`${url} loads without fatal syntax errors`, async ({ page }) => {
@@ -176,10 +192,9 @@ test('header remains visible while navigating through its menu links', async ({ 
     ['qna.html', '/qna.html'],
     ['quote-book.html', '/quote-book.html'],
   ]) {
-    const link = page.locator(`#main-header a[href="${href}"]`).first();
     await Promise.all([
       page.waitForURL(url => url.pathname === pathname),
-      link.click(),
+      clickVisibleHeaderLink(page, href),
     ]);
     await expect(page.locator('#main-header')).toBeVisible();
     await assertSharedHeaderNavigation(page);
