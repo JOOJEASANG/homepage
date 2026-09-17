@@ -79,6 +79,17 @@ function applyPrivateRobots() {
   ensureMeta('meta[name="googlebot"]', { name: 'googlebot', content: 'noindex, nofollow, noarchive' });
 }
 
+function applyHomeBusinessHoursCopy() {
+  if (!document.body || typeof NodeFilter === 'undefined') return;
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let node;
+  while ((node = walker.nextNode())) {
+    if (node.nodeValue?.includes('마감 15:00')) {
+      node.nodeValue = node.nodeValue.replace('마감 15:00', '접수마감 15:00');
+    }
+  }
+}
+
 function applyLocalBusinessSchema() {
   if (document.getElementById('greenoffice-local-business-schema')) return;
   const script = document.createElement('script');
@@ -90,6 +101,7 @@ function applyLocalBusinessSchema() {
     name: '그린오피스',
     url: SITE_ORIGIN + '/',
     telephone: '041-571-4370',
+    openingHours: 'Mo-Fr 09:00-18:00',
     address: {
       '@type': 'PostalAddress',
       streetAddress: '쌍용14길 29 1층',
@@ -110,7 +122,10 @@ export function applySeoRuntime(pathname = location.pathname || '/') {
   const meta = PUBLIC_PAGES[normalized];
   if (!meta) return { type: 'unknown', pathname: normalized };
   applyPublicMeta(meta);
-  if (normalized === '/' || normalized === '/index.html') applyLocalBusinessSchema();
+  if (normalized === '/' || normalized === '/index.html') {
+    applyHomeBusinessHoursCopy();
+    applyLocalBusinessSchema();
+  }
   return { type: 'public', pathname: normalized, canonical: SITE_ORIGIN + meta.canonical };
 }
 

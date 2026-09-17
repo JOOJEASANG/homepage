@@ -10,12 +10,23 @@
     ['work-guide.html', '작업가이드'],
   ];
 
+  function ensureCriticalStyle() {
+    if (document.getElementById('header-shell-critical-style')) return;
+    const style = document.createElement('style');
+    style.id = 'header-shell-critical-style';
+    style.textContent = `
+      #site-header #main-header { z-index: 150 !important; }
+    `;
+    (document.head || document.documentElement).appendChild(style);
+  }
+
   function currentFile() {
     try { return (location.pathname || '').split('/').pop() || 'index.html'; }
     catch (_) { return 'index.html'; }
   }
 
   function render() {
+    ensureCriticalStyle();
     const mount = document.getElementById('site-header');
     if (!mount || mount.querySelector('#main-header')) return;
 
@@ -60,8 +71,26 @@
     });
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render, { once: true });
-  else render();
+  function watchMount() {
+    const mount = document.getElementById('site-header');
+    if (!mount || mount.__headerShellObserver) return;
+    const observer = new MutationObserver(() => {
+      if (!mount.querySelector('#main-header')) queueMicrotask(render);
+    });
+    observer.observe(mount, { childList: true, subtree: false });
+    mount.__headerShellObserver = observer;
+  }
+
+  function boot() {
+    render();
+    watchMount();
+  }
+
+  if (document.getElementById('site-header')) boot();
+  else if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
+  else boot();
+
+  window.addEventListener('pageshow', boot);
 
   // Expose only for deterministic browser tests and safe manual recovery.
   window.__renderHeaderShell = render;
