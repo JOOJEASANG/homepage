@@ -5,6 +5,7 @@
 import { auth, signOut, onAuthStateChanged } from "./firebase.js";
 import "./ux-refresh-v2.js";
 import "./file-upload-policy.js";
+import "./seo-runtime.js";
 
 function getCurrentFile() {
   try {

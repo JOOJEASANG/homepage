@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin.html
+Disallow: /admin-ai-chat.html
+Disallow: /mypage.html
+Disallow: /login.html
+Disallow: /maintenance.html
+
+Sitemap: https://www.g-print.co.kr/sitemap.xml

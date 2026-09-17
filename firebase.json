@@ -31,12 +31,93 @@
     ],
     "headers": [
       {
+        "source": "**",
+        "headers": [
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+          { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=()" },
+          { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+        ]
+      },
+      {
+        "source": "**/*.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, max-age=0" }
+        ]
+      },
+      {
         "source": "**/*.@(js|mjs)",
-        "headers": [{ "key": "Cache-Control", "value": "no-cache, max-age=0" }]
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, max-age=0" }
+        ]
       },
       {
         "source": "**/*.css",
-        "headers": [{ "key": "Cache-Control", "value": "max-age=86400" }]
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=86400" }
+        ]
+      },
+      {
+        "source": "**/*.@(png|jpg|jpeg|webp|gif|svg|ico)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=2592000" }
+        ]
+      },
+      {
+        "source": "/@(admin|admin-ai-chat|mypage|login|maintenance).html",
+        "headers": [
+          { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" },
+          { "key": "Cache-Control", "value": "no-store, max-age=0" }
+        ]
+      },
+      {
+        "source": "/admin",
+        "headers": [
+          { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" },
+          { "key": "Cache-Control", "value": "no-store, max-age=0" }
+        ]
+      },
+      {
+        "source": "/",
+        "headers": [
+          { "key": "Link", "value": "<https://www.g-print.co.kr/>; rel=\"canonical\"" }
+        ]
+      },
+      {
+        "source": "/index.html",
+        "headers": [
+          { "key": "Link", "value": "<https://www.g-print.co.kr/>; rel=\"canonical\"" }
+        ]
+      },
+      {
+        "source": "/quote-book.html",
+        "headers": [
+          { "key": "Link", "value": "<https://www.g-print.co.kr/quote-book.html>; rel=\"canonical\"" }
+        ]
+      },
+      {
+        "source": "/quote-print.html",
+        "headers": [
+          { "key": "Link", "value": "<https://www.g-print.co.kr/quote-print.html>; rel=\"canonical\"" }
+        ]
+      },
+      {
+        "source": "/qna.html",
+        "headers": [
+          { "key": "Link", "value": "<https://www.g-print.co.kr/qna.html>; rel=\"canonical\"" }
+        ]
+      },
+      {
+        "source": "/work-guide.html",
+        "headers": [
+          { "key": "Link", "value": "<https://www.g-print.co.kr/work-guide.html>; rel=\"canonical\"" }
+        ]
+      },
+      {
+        "source": "/@(robots.txt|sitemap.xml)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=3600" }
+        ]
       }
     ]
   },
