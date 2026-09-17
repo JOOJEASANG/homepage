@@ -55,6 +55,23 @@ async function assertNoHorizontalOverflow(page) {
   expect(Math.max(metrics.html, metrics.body)).toBeLessThanOrEqual(metrics.viewport + 3);
 }
 
+async function assertSharedHeaderNavigation(page) {
+  const header = page.locator('#main-header');
+  await expect(header).toBeVisible();
+
+  const expectedLinks = [
+    ['quote-book.html', '책자/제본'],
+    ['quote-print.html', '디지털인쇄'],
+    ['qna.html', '고객센터'],
+  ];
+  for (const [href, text] of expectedLinks) {
+    const links = header.locator(`a[href="${href}"]`);
+    expect(await links.count(), `${href} should exist in shared header`).toBeGreaterThanOrEqual(1);
+    await expect(links.first()).toContainText(text);
+  }
+  await expect(header.locator('a[aria-label="그린오피스 홈"]').first()).toBeVisible();
+}
+
 test.describe('public page browser smoke', () => {
   for (const [url, titleHint] of PAGES) {
     test(`${url} loads without fatal syntax errors`, async ({ page }) => {
@@ -115,4 +132,19 @@ test.describe('mobile responsiveness', () => {
       await assertNoHorizontalOverflow(page);
     }
   });
+});
+
+test('shared navigation survives Firebase module failure', async ({ page }) => {
+  await page.route('**/assets/js/firebase.js*', route => route.abort());
+  for (const url of ['/quote-book.html', '/quote-print.html', '/qna.html']) {
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    await assertSharedHeaderNavigation(page);
+  }
+});
+
+test('shared navigation is visible on quote and customer pages during normal load', async ({ page }) => {
+  for (const url of ['/quote-book.html', '/quote-print.html', '/qna.html']) {
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    await assertSharedHeaderNavigation(page);
+  }
 });
