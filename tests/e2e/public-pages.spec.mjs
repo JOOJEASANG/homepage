@@ -64,12 +64,60 @@ async function assertSharedHeaderNavigation(page) {
     ['quote-print.html', '디지털인쇄'],
     ['qna.html', '고객센터'],
   ];
+  const desktop = (page.viewportSize()?.width || 0) >= 1024;
   for (const [href, text] of expectedLinks) {
     const links = header.locator(`a[href="${href}"]`);
     expect(await links.count(), `${href} should exist in shared header`).toBeGreaterThanOrEqual(1);
     await expect(links.first()).toContainText(text);
+    if (desktop) {
+      const visibleLinks = header.locator(`a[href="${href}"]:visible`);
+      expect(await visibleLinks.count(), `${href} should be visibly rendered in desktop header`).toBeGreaterThanOrEqual(1);
+      await expect(visibleLinks.first()).toBeVisible();
+    }
   }
   await expect(header.locator('a[aria-label="그린오피스 홈"]').first()).toBeVisible();
+}
+
+async function assertHeaderRenderedState(page) {
+  const state = await page.evaluate(() => {
+    const mount = document.getElementById('site-header');
+    const header = document.getElementById('main-header');
+    const desktopNav = header?.querySelector('nav > .hidden.lg\\:flex');
+    const read = el => {
+      if (!el) return null;
+      const style = getComputedStyle(el);
+      const rect = el.getBoundingClientRect();
+      return {
+        display: style.display,
+        visibility: style.visibility,
+        opacity: Number(style.opacity || 1),
+        width: rect.width,
+        height: rect.height,
+        hidden: !!el.hidden,
+      };
+    };
+    return { mount: read(mount), header: read(header), desktopNav: read(desktopNav) };
+  });
+
+  expect(state.mount, 'site-header mount should exist').not.toBeNull();
+  expect(state.header, 'main-header should exist').not.toBeNull();
+  expect(state.mount.display).not.toBe('none');
+  expect(state.mount.visibility).not.toBe('hidden');
+  expect(state.mount.opacity).toBeGreaterThan(0);
+  expect(state.mount.hidden).toBeFalsy();
+  expect(state.header.display).not.toBe('none');
+  expect(state.header.visibility).not.toBe('hidden');
+  expect(state.header.opacity).toBeGreaterThan(0);
+  expect(state.header.width).toBeGreaterThan(100);
+  expect(state.header.height).toBeGreaterThan(40);
+  expect(state.header.hidden).toBeFalsy();
+  if ((page.viewportSize()?.width || 0) >= 1024) {
+    expect(state.desktopNav, 'desktop navigation container should exist').not.toBeNull();
+    expect(state.desktopNav.display).toBe('flex');
+    expect(state.desktopNav.visibility).not.toBe('hidden');
+    expect(state.desktopNav.opacity).toBeGreaterThan(0);
+    expect(state.desktopNav.width).toBeGreaterThan(100);
+  }
 }
 
 async function assertHeaderAboveLoadingOverlay(page) {
@@ -170,6 +218,7 @@ test('shared navigation survives Firebase module failure', async ({ page }) => {
   for (const url of ['/quote-book.html', '/quote-print.html', '/qna.html']) {
     await page.goto(url, { waitUntil: 'domcontentloaded' });
     await assertSharedHeaderNavigation(page);
+    await assertHeaderRenderedState(page);
     await assertHeaderAboveLoadingOverlay(page);
   }
 });
@@ -178,6 +227,18 @@ test('shared navigation is visible on quote and customer pages during normal loa
   for (const url of ['/quote-book.html', '/quote-print.html', '/qna.html']) {
     await page.goto(url, { waitUntil: 'domcontentloaded' });
     await assertSharedHeaderNavigation(page);
+    await assertHeaderRenderedState(page);
+    await assertHeaderAboveLoadingOverlay(page);
+  }
+});
+
+test('book and customer center header stays visible after async startup settles', async ({ page }) => {
+  for (const url of ['/quote-book.html', '/qna.html']) {
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    await assertSharedHeaderNavigation(page);
+    await page.waitForTimeout(4000);
+    await assertSharedHeaderNavigation(page);
+    await assertHeaderRenderedState(page);
     await assertHeaderAboveLoadingOverlay(page);
   }
 });
@@ -185,6 +246,7 @@ test('shared navigation is visible on quote and customer pages during normal loa
 test('header remains visible while navigating through its menu links', async ({ page }) => {
   await page.goto('/quote-book.html', { waitUntil: 'domcontentloaded' });
   await assertSharedHeaderNavigation(page);
+  await assertHeaderRenderedState(page);
   await assertHeaderAboveLoadingOverlay(page);
 
   for (const [href, pathname] of [
@@ -196,8 +258,10 @@ test('header remains visible while navigating through its menu links', async ({ 
       page.waitForURL(url => url.pathname === pathname),
       clickVisibleHeaderLink(page, href),
     ]);
+    await page.waitForTimeout(1000);
     await expect(page.locator('#main-header')).toBeVisible();
     await assertSharedHeaderNavigation(page);
+    await assertHeaderRenderedState(page);
     await assertHeaderAboveLoadingOverlay(page);
   }
 });
