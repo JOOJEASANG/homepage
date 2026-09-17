@@ -116,3 +116,27 @@ test.describe('mobile responsiveness', () => {
     }
   });
 });
+
+
+test('shared navigation survives Firebase module failure', async ({ page }) => {
+  await page.route('**/assets/js/firebase.js*', route => route.abort());
+  for (const url of ['/quote-book.html', '/quote-print.html', '/qna.html']) {
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    const header = page.locator('#main-header');
+    await expect(header).toBeVisible();
+    await expect(header.locator('a[href="quote-book.html"]')).toContainText('책자/제본');
+    await expect(header.locator('a[href="quote-print.html"]')).toContainText('디지털인쇄');
+    await expect(header.locator('a[href="qna.html"]')).toContainText('고객센터');
+    await expect(header.locator('a[aria-label="그린오피스 홈"]')).toBeVisible();
+  }
+});
+
+test('shared navigation is visible on quote and customer pages during normal load', async ({ page }) => {
+  for (const url of ['/quote-book.html', '/quote-print.html', '/qna.html']) {
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#main-header')).toBeVisible();
+    await expect(page.locator('#main-header a[href="quote-book.html"]')).toBeAttached();
+    await expect(page.locator('#main-header a[href="quote-print.html"]')).toBeAttached();
+    await expect(page.locator('#main-header a[href="qna.html"]')).toBeAttached();
+  }
+});
