@@ -17,7 +17,12 @@ for (const text of [
   'request.resource.contentType.matches(\'image/.*\')',
   'match /quotes/{quoteId}/attachments/{fileName}',
   'match /quotes/{quoteId}/{fileName}',
+  'match /print_guides/{allPaths=**}',
 ]) assert.ok(rules.includes(text), `storage.rules missing: ${text}`);
+
+const guideRule = rules.match(/match \/print_guides\/\{allPaths=\*\*\} \{([\s\S]*?)\n    \}/)?.[1] || '';
+assert.ok(guideRule.includes('allow read: if true;'), 'print guide images must be publicly readable');
+assert.ok(guideRule.includes('allow write: if isAdmin();'), 'print guide images must remain admin-write only');
 
 assert.equal(firebase.storage?.rules, 'storage.rules');
 assert.ok(policy.includes('MAX_FILE_BYTES = 300 * 1024 * 1024'));

@@ -290,3 +290,28 @@ test('digital print guide recovers after a transient Firestore read failure', as
     return String((await guide.textContent()) || '').trim();
   }, { timeout: 9000 }).not.toMatch(/안내문을 불러오지 못했습니다|안내문을 불러오는 중입니다/);
 });
+
+
+test('digital print guide keeps safe embedded images after security hardening', async ({ page }) => {
+  await page.goto('/quote-print.html', { waitUntil: 'domcontentloaded' });
+  const guide = page.locator('#guideText');
+  await expect(guide).toBeAttached();
+
+  await expect.poll(async () => {
+    return await guide.getAttribute('data-guide-state');
+  }, { timeout: 9000 }).toBe('loaded');
+
+  await page.evaluate(() => {
+    const el = document.getElementById('guideText');
+    if (el) {
+      el.innerHTML = '<p>이미지 테스트</p><img src="/favicon.ico" alt="테스트 이미지" onerror="window.__guideImgError=1" style="width:1px">';
+    }
+  });
+
+  await page.waitForTimeout(250);
+  const img = guide.locator('img[src="/favicon.ico"]');
+  await expect(img).toHaveCount(1);
+  await expect(img).toHaveAttribute('alt', '테스트 이미지');
+  await expect(img).not.toHaveAttribute('onerror');
+  await expect(img).not.toHaveAttribute('style');
+});
