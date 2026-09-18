@@ -78,6 +78,12 @@ service firebase.storage {
       allow write: if isAdmin();
     }
 
+    // Digital-print guide images are embedded in a public customer-facing guide.
+    match /print_guides/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /{allPaths=**} {
       allow read, write: if isAdmin();
     }
