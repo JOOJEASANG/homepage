@@ -135,12 +135,12 @@
 
   function loadPageRecoveryModules() {
     if (currentFile() !== 'quote-print.html') return;
-    if (window.__printGuideRecoveryModuleRequested) return;
-    window.__printGuideRecoveryModuleRequested = true;
-    import('./print-guide-recovery.js').catch((err) => {
-      window.__printGuideRecoveryModuleRequested = false;
-      console.warn('[header-shell] print guide recovery module failed:', err);
-    });
+    if (document.querySelector('script[data-print-guide-recovery]')) return;
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.src = 'assets/js/print-guide-recovery.js';
+    script.dataset.printGuideRecovery = '1';
+    document.head.appendChild(script);
   }
 
   function boot() {
