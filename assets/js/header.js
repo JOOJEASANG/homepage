@@ -165,10 +165,10 @@ export function renderHeader(activeKey = "") {
     : `<span class="hidden sm:inline">주문조회</span><span class="sm:hidden text-[13px]">조회</span>`;
 
   const rightHtml = `
-    <button id="btn-order-lookup" type="button"
-      class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 text-[14px] sm:text-[15px] font-medium rounded-lg
-             ${authed ? "bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100" : "text-slate-600 hover:text-brand-600 hover:bg-slate-50"}
-             transition">
+    <button id="btn-order-lookup" data-order-lookup-control="1" type="button"
+      class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 text-[14px] sm:text-[15px] font-bold rounded-lg
+             bg-brand-600 hover:bg-brand-700 text-white border border-brand-600 shadow-sm
+             focus:outline-none focus:ring-2 focus:ring-brand-200 transition">
       <i class="fas fa-magnifying-glass text-[13px]"></i>
       ${lookupLabel}
     </button>
