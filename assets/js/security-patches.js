@@ -29,9 +29,23 @@ try {
 
 function sanitizeHtmlStrict(html) {
   try {
-    const allowed = new Set(['B','STRONG','I','EM','U','BR','P','DIV','SPAN','UL','OL','LI','A','HR','BLOCKQUOTE']);
+    // Guide images are intentional public content. Keep IMG while stripping executable markup.
+    const allowed = new Set(['B','STRONG','I','EM','U','BR','P','DIV','SPAN','UL','OL','LI','A','HR','BLOCKQUOTE','IMG']);
     const doc = new DOMParser().parseFromString(`<div>${html || ''}</div>`, 'text/html');
     const blockedHrefPrefix = 'java' + 'script:';
+
+    const isSafeImageSrc = (raw) => {
+      const value = String(raw || '').trim();
+      if (!value) return false;
+      const lower = value.toLowerCase();
+      return lower.startsWith('https://')
+        || lower.startsWith('http://localhost')
+        || lower.startsWith('http://127.0.0.1')
+        || lower.startsWith('/')
+        || lower.startsWith('./')
+        || lower.startsWith('../')
+        || lower.startsWith('//');
+    };
 
     Array.from(doc.body.querySelectorAll('*')).reverse().forEach(el => {
       if (!allowed.has(el.tagName)) {
@@ -48,6 +62,22 @@ function sanitizeHtmlStrict(html) {
       if (el.tagName === 'A') {
         el.setAttribute('target', '_blank');
         el.setAttribute('rel', 'noopener noreferrer');
+      }
+      if (el.tagName === 'IMG') {
+        const src = el.getAttribute('src') || '';
+        if (!isSafeImageSrc(src)) {
+          el.remove();
+          return;
+        }
+        // Only presentation-safe attributes are kept on guide images.
+        Array.from(el.attributes).forEach(attr => {
+          if (!['src','alt','title','width','height','loading','decoding'].includes(attr.name.toLowerCase())) {
+            el.removeAttribute(attr.name);
+          }
+        });
+        if (!el.hasAttribute('loading')) el.setAttribute('loading', 'lazy');
+        if (!el.hasAttribute('decoding')) el.setAttribute('decoding', 'async');
+        if (!el.hasAttribute('alt')) el.setAttribute('alt', '인쇄 안내 이미지');
       }
     });
 
