@@ -105,7 +105,7 @@
             <button id="btn-mobile-menu-shell" type="button" class="lg:hidden p-2 text-slate-600 hover:text-brand-600 transition" aria-label="메뉴 열기" aria-expanded="false">
               <i class="fa-solid fa-bars text-lg"></i>
             </button>
-            <a href="login.html" class="inline-flex items-center px-3 sm:px-4 py-2 text-[14px] sm:text-[15px] font-medium rounded-lg text-slate-600 hover:text-brand-600 hover:bg-slate-50 transition">주문조회</a>
+            <a href="login.html" data-order-lookup-control="1" class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 text-[14px] sm:text-[15px] font-bold rounded-lg bg-brand-600 hover:bg-brand-700 text-white border border-brand-600 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-200 transition"><i class="fas fa-magnifying-glass text-[13px]"></i><span class="hidden sm:inline">주문조회</span><span class="sm:hidden text-[13px]">조회</span></a>
           </div>
         </nav>
         <div id="mobile-menu-shell" class="lg:hidden hidden absolute top-16 left-0 w-full bg-white border-b border-slate-200 shadow-xl">
