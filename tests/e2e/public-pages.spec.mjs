@@ -315,3 +315,39 @@ test('digital print guide keeps safe embedded images after security hardening', 
   await expect(img).not.toHaveAttribute('onerror');
   await expect(img).not.toHaveAttribute('style');
 });
+
+
+test('order lookup control keeps the same button styling across public pages', async ({ page }) => {
+  const pages = ['/index.html', '/quote-book.html', '/quote-print.html', '/qna.html'];
+  const snapshots = [];
+
+  for (const path of pages) {
+    await page.goto(path, { waitUntil: 'domcontentloaded' });
+    const control = page.locator('[data-order-lookup-control="1"]').first();
+    await expect(control).toBeVisible();
+    await page.waitForTimeout(900);
+
+    snapshots.push(await control.evaluate(el => {
+      const s = getComputedStyle(el);
+      return {
+        backgroundColor: s.backgroundColor,
+        color: s.color,
+        borderRadius: s.borderRadius,
+        fontWeight: s.fontWeight,
+        paddingTop: s.paddingTop,
+        paddingBottom: s.paddingBottom,
+      };
+    }));
+  }
+
+  for (const style of snapshots) {
+    expect(style.backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+    expect(style.backgroundColor).not.toBe('transparent');
+    expect(style.color).toBe('rgb(255, 255, 255)');
+    expect(Number.parseInt(style.fontWeight, 10)).toBeGreaterThanOrEqual(700);
+  }
+
+  for (const style of snapshots.slice(1)) {
+    expect(style).toEqual(snapshots[0]);
+  }
+});
