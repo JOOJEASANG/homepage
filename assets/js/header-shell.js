@@ -133,10 +133,21 @@
     mount.__headerShellObserver = observer;
   }
 
+  function loadPageRecoveryModules() {
+    if (currentFile() !== 'quote-print.html') return;
+    if (document.querySelector('script[data-print-guide-recovery]')) return;
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.src = 'assets/js/print-guide-recovery.js';
+    script.dataset.printGuideRecovery = '1';
+    document.head.appendChild(script);
+  }
+
   function boot() {
     render();
     watchMount();
     normalizeVisibility();
+    loadPageRecoveryModules();
   }
 
   if (document.getElementById('site-header')) boot();
