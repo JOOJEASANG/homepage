@@ -280,7 +280,11 @@ test('digital print guide recovers after a transient Firestore read failure', as
 
   await page.goto('/quote-print.html', { waitUntil: 'domcontentloaded' });
   const guide = page.locator('#guideText');
-  await expect(guide).toBeVisible();
+  await expect(guide).toBeAttached();
+
+  await expect.poll(async () => {
+    return await guide.getAttribute('data-guide-state');
+  }, { timeout: 9000 }).toBe('loaded');
 
   await expect.poll(async () => {
     return String((await guide.textContent()) || '').trim();
