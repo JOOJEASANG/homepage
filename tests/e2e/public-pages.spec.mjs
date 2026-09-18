@@ -265,3 +265,24 @@ test('header remains visible while navigating through its menu links', async ({ 
     await assertHeaderAboveLoadingOverlay(page);
   }
 });
+
+
+test('digital print guide recovers after a transient Firestore read failure', async ({ page }) => {
+  let blockedOnce = false;
+  await page.route('https://firestore.googleapis.com/**', async route => {
+    if (!blockedOnce) {
+      blockedOnce = true;
+      await route.abort();
+      return;
+    }
+    await route.continue();
+  });
+
+  await page.goto('/quote-print.html', { waitUntil: 'domcontentloaded' });
+  const guide = page.locator('#guideText');
+  await expect(guide).toBeVisible();
+
+  await expect.poll(async () => {
+    return String((await guide.textContent()) || '').trim();
+  }, { timeout: 9000 }).not.toMatch(/안내문을 불러오지 못했습니다|안내문을 불러오는 중입니다/);
+});
