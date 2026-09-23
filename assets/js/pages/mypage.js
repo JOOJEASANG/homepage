@@ -24,7 +24,15 @@ import "../overlays.js";
 import "../session.js";
 
 // 페이지 로드 시 공통 헤더 렌더링
-document.addEventListener("DOMContentLoaded", () => initHeader(""));
+// NOTE: mypage.js는 top-level await(아래) 및 session.js(모듈 그래프에 top-level await)를
+//       import하는 "비동기 모듈"이라, 본문이 DOMContentLoaded가 이미 발생한 뒤에 평가됩니다.
+//       따라서 DOMContentLoaded 리스너만으로는 initHeader가 실행되지 않아 #site-header가
+//       빈 채로 남습니다(공통 헤더 누락). readyState를 확인해 이미 로드된 경우 즉시 렌더링합니다.
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => initHeader(""), { once: true });
+} else {
+  initHeader("");
+}
 
 // 인라인 스크립트에서도 auth 접근 가능하도록 전역 등록
 try { window.auth = auth; } catch(e) {}
