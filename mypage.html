@@ -86,6 +86,17 @@
     }
     .form-input:disabled { background: var(--bg); color: var(--text-muted); }
 
+    /* ── 검색/필터 바 폭 보정 ──────────────────────────────────
+       전역 .form-input/.form-select { width:100% } 규칙이 Tailwind의
+       w-56/w-28 유틸리티와 특이성이 같아 이겨버려, 검색 입력이 붕괴하고
+       상태 필터 select가 과도하게 커져 카드 밖으로 넘치는 문제를 보정합니다.
+       (ID 선택자로 특이성을 높여 의도한 폭을 복구) */
+    #searchInput { flex: 1 1 0%; width: auto; min-width: 0; }
+    #statusFilter { flex: 0 0 auto; width: 8rem; }
+    @media (min-width: 640px) {
+        #searchInput { flex: 0 0 auto; width: 14rem; }
+    }
+
     /* ── 버튼 ── */
     .btn {
         display: inline-flex; align-items: center; justify-content: center; gap: 6px;
