@@ -397,8 +397,12 @@ document.getElementById('member-go-login-btn')?.addEventListener('click', () => 
       return 0;
     }
 
-    // Run after DOM is ready (prevents null addEventListener issues)
-    window.addEventListener('DOMContentLoaded', async () => {
+    // Run after DOM is ready (prevents null addEventListener issues).
+    // NOTE: quote-print.js는 session.js(모듈 그래프에 top-level await 포함)를 import하므로
+    //       이 모듈은 DOMContentLoaded가 이미 발생한 뒤에 평가됩니다.
+    //       따라서 DOMContentLoaded 리스너에만 의존하면 초기화(견적 계산 포함)가 영영 실행되지 않습니다.
+    //       readyState를 확인해 이미 로드된 경우 즉시 실행합니다.
+    const __initQuotePrintPage = async () => {
     // ===== Edit Load via URL id (디지털인쇄 수정 불러오기) =====
     async function initEditLoadFromUrl(){
   try{
@@ -1987,7 +1991,14 @@ openSignupModal();
         });
     }
 
-    });
+    };
+
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', __initQuotePrintPage, { once: true });
+    } else {
+      // 모듈이 DOMContentLoaded 이후 평가된 경우(비동기 모듈 그래프) 즉시 초기화합니다.
+      __initQuotePrintPage();
+    }
 
 
         // ===== Mobile Navigation =====

@@ -178,6 +178,14 @@ test('quote-print form accepts core specification inputs without submitting', as
   await expect(page.locator('#quantity')).toHaveValue('250');
   await expect(page.locator('#printSides')).toHaveValue('2');
   await expect(page.locator('#paperSize')).toHaveValue('A4');
+
+  // Regression guard: the page-init handler must actually run so the quote calculator
+  // is wired up. #paperWeight is empty in static HTML and is filled only by
+  // fillWeightOptions() inside that handler. If the module evaluates after
+  // DOMContentLoaded has already fired (its graph imports a module with a top-level
+  // await), a plain DOMContentLoaded listener never fires and quotes never compute.
+  await expect.poll(() => page.locator('#paperWeight option').count(), { timeout: 10_000 })
+    .toBeGreaterThan(0);
 });
 
 test('critical page controls expose accessible names', async ({ page }) => {
