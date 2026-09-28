@@ -55,6 +55,16 @@ assert.equal(
   '추가 간지는 제본 페이지에 합산'
 );
 
+assert.equal(utils.getInnerSheetsPerCopy(7, 'bw_simplex'), 7, '단면 7p는 7장');
+assert.equal(utils.getInnerSheetsPerCopy(7, 'color_duplex'), 4, '양면 7p는 4장');
+assert.equal(utils.getInnerSheetsPerCopy(8, 'bw_duplex'), 4, '양면 8p는 4장');
+assert.equal(utils.getInnerSheetsPerCopy(0, 'bw_duplex'), 0, '0p는 0장');
+assert.equal(
+  utils.getInnerSheetsPerCopy(3, 'bw_duplex') + utils.getInnerSheetsPerCopy(3, 'color_duplex'),
+  4,
+  '서로 다른 내지 구간의 남는 면을 합쳐 한 장으로 계산하지 않음'
+);
+
 // 금액 절삭과 대형 규격 배율은 기존 계산과 동일해야 함
 assert.equal(utils.floorToHundred(1234), 1200, '1234원은 1200원으로 절삭');
 assert.equal(utils.floorToHundred(100), 100, '100원은 유지');
@@ -71,7 +81,7 @@ const quoteBookSource = fs.readFileSync(quoteBookPath, 'utf8');
 
 assert.match(
   quoteBookSource,
-  /import \{ findPriceTier, findBindingPriceTier, floorToHundred, getLargeSizeMultiplier \} from "\.\/quote-book\/calculator-utils\.js";/,
+  /import \{ findPriceTier, findBindingPriceTier, floorToHundred, getLargeSizeMultiplier, getInnerSheetsPerCopy \} from "\.\/quote-book\/calculator-utils\.js";/,
   'quote-book.js가 공통 계산 유틸을 import해야 함'
 );
 assert.doesNotMatch(quoteBookSource, /function findPriceTier\(/, 'findPriceTier 로컬 구현은 제거되어야 함');
