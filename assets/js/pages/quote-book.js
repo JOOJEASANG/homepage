@@ -21,7 +21,7 @@ import { initHeader } from "../header.js";
 import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
 import { getPerfectInnerPricingMultiplier, getPerfectBindingMetrics } from "./quote-book/perfect-calculator.js";
 import { getWireCoverCost, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js";
-import { findPriceTier, findBindingPriceTier, floorToHundred, getLargeSizeMultiplier } from "./quote-book/calculator-utils.js";
+import { findPriceTier, findBindingPriceTier, floorToHundred, getLargeSizeMultiplier, getInnerSheetsPerCopy } from "./quote-book/calculator-utils.js";
 import { generateBookReceiptNo } from "./quote-book/quote-id.js";
 import { normalizeContactDigits, formatPhoneHyphen, formatContact, pickContactFromUserData, sha256Hex } from "./quote-book/contact-utils.js";
 import { getPreviewUrl, inferInnerGroup } from "./quote-book/preview-utils.js";
@@ -839,6 +839,8 @@ function applyImagePreviewsToUI(root=document) {
             let totalInnerCost = 0;
             const innerSectionDetailsForSubmission = [];
             let totalInnerPagesSpecified = 0;
+            let simplexSheetsPerCopy = 0;
+            let duplexSheetsPerCopy = 0;
             let saddleSheetsPerCopyTotal = 0;
             let saddleTotalSheets = 0;
             let saddleHasRoundedSection = false;
@@ -868,6 +870,14 @@ function applyImagePreviewsToUI(root=document) {
                     billablePages = pages - deduct;
                     remainingInterleafToDeduct -= deduct;
                     if (deduct > 0) deductedMsg = ` (간지 ${deduct}p 제외)`;
+                }
+
+                // 용지/인쇄면이 다른 내지 구간은 각각 올림해야 남는 단면을 합쳐 세지 않습니다.
+                const sectionSheetsPerCopy = getInnerSheetsPerCopy(billablePages, printTypeValue);
+                if (printTypeValue === 'bw_duplex' || printTypeValue === 'color_duplex') {
+                    duplexSheetsPerCopy += sectionSheetsPerCopy;
+                } else {
+                    simplexSheetsPerCopy += sectionSheetsPerCopy;
                 }
 
                 const isBasePaper = baseInnerPapers.some(p => p.value === paperTypeValue);
@@ -993,16 +1003,19 @@ function applyImagePreviewsToUI(root=document) {
                 }
             }
 
-            // 중철은 소책자 배치 기준 4p/장, 그 외 기존 방식은 양면 기준 2p/장 계산을 유지합니다.
-  const isSaddleBinding = selectedBindingType === 'saddle';
-  const innerSheetsPerCopy = isSaddleBinding ? saddleSheetsPerCopyTotal : Math.ceil(totalInnerPagesSpecified / 2);
-  const totalInnerSheets = isSaddleBinding ? saddleTotalSheets : (innerSheetsPerCopy * quantity);
-  const saddleSheetNote = isSaddleBinding
-      ? ` · 중철 4p/장${saddleHasRoundedSection ? ' · 4p 미만 잔여 올림' : ''}`
-      : '';
-  if (totalInnerPagesSpecified > 0) {
-      itemBreakdownHtml += `<li class="mt-2 pt-2 border-t border-slate-100"><div class="flex justify-between items-center"><span class="text-slate-600 font-medium">내지 총 장수</span><span class="font-bold text-brand-600">${totalInnerSheets.toLocaleString()}장</span></div><div class="text-right text-[11px] text-slate-400 mt-0.5">권당 ${innerSheetsPerCopy.toLocaleString()}장 × ${quantity.toLocaleString()}부${saddleSheetNote}</div></li>`;
-  }
+            // 중철은 완성 페이지 4p/장으로 배치하므로 단면·양면 인쇄 장수와 별도로 표시합니다.
+            const isSaddleBinding = selectedBindingType === 'saddle';
+            const innerSheetsPerCopy = isSaddleBinding
+                ? saddleSheetsPerCopyTotal
+                : simplexSheetsPerCopy + duplexSheetsPerCopy;
+            const totalInnerSheets = isSaddleBinding ? saddleTotalSheets : innerSheetsPerCopy * quantity;
+            if (totalInnerPagesSpecified > 0) {
+                const sheetDetails = isSaddleBinding
+                    ? `중철 출력 (4p/장) · 권당 ${innerSheetsPerCopy.toLocaleString()}장 × ${quantity.toLocaleString()}부${saddleHasRoundedSection ? ' · 구간별 4p 미만 올림' : ''}`
+                    : `단면 ${simplexSheetsPerCopy.toLocaleString()}장/부 × ${quantity.toLocaleString()}부 = ${(simplexSheetsPerCopy * quantity).toLocaleString()}장<br>양면 ${duplexSheetsPerCopy.toLocaleString()}장/부 × ${quantity.toLocaleString()}부 = ${(duplexSheetsPerCopy * quantity).toLocaleString()}장`;
+                const interleafNote = interleafSheets > 0 ? '<br>간지 장수 별도' : '';
+                itemBreakdownHtml += `<li class="mt-2 pt-2 border-t border-slate-100"><div class="flex justify-between items-center"><span class="text-slate-600 font-medium">내지 인쇄 총 장수</span><span class="font-bold text-brand-600">${totalInnerSheets.toLocaleString()}장</span></div><div class="text-right text-[11px] text-slate-500 mt-0.5 leading-relaxed">${sheetDetails}${interleafNote}</div></li>`;
+            }
 
   itemTotalPrice = totalCoverCost + totalInnerCost + totalInterleafCost + bindingCost + etcDesignCost + etcOshiCost;
 

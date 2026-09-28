@@ -50,6 +50,14 @@ export function getBindingPageCount({
   return includeInterleafInTotal ? innerPages : innerPages + extraInterleaf;
 }
 
+/** 내지 한 구간의 인쇄용지 장수입니다. 단면은 1p/장, 양면은 2p/장입니다. */
+export function getInnerSheetsPerCopy(pages, printType) {
+  const safePages = Math.max(0, Number.parseInt(pages, 10) || 0);
+  return printType === 'bw_duplex' || printType === 'color_duplex'
+    ? Math.ceil(safePages / 2)
+    : safePages;
+}
+
 /** 기존 정책대로 금액을 100원 단위로 절삭합니다. */
 export function floorToHundred(value) {
   return Math.floor(value / 100) * 100;
