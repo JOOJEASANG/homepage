@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -48,5 +50,33 @@ for (const critical of ['function calculateQuote()', 'async function submitQuote
 }
 assert.ok(quoteSource.includes('renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPrice })'));
 assert.ok(quoteSource.includes('renderInnerSectionTemplate({ sectionCount })'));
+
+// A5 70% 정책/관리자 하청 계산기 연결 회귀 검사
+const a5Source = fs.readFileSync(path.join(root, 'assets/js/book-a5-size.js'), 'utf8');
+assert.match(a5Source, /A5_FIXED_MULTIPLIER = 0\.70/);
+assert.match(a5Source, /book-a5-display-fix\.js/);
+assert.match(a5Source, /book-admin-subcontract-calculator\.js/);
+
+const subcontractPath = path.join(root, 'assets/js/book-admin-subcontract-calculator.js');
+const subcontractSource = fs.readFileSync(subcontractPath, 'utf8');
+assert.match(subcontractSource, /DEFAULT_DISCOUNT_PERCENT = 20/);
+assert.match(subcontractSource, /하청업체 적용금액/);
+assert.match(subcontractSource, /고객에게 표시되는 견적 및 저장되는 최종금액은 변경하지 않습니다/);
+assert.doesNotMatch(subcontractSource, /setDoc|updateDoc|addDoc/, '하청 보조 계산기는 Firestore 견적을 수정하면 안 됨');
+
+const displayFixPath = path.join(root, 'assets/js/book-a5-display-fix.js');
+const displayFixSource = fs.readFileSync(displayFixPath, 'utf8');
+assert.match(displayFixSource, /A5_DISPLAY_MULTIPLIER = 0\.70/);
+assert.match(displayFixSource, /A5 전체 금액 · A4 기준 70% 일괄 적용/);
+
+for (const file of [subcontractPath, displayFixPath, path.join(root, 'assets/js/book-a5-size.js')]) {
+  const checkPath = path.join(os.tmpdir(), `book-ui-check-${process.pid}-${path.basename(file)}.mjs`);
+  try {
+    fs.writeFileSync(checkPath, fs.readFileSync(file, 'utf8'), 'utf8');
+    execFileSync(process.execPath, ['--check', checkPath], { stdio: 'pipe' });
+  } finally {
+    try { fs.unlinkSync(checkPath); } catch (_) {}
+  }
+}
 
 console.log('book UI/template/contact/storage module regression tests passed');
