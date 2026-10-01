@@ -3,9 +3,11 @@
 
 import { getBindingPageCount, getLargeSizeMultiplier, positiveNumber } from './calculator-utils.js';
 
+export const PERFECT_A5_INNER_MULTIPLIER = 0.70;
+
 /**
  * 무선제본 내지의 규격별 인쇄비 배율을 반환합니다.
- * - A5: 공통 금액 절삭 단계에서 전체 항목 70%를 한 번만 적용하므로 여기서는 100%
+ * - A5: A4 내지 단가의 70%
  * - B5 컬러: 기존 정책 그대로 A4 단가의 100%
  * - 그 외: 화면에서 계산된 기본 규격 배율 유지
  */
@@ -15,7 +17,7 @@ export function getPerfectInnerPricingMultiplier({
   isColorPrint = false,
 } = {}) {
   const key = String(sectionSizeValue ?? '').trim().toLowerCase();
-  if (key === 'a5') return 1;
+  if (key === 'a5') return PERFECT_A5_INNER_MULTIPLIER;
   if (key === '0.9' && isColorPrint) return 1;
   return positiveNumber(normalSizeMultiplier, 1);
 }
@@ -25,7 +27,7 @@ export function getPerfectBindingPageCount(options = {}) {
   return getBindingPageCount(options);
 }
 
-/** A5/B5는 제본비 기본 배율 1, A4 이상은 규격 배율을 사용합니다. A5 70%는 공통 금액 단계에서 적용합니다. */
+/** A5/B5는 제본비 배율 1, A4 이상은 규격 배율을 사용합니다. */
 export function getPerfectBindingSizeMultiplier(itemSizeMultiplier = 1) {
   return getLargeSizeMultiplier(itemSizeMultiplier);
 }
