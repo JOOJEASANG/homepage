@@ -2,34 +2,34 @@
 // book-a5-size.js — 책자/제본 A5 규격 보정
 //
 // - A5는 안정적인 저장키 "a5"를 사용합니다.
-// - 실제 계산 배율은 settings/unitPriceConfig.book.sizeMultipliers.a5 에서 읽습니다.
-// - 기본값은 A4의 85%입니다.
-// - 기존 견적 초기화를 방해하지 않도록 DOM 보정과 설정 조회를 가볍게 수행합니다.
+// - A5 책자 항목은 표지/내지/간지/제본/후가공/디자인 등 계산 금액 전체에
+//   A4 대비 70%를 공통 계산 단계에서 한 번만 적용합니다.
+// - 개별 계산식에서 다시 70%를 곱하지 않도록 parseFloat('a5')는 내부적으로 1을 반환합니다.
 // ============================================================
 
-import { db, doc, getDoc } from './firebase.js';
+export const A5_FIXED_MULTIPLIER = 0.70;
+const KNOWN_NON_A5_SIZE_VALUES = new Set(['0.9', '1', '1.8', '2']);
 
-const DEFAULT_A5_MULTIPLIER = 0.85;
-let a5Multiplier = DEFAULT_A5_MULTIPLIER;
-
-function normalizeMultiplier(value) {
-  const n = Number(value);
-  if (!Number.isFinite(n) || n < 0.5 || n > 1.2) return DEFAULT_A5_MULTIPLIER;
-  return n;
+function percentText() {
+  return Math.round(A5_FIXED_MULTIPLIER * 100);
 }
 
-function percentText(multiplier) {
-  return Math.round(normalizeMultiplier(multiplier) * 100);
-}
-
-// quote-book.js는 paperSize 값을 parseFloat()하여 배율로 사용합니다.
-// A5 문자열에 대해서만 현재 A5 배율을 반환하고 다른 값은 원래 parseFloat에 위임합니다.
+// quote-book.js는 paperSize 값을 parseFloat()하여 규격 배율로 사용합니다.
+// A5 여부는 전역 계산 컨텍스트로 표시하고, 실제 70% 적용은 calculator-utils.js의
+// floorToHundred()에서 모든 금액 항목에 한 번만 수행합니다.
 try {
   if (!window.__bookA5ParseFloatPatched) {
     const nativeParseFloat = window.parseFloat.bind(window);
     window.__bookA5NativeParseFloat = nativeParseFloat;
     window.parseFloat = function(value) {
-      if (String(value ?? '').trim().toLowerCase() === 'a5') return a5Multiplier;
+      const key = String(value ?? '').trim().toLowerCase();
+      if (key === 'a5') {
+        window.__bookA5ActiveItem = true;
+        return 1;
+      }
+      if (KNOWN_NON_A5_SIZE_VALUES.has(key)) {
+        window.__bookA5ActiveItem = false;
+      }
       return nativeParseFloat(value);
     };
     window.__bookA5ParseFloatPatched = true;
@@ -55,18 +55,12 @@ function ensureA5Option(select) {
     changed = true;
   }
 
-  const expectedLabel = `A5 (148×210) · A4의 ${percentText(a5Multiplier)}%`;
-  const expectedMultiplier = String(a5Multiplier);
-
-  // 같은 값을 반복해서 쓰면 MutationObserver가 계속 재호출될 수 있으므로
-  // 실제로 달라진 경우에만 DOM을 변경합니다.
+  const expectedLabel = `A5 (148×210) · A4의 ${percentText()}%`;
   if (option.textContent !== expectedLabel) {
     option.textContent = expectedLabel;
     changed = true;
   }
-  if (option.dataset.multiplier !== expectedMultiplier) {
-    option.dataset.multiplier = expectedMultiplier;
-  }
+  option.dataset.multiplier = String(A5_FIXED_MULTIPLIER);
 
   if (hadUnknownSavedValue) {
     select.value = 'a5';
@@ -79,24 +73,7 @@ function applyToAllSelects() {
   document.querySelectorAll('select.paperSize').forEach(ensureA5Option);
 }
 
-function triggerRecalculateIfA5Selected() {
-  document.querySelectorAll('select.paperSize').forEach(select => {
-    if (select.value !== 'a5') return;
-    try { select.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
-  });
-}
-
-function updateMultiplier(next) {
-  const normalized = normalizeMultiplier(next);
-  const changed = Math.abs(normalized - a5Multiplier) > 0.000001;
-  a5Multiplier = normalized;
-  window.__bookA5Multiplier = a5Multiplier;
-  applyToAllSelects();
-  if (changed) triggerRecalculateIfA5Selected();
-}
-
 // 한 책자 항목 안에서는 모든 내지 구간의 규격을 동일하게 유지합니다.
-// 어느 구간에서 규격을 바꾸더라도 표지/제본 기준과 내지 규격이 어긋나지 않게 합니다.
 function syncBookItemPaperSizes(event) {
   const select = event.target?.closest?.('select.paperSize');
   if (!select) return;
@@ -146,20 +123,7 @@ function initObserver() {
   observer.observe(root, { childList: true, subtree: true });
 }
 
-async function loadA5RateAfterBaseQuoteInit() {
-  try {
-    // 본 견적 페이지의 단가 설정 로딩이 먼저 끝나도록 약간 뒤에 읽습니다.
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    const snap = await getDoc(doc(db, 'settings', 'unitPriceConfig'));
-    const data = snap.exists() ? (snap.data() || {}) : {};
-    updateMultiplier(data?.book?.sizeMultipliers?.a5 ?? DEFAULT_A5_MULTIPLIER);
-  } catch (_) {
-    // 별도 A5 설정 조회 실패가 전체 견적 로딩 실패로 이어지지 않도록 기본 85%를 사용합니다.
-    updateMultiplier(DEFAULT_A5_MULTIPLIER);
-  }
-}
-
-window.__bookA5Multiplier = a5Multiplier;
+window.__bookA5FixedMultiplier = A5_FIXED_MULTIPLIER;
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initObserver, { once: true });
@@ -167,9 +131,6 @@ if (document.readyState === 'loading') {
   initObserver();
 }
 
-// 초기 렌더와 폼 복원 타이밍 차이를 흡수하되 반복 DOM 갱신은 하지 않습니다.
 setTimeout(applyToAllSelects, 150);
 setTimeout(applyToAllSelects, 650);
 setTimeout(applyToAllSelects, 1600);
-
-loadA5RateAfterBaseQuoteInit();
