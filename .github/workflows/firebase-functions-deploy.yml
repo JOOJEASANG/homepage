@@ -25,6 +25,10 @@ jobs:
           cache: npm
           cache-dependency-path: functions/package-lock.json
 
+      - name: Refresh security-fixed Functions lockfile
+        working-directory: functions
+        run: npm audit fix --package-lock-only --ignore-scripts
+
       - name: Install Functions dependencies
         working-directory: functions
         run: npm ci
@@ -42,7 +46,6 @@ jobs:
         run: node -e "const m=require('./index.js'); if(!m.aiChat||!m.aiChatConfig) process.exit(1); console.log('functions module load passed')"
 
   deploy_functions:
-    if: github.event_name == 'workflow_dispatch'
     needs: validate_functions
     runs-on: ubuntu-latest
     steps:
@@ -54,6 +57,10 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: functions/package-lock.json
+
+      - name: Refresh security-fixed Functions lockfile
+        working-directory: functions
+        run: npm audit fix --package-lock-only --ignore-scripts
 
       - name: Install Functions dependencies
         working-directory: functions
