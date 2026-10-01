@@ -12,6 +12,7 @@ const utils = await import(pathToFileURL(modulePath).href);
 assert.equal(utils.positiveNumber(0.9, 1), 0.9, '정상 양수는 그대로 유지');
 assert.equal(utils.positiveNumber(0, 1), 1, '0은 fallback 사용');
 assert.equal(utils.positiveNumber(Number.NaN, 1), 1, 'NaN은 fallback 사용');
+assert.equal(utils.A5_UNIFORM_PRICE_MULTIPLIER, 0.70, 'A5 전체 금액 적용률은 70% 고정');
 
 // 일반 단가표: 높은 threshold부터 기존 정책대로 선택
 const priceTiers = [
@@ -65,11 +66,23 @@ assert.equal(
   '서로 다른 내지 구간의 남는 면을 합쳐 한 장으로 계산하지 않음'
 );
 
-// 금액 절삭과 대형 규격 배율은 기존 계산과 동일해야 함
+// 기본 금액 절삭은 기존 계산과 동일해야 함
 assert.equal(utils.floorToHundred(1234), 1200, '1234원은 1200원으로 절삭');
 assert.equal(utils.floorToHundred(100), 100, '100원은 유지');
 assert.equal(utils.floorToHundred(99), 0, '100원 미만은 0원으로 절삭');
-assert.equal(utils.getLargeSizeMultiplier(0.85), 1, 'A5 계열 표지/제본 배율은 1');
+
+// 브라우저에서 A5 항목이 활성화되면 표지/내지/간지/제본/후가공 등 모든 floorToHundred 경로에 70%를 한 번만 적용
+const originalWindow = globalThis.window;
+globalThis.window = { __bookA5ActiveItem: true };
+assert.equal(utils.getActiveBookItemPriceMultiplier(), 0.70, 'A5 활성 항목의 공통 배율은 70%');
+assert.equal(utils.floorToHundred(10000), 7000, 'A5 10,000원은 7,000원');
+assert.equal(utils.floorToHundred(1234), 800, 'A5 1,234원 × 70%는 100원 단위 절삭해 800원');
+globalThis.window.__bookA5ActiveItem = false;
+assert.equal(utils.floorToHundred(10000), 10000, 'A5가 아니면 할인하지 않음');
+if (originalWindow === undefined) delete globalThis.window;
+else globalThis.window = originalWindow;
+
+assert.equal(utils.getLargeSizeMultiplier(0.85), 1, '소형 규격 표지/제본 기본 배율은 1');
 assert.equal(utils.getLargeSizeMultiplier(0.9), 1, 'B5 계열 표지/제본 배율은 1');
 assert.equal(utils.getLargeSizeMultiplier(1), 1, 'A4 배율은 1');
 assert.equal(utils.getLargeSizeMultiplier(1.8), 1.8, 'B4 배율은 1.8');
@@ -100,8 +113,13 @@ for (const expected of [
   'etcDesignCost = floorToHundred(priceConfig.etc.coverDesign || 0);',
   'etcOshiCost = floorToHundred((priceConfig.etc.coverOshi || 0) * quantity);',
 ]) {
-  assert.ok(quoteBookSource.includes(expected), `100원 절삭 공통화 누락: ${expected}`);
+  assert.ok(quoteBookSource.includes(expected), `A5 일괄 적용/100원 절삭 공통화 누락: ${expected}`);
 }
+
+const a5Source = fs.readFileSync(path.join(root, 'assets/js/book-a5-size.js'), 'utf8');
+assert.match(a5Source, /A5_FIXED_MULTIPLIER = 0\.70/, 'A5 선택 UI도 70% 고정이어야 함');
+assert.match(a5Source, /window\.__bookA5ActiveItem = true/, 'A5 선택 시 공통 계산 컨텍스트를 활성화해야 함');
+assert.match(a5Source, /return 1;/, 'A5 개별 규격 배율은 1로 두어 70% 중복 적용을 막아야 함');
 
 assert.match(
   quoteBookSource,
