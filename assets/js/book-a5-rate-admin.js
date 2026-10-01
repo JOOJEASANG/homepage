@@ -1,11 +1,11 @@
 // ============================================================
 // book-a5-rate-admin.js — 관리자 책자 단가설정 A5 정책 안내
 //
-// A5는 운영 혼선을 막기 위해 A4 대비 70%로 고정합니다.
-// 기존 Firestore의 book.sizeMultipliers.a5 값은 더 이상 계산에 사용하지 않습니다.
+// A5 내지 인쇄비는 A4 기준 70%로 고정합니다.
+// 표지·간지·제본·오시·디자인비는 기존 단가를 그대로 사용합니다.
 // ============================================================
 
-const FIXED_A5_PERCENT = 70;
+const FIXED_A5_INNER_PERCENT = 70;
 
 function renderCard() {
   const host = document.getElementById('etc-price-sections');
@@ -21,16 +21,15 @@ function renderCard() {
         <div class="flex-1">
           <div class="flex items-center gap-2 mb-1">
             <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-600 text-white text-xs font-extrabold">A5</span>
-            <span class="text-sm font-extrabold text-slate-800">A5 적용률</span>
-            <span class="inline-flex items-center rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-extrabold text-white">${FIXED_A5_PERCENT}% 고정</span>
+            <span class="text-sm font-extrabold text-slate-800">A5 내지 적용률</span>
+            <span class="inline-flex items-center rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-extrabold text-white">${FIXED_A5_INNER_PERCENT}% 고정</span>
           </div>
           <p class="text-xs text-slate-600 leading-5 mt-2">
-            A5 책자/제본은 A4 기준 금액의 70%를 일괄 적용합니다.
-            표지·내지·간지·제본·오시·디자인 등 해당 책자 항목의 계산 금액 전체에 동일하게 적용되며,
-            제본 방식(무선/와이어/중철/제본없음)에 따라 중복 할인되지 않습니다.
+            A5 선택 시 <strong>내지 인쇄비만</strong> A4 기준의 70%로 계산합니다.
+            표지·간지·제본·오시·디자인비는 A5 할인 없이 기존 단가를 그대로 적용합니다.
           </p>
           <div class="mt-3 text-[11px] font-semibold text-emerald-700">
-            예: A4 기준 총 100,000원 → A5 적용 총 70,000원
+            예: A4 기준 내지 인쇄비 100,000원 → A5 내지 인쇄비 70,000원
           </div>
         </div>
       </div>
