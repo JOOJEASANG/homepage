@@ -82,6 +82,10 @@ try {
 // 페이지별 보정/표시 로직은 각 runtime을 단일 진입점으로 사용합니다.
 try {
   const currentFile = getCurrentFile();
+  // 관리자 로그인 상태에서는 책자/제본·디지털출력 견적 페이지 직접 접근 및
+  // 관리자 전용 하청 20% 보조 계산을 활성화합니다.
+  import('./admin-quote-navigation.js').catch(() => null);
+
   if (currentFile === 'admin.html') {
     import('./pages/admin/runtime.js').catch(() => null);
   }
