@@ -51,25 +51,36 @@ for (const critical of ['function calculateQuote()', 'async function submitQuote
 assert.ok(quoteSource.includes('renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPrice })'));
 assert.ok(quoteSource.includes('renderInnerSectionTemplate({ sectionCount })'));
 
-// A5 70% 정책/관리자 하청 계산기 연결 회귀 검사
-const a5Source = fs.readFileSync(path.join(root, 'assets/js/book-a5-size.js'), 'utf8');
-assert.match(a5Source, /A5_FIXED_MULTIPLIER = 0\.70/);
-assert.match(a5Source, /book-a5-display-fix\.js/);
-assert.match(a5Source, /book-admin-subcontract-calculator\.js/);
+// A5는 내지 인쇄비에만 A4 대비 70%를 적용합니다.
+const a5Path = path.join(root, 'assets/js/book-a5-size.js');
+const a5Source = fs.readFileSync(a5Path, 'utf8');
+assert.match(a5Source, /A5_INNER_MULTIPLIER = 0\.70/);
+assert.match(a5Source, /내지 인쇄비에만 적용/);
+assert.match(a5Source, /표지·간지·제본·오시·디자인비에는 A5 할인율을 적용하지 않습니다/);
+assert.doesNotMatch(a5Source, /book-a5-display-fix\.js/);
 
+// 관리자 전용 하청 계산은 책자/제본 + 디지털출력 모두에서 고정 20% 체크 방식입니다.
 const subcontractPath = path.join(root, 'assets/js/book-admin-subcontract-calculator.js');
 const subcontractSource = fs.readFileSync(subcontractPath, 'utf8');
-assert.match(subcontractSource, /DEFAULT_DISCOUNT_PERCENT = 20/);
-assert.match(subcontractSource, /하청업체 적용금액/);
-assert.match(subcontractSource, /고객에게 표시되는 견적 및 저장되는 최종금액은 변경하지 않습니다/);
+assert.match(subcontractSource, /SUBCONTRACT_DISCOUNT_PERCENT = 20/);
+assert.match(subcontractSource, /quote-book\.html/);
+assert.match(subcontractSource, /quote-print\.html/);
+assert.match(subcontractSource, /하청업체 20% 할인 적용/);
+assert.match(subcontractSource, /admin-subcontract-enabled/);
+assert.match(subcontractSource, /고객 화면의 견적금액과 접수·저장되는 최종금액은 변경하지 않습니다/);
 assert.doesNotMatch(subcontractSource, /setDoc|updateDoc|addDoc/, '하청 보조 계산기는 Firestore 견적을 수정하면 안 됨');
 
-const displayFixPath = path.join(root, 'assets/js/book-a5-display-fix.js');
-const displayFixSource = fs.readFileSync(displayFixPath, 'utf8');
-assert.match(displayFixSource, /A5_DISPLAY_MULTIPLIER = 0\.70/);
-assert.match(displayFixSource, /A5 전체 금액 · A4 기준 70% 일괄 적용/);
+// 관리자 견적페이지 직접 접근 연결
+const adminNavPath = path.join(root, 'assets/js/admin-quote-navigation.js');
+const adminNavSource = fs.readFileSync(adminNavPath, 'utf8');
+assert.match(adminNavSource, /adminEdit/);
+assert.match(adminNavSource, /adminPricing/);
+assert.match(adminNavSource, /book-admin-subcontract-calculator\.js/);
 
-for (const file of [subcontractPath, displayFixPath, path.join(root, 'assets/js/book-a5-size.js')]) {
+const sessionSource = fs.readFileSync(path.join(root, 'assets/js/session.js'), 'utf8');
+assert.match(sessionSource, /admin-quote-navigation\.js/);
+
+for (const file of [a5Path, subcontractPath, adminNavPath, path.join(root, 'assets/js/session.js')]) {
   const checkPath = path.join(os.tmpdir(), `book-ui-check-${process.pid}-${path.basename(file)}.mjs`);
   try {
     fs.writeFileSync(checkPath, fs.readFileSync(file, 'utf8'), 'utf8');
