@@ -12,11 +12,11 @@ const perfect = await import(pathToFileURL(modulePath).href);
 assert.equal(
   perfect.getPerfectInnerPricingMultiplier({
     sectionSizeValue: 'a5',
-    normalSizeMultiplier: 0.85,
+    normalSizeMultiplier: 1,
     isColorPrint: false,
   }),
-  0.70,
-  'A5 무선제본 내지는 기존 정책대로 70% 배율'
+  1,
+  'A5 무선제본 내지는 공통 금액 단계에서 70%를 적용하므로 모듈 내부 배율은 1'
 );
 assert.equal(
   perfect.getPerfectInnerPricingMultiplier({
@@ -65,7 +65,7 @@ assert.equal(
   '추가 간지는 제본 페이지 수에 더함'
 );
 
-assert.equal(perfect.getPerfectBindingSizeMultiplier(0.85), 1, 'A5 제본비 배율은 1');
+assert.equal(perfect.getPerfectBindingSizeMultiplier(1), 1, 'A5 제본 기본 배율은 1이며 공통 단계에서 70% 적용');
 assert.equal(perfect.getPerfectBindingSizeMultiplier(0.9), 1, 'B5 제본비 배율은 1');
 assert.equal(perfect.getPerfectBindingSizeMultiplier(1), 1, 'A4 제본비 배율은 1');
 assert.equal(perfect.getPerfectBindingSizeMultiplier(1.8), 1.8, 'B4 제본비 배율은 1.8');
