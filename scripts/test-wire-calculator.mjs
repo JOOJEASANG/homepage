@@ -15,7 +15,7 @@ assert.equal(wire.getWireCoverCost(0), 0, '표지비 0원은 그대로 0');
 assert.equal(
   wire.getWireInnerPricingMultiplier({ sectionSizeValue: 'a5', normalSizeMultiplier: 0.85, isColorPrint: false }),
   0.70,
-  'A5 와이어 내지는 기존 70% 배율'
+  'A5 와이어 내지는 70% 배율'
 );
 assert.equal(
   wire.getWireInnerPricingMultiplier({ sectionSizeValue: '0.9', normalSizeMultiplier: 0.9, isColorPrint: true }),

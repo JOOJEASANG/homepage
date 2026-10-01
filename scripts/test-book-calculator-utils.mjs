@@ -69,7 +69,7 @@ assert.equal(
 assert.equal(utils.floorToHundred(1234), 1200, '1234원은 1200원으로 절삭');
 assert.equal(utils.floorToHundred(100), 100, '100원은 유지');
 assert.equal(utils.floorToHundred(99), 0, '100원 미만은 0원으로 절삭');
-assert.equal(utils.getLargeSizeMultiplier(0.85), 1, 'A5 계열 표지/제본 배율은 1');
+assert.equal(utils.getLargeSizeMultiplier(0.70), 1, 'A5 표지/제본 배율은 1');
 assert.equal(utils.getLargeSizeMultiplier(0.9), 1, 'B5 계열 표지/제본 배율은 1');
 assert.equal(utils.getLargeSizeMultiplier(1), 1, 'A4 배율은 1');
 assert.equal(utils.getLargeSizeMultiplier(1.8), 1.8, 'B4 배율은 1.8');

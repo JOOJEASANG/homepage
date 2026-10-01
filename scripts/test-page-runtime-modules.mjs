@@ -28,6 +28,7 @@ const header = fs.readFileSync(path.join(root, 'assets', 'js', 'header.js'), 'ut
 const printRuntime = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'quote-print', 'runtime.js'), 'utf8');
 const mypageRuntime = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'mypage', 'runtime.js'), 'utf8');
 const adminRuntime = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'admin', 'runtime.js'), 'utf8');
+const chatReceipts = fs.readFileSync(path.join(root, 'assets', 'js', 'chat-read-receipts.js'), 'utf8');
 
 for (const [file, importPath] of [
   ['quote-print', "./pages/quote-print/runtime.js"],
@@ -49,10 +50,22 @@ assert.ok(printRuntime.includes("from '../shared/page-utils.js'"));
 assert.ok(printRuntime.includes('export function serializePrintDraft'));
 assert.ok(printRuntime.includes('export function generatePrintReceiptNo'));
 assert.ok(mypageRuntime.includes("from '../shared/page-utils.js'"));
+assert.ok(mypageRuntime.includes("import '../../chat-read-receipts.js'"), 'mypage runtime must load chat read receipts');
 assert.ok(mypageRuntime.includes('export function getQuoteStatusMeta'));
 assert.ok(adminRuntime.includes("from '../shared/page-utils.js'"));
 assert.ok(adminRuntime.includes("import '../../admin-safety-patches.js'"));
+assert.ok(adminRuntime.includes("import '../../chat-read-receipts.js'"), 'admin runtime must load chat read receipts');
 assert.ok(adminRuntime.includes('export function getAdminQuoteStatusMeta'));
+
+for (const expected of [
+  'readByCustomer: true',
+  'readByCustomerAt: readAt',
+  'hasUnreadCustomerMessage: false',
+  'data-customer-read-receipt="1"',
+  "'읽음' : '안읽음'",
+]) {
+  assert.ok(chatReceipts.includes(expected), `chat read receipt contract missing: ${expected}`);
+}
 
 // Firebase CDN 초기화 성공 여부와 무관하게 공통 헤더의 접근성/모바일 탐색 계약을 고정합니다.
 for (const expected of [
@@ -68,4 +81,4 @@ for (const href of ['quote-book.html', 'quote-print.html', 'qna.html', 'work-gui
   assert.ok(header.includes(href), `header navigation destination missing: ${href}`);
 }
 
-console.log('Shared page utilities, runtime modules, and header navigation contract checks passed');
+console.log('Shared page utilities, runtime modules, chat receipts, and header navigation contract checks passed');

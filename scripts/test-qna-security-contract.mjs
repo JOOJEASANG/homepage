@@ -17,13 +17,16 @@ for (const value of [
   "schemaVersion: 2",
   "password.length < 4",
   "scrubPublicQnaSecrets",
+  "answerReadByCustomer: true",
+  "answerReadAt: FieldValue.serverTimestamp()",
 ]) {
-  assert.ok(api.includes(value), `qna-api missing security contract: ${value}`);
+  assert.ok(api.includes(value), `qna-api missing security/read contract: ${value}`);
 }
 
+assert.ok(api.includes("data.answerReadByCustomer !== true"), 'secure Q&A lookup must only write a missing customer read receipt');
 assert.ok(!api.includes("batch.set(ref, { pwHash"), 'new Q&A documents must not store a password hash in the public qna document');
 assert.ok(client.includes('qnaApiV2'), 'secure Q&A client must remain feature-gated');
 assert.ok(client.includes('Authorization: `Bearer ${token}`'), 'secure Q&A client must authenticate requests');
 assert.ok(main.includes("...require('./qna-api.js')"), 'Functions aggregator must export Q&A functions');
 
-console.log('Secure Q&A contract checks passed');
+console.log('Secure Q&A and customer read receipt contract checks passed');

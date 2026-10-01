@@ -16,7 +16,7 @@ assert.equal(
     isColorPrint: false,
   }),
   0.70,
-  'A5 무선제본 내지는 기존 정책대로 70% 배율'
+  'A5 무선제본 내지는 70% 배율'
 );
 assert.equal(
   perfect.getPerfectInnerPricingMultiplier({

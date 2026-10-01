@@ -4,6 +4,7 @@ import { formatPhoneHyphen, formatQuoteStatus, quoteStatusKind } from '../shared
 import '../../customer-center-admin-menu.js';
 import '../../portfolio-crop-helper.js';
 import '../../admin-safety-patches.js';
+import '../../chat-read-receipts.js';
 
 export function getAdminQuoteStatusMeta(status) {
   const label = formatQuoteStatus(status);

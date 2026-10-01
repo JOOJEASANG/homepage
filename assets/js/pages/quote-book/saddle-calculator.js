@@ -1,8 +1,11 @@
 // 중철(소책자) 전용 계산 모듈
 // 기존 quote-book.js와 분리하여 중철 계산 규칙을 독립적으로 관리합니다.
 
+export const SADDLE_A5_INNER_MULTIPLIER = 0.70;
+
 export const SADDLE_OUTPUT_SIZE_MAP = Object.freeze({
-  a5: { outputSize: 'A4', outputMultiplier: 1 },
+  // A5 완성물은 A4에 4p/장으로 출력하되, 내지 인쇄비는 A4 기준의 70%를 적용합니다.
+  a5: { outputSize: 'A4', outputMultiplier: SADDLE_A5_INNER_MULTIPLIER },
   '0.9': { outputSize: 'B4', outputMultiplier: 1.8 },
   '1': { outputSize: 'A3', outputMultiplier: 2 },
 });
@@ -31,7 +34,7 @@ export function isValidSaddlePageCount(pages) {
 
 /**
  * 완성 규격을 실제 중철 출력 규격으로 변환합니다.
- * A5 -> A4, B5 -> B4, A4 -> A3.
+ * A5 -> A4(내지 인쇄비 70%), B5 -> B4, A4 -> A3.
  * 알 수 없는 규격은 기존 배율을 보존합니다.
  */
 export function getSaddleOutputSpec(sectionSizeValue, fallbackMultiplier = 1) {
