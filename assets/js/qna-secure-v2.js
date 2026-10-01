@@ -1,5 +1,5 @@
 import {
-  auth, db, doc, getDoc,
+  auth, db, doc, getDoc, updateDoc, serverTimestamp,
   signInAnonymously, setPersistence, browserSessionPersistence,
 } from './firebase.js';
 
@@ -41,6 +41,20 @@ async function callSecureQna(payload) {
   const body = await response.json().catch(() => ({}));
   if (!response.ok || body?.ok !== true) throw new Error(body?.error || '문의 처리에 실패했습니다.');
   return body;
+}
+
+async function markLookupAnswersRead(items) {
+  const answered = (Array.isArray(items) ? items : []).filter(item => item?.id && String(item?.answer || '').trim());
+  if (!answered.length) return;
+
+  // secure lookup이 성공한 문서만 대상으로 하며, Firestore rules가 허용하는
+  // 고객 수신확인 필드 2개만 갱신합니다. Functions 재배포 권한과 무관하게 동작합니다.
+  await Promise.all(answered.map(item => updateDoc(doc(db, 'qna', item.id), {
+    answerReadByCustomer: true,
+    answerReadAt: serverTimestamp(),
+  }).catch(error => {
+    console.warn('[qna-secure-v2] read receipt update failed:', item.id, error);
+  })));
 }
 
 function toast(message, type = 'info') {
@@ -130,7 +144,9 @@ async function handleLookup(button) {
   button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
   try {
     const result = await callSecureQna({ action: 'lookup', name, password });
-    renderLookup(result.items || []);
+    const items = result.items || [];
+    renderLookup(items);
+    await markLookupAnswersRead(items);
   } catch (error) {
     toast(error?.message || '조회에 실패했습니다.', 'error');
   } finally {
@@ -158,4 +174,4 @@ async function init() {
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => init().catch(() => null), { once: true });
 else init().catch(() => null);
 
-export { callSecureQna };
+export { callSecureQna, markLookupAnswersRead };
