@@ -157,6 +157,15 @@ async function lookupQna(decoded, body) {
     if (data.ownerUid !== decoded.uid) {
       await docSnap.ref.set({ ownerUid: decoded.uid, schemaVersion: 2 }, { merge: true });
     }
+
+    // 고객이 비밀번호 검증을 통과해 실제 답변 내용을 조회한 시점에 수신확인 처리합니다.
+    if (clean(data.answer, 4000) && data.answerReadByCustomer !== true) {
+      await docSnap.ref.set({
+        answerReadByCustomer: true,
+        answerReadAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }
+
     matched.push(publicQnaData(data, docSnap.id));
   }
 
