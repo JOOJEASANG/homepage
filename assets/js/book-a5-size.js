@@ -73,6 +73,14 @@ function applyToAllSelects() {
   document.querySelectorAll('select.paperSize').forEach(ensureA5Option);
 }
 
+function recalculateSelectedA5() {
+  document.querySelectorAll('select.paperSize').forEach(select => {
+    if (select.value !== 'a5') return;
+    try { select.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
+    try { select.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) {}
+  });
+}
+
 // 한 책자 항목 안에서는 모든 내지 구간의 규격을 동일하게 유지합니다.
 function syncBookItemPaperSizes(event) {
   const select = event.target?.closest?.('select.paperSize');
@@ -106,6 +114,7 @@ document.addEventListener('click', inheritSizeForNewInnerSection, true);
 
 function initObserver() {
   applyToAllSelects();
+  setTimeout(recalculateSelectedA5, 0);
 
   const root = document.getElementById('quote-items-container') || document.body;
   if (!root || root.dataset?.a5ObserverBound === '1') return;
@@ -131,9 +140,9 @@ if (document.readyState === 'loading') {
   initObserver();
 }
 
-setTimeout(applyToAllSelects, 150);
-setTimeout(applyToAllSelects, 650);
-setTimeout(applyToAllSelects, 1600);
+setTimeout(() => { applyToAllSelects(); recalculateSelectedA5(); }, 150);
+setTimeout(() => { applyToAllSelects(); recalculateSelectedA5(); }, 650);
+setTimeout(() => { applyToAllSelects(); recalculateSelectedA5(); }, 1600);
 
 // A5 계산 표시와 관리자 전용 하청 보조 계산기를 같은 책자 견적 페이지에서 함께 활성화합니다.
 import('./book-a5-display-fix.js').catch(() => null);
