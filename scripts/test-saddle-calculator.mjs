@@ -20,9 +20,9 @@ assert.equal(saddle.isValidSaddlePageCount(20), true, '20p는 4의 배수');
 assert.equal(saddle.isValidSaddlePageCount(18), false, '18p는 4의 배수가 아님');
 
 assert.deepEqual(
-  saddle.getSaddleOutputSpec('a5', 0.85),
-  { outputSize: 'A4', outputMultiplier: 1 },
-  'A5 중철은 A4 출력'
+  saddle.getSaddleOutputSpec('a5', 0.70),
+  { outputSize: 'A4', outputMultiplier: 0.70 },
+  'A5 중철은 A4 출력 장수 기준으로 계산하되 내지 인쇄비는 70% 적용'
 );
 assert.deepEqual(
   saddle.getSaddleOutputSpec('0.9', 0.9),
@@ -45,17 +45,17 @@ assert.deepEqual(
     pages: 18,
     quantity: 3,
     sectionSizeValue: 'a5',
-    fallbackMultiplier: 0.85,
+    fallbackMultiplier: 0.70,
   }),
   {
     pages: 18,
     sheetsPerCopy: 5,
     totalSheets: 15,
     outputSize: 'A4',
-    outputMultiplier: 1,
+    outputMultiplier: 0.70,
     validPageMultiple: false,
   },
-  '18p A5 중철 3부는 권당 5장, 총 15장'
+  '18p A5 중철 3부는 권당 5장, 총 15장, 내지 인쇄비 70%'
 );
 
 // quote-book.js 연결 회귀 검사: 모듈 import, 중철 장수 기준, 기존 제본비 경로 보존.
