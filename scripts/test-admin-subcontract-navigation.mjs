@@ -13,6 +13,14 @@ assert.match(nav, /quote-print\.html/);
 assert.match(nav, /adminPricing/);
 assert.match(nav, /관리자 계산 모드/);
 assert.match(nav, /book-admin-subcontract-calculator\.js/);
+assert.match(nav, /admin-book-quote-shortcut/);
+assert.match(nav, /admin-print-quote-shortcut/);
+assert.match(nav, /admin-mobile-quote-shortcuts/);
+assert.match(nav, /책자\/제본/);
+assert.match(nav, /디지털출력/);
+assert.match(nav, /normalizeDigitalOutputLabels/);
+assert.match(nav, /디지털인쇄/);
+assert.match(nav, /디지털 인쇄/);
 
 assert.match(calc, /SUBCONTRACT_DISCOUNT_PERCENT = 20/);
 assert.match(calc, /Firebase users\/\{uid\}\.role === 'admin'/);
@@ -24,4 +32,4 @@ assert.doesNotMatch(calc, /setDoc|updateDoc|addDoc/);
 
 assert.match(session, /admin-quote-navigation\.js/);
 
-console.log('admin subcontract navigation contract passed');
+console.log('admin subcontract navigation and shortcut contract passed');
