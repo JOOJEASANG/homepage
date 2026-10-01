@@ -27,6 +27,10 @@ assert.ok(api.includes("data.answerReadByCustomer !== true"), 'secure Q&A lookup
 assert.ok(!api.includes("batch.set(ref, { pwHash"), 'new Q&A documents must not store a password hash in the public qna document');
 assert.ok(client.includes('qnaApiV2'), 'secure Q&A client must remain feature-gated');
 assert.ok(client.includes('Authorization: `Bearer ${token}`'), 'secure Q&A client must authenticate requests');
+assert.ok(client.includes('markLookupAnswersRead'), 'secure Q&A client must mark verified lookup answers read');
+assert.ok(client.includes("updateDoc(doc(db, 'qna', item.id)"), 'secure Q&A client must update only the verified qna document');
+assert.ok(client.includes('answerReadByCustomer: true'), 'secure Q&A client must set the customer read flag');
+assert.ok(client.includes('answerReadAt: serverTimestamp()'), 'secure Q&A client must timestamp the customer read receipt');
 assert.ok(main.includes("...require('./qna-api.js')"), 'Functions aggregator must export Q&A functions');
 
 console.log('Secure Q&A and customer read receipt contract checks passed');
