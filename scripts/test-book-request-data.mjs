@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildQuoteRequestData, buildQuoteUpdatePayload } from '../assets/js/pages/quote-book/quote-request-data.js';
+import { buildQuoteRequestData, buildQuoteUpdatePayload, normalizeA5Breakdown } from '../assets/js/pages/quote-book/quote-request-data.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -42,6 +42,40 @@ assert.equal(guest.createdAt, createdAt);
 assert.equal(guest.breakdownData, JSON.stringify(calculated.breakdown));
 assert.equal(guest.formData, JSON.stringify([{ orderName: '책자' }]));
 assert.equal(guest.productType, 'book');
+
+// A5 저장 상세단가도 70% 정책과 맞춰 저장합니다.
+const a5Breakdown = [{
+  quantity: 10,
+  cover: { unitPrice: 1000, amount: 7000 },
+  inners: [{ unitPricePerPage: 100, amount: 7000, pages: 10, pricingUnit: 'page' }],
+  interleaf: { unitPrice: 200, amount: 1400, sheets: 1 },
+  binding: { type: 'perfect', unitPrice: 500, amount: 3500 },
+  etc: { coverDesign: 7000, coverOshi: 700 },
+}];
+const a5Form = [{ orderName: 'A5 책자', quantity: '10', innerSections: [{ paperSize: 'a5' }] }];
+const normalizedA5 = normalizeA5Breakdown(a5Breakdown, a5Form);
+assert.equal(normalizedA5[0].cover.unitPrice, 700, 'A5 표지 상세단가는 70%');
+assert.equal(normalizedA5[0].inners[0].unitPricePerPage, 70, 'A5 내지 상세단가는 70%');
+assert.equal(normalizedA5[0].interleaf.unitPrice, 140, 'A5 간지 상세단가는 70%');
+assert.equal(normalizedA5[0].binding.unitPrice, 350, 'A5 제본 상세단가는 70%');
+assert.equal(a5Breakdown[0].cover.unitPrice, 1000, '상세단가 정규화가 입력 객체를 변경하면 안 됨');
+
+const a5Request = buildQuoteRequestData({
+  calculatedQuote: { ...calculated, breakdown: a5Breakdown },
+  userId: 'member-a5',
+  isGuest: false,
+  ordererName: 'A5 회원',
+  ordererContact: '010-0000-0000',
+  createdAt,
+  allItemsData: a5Form,
+});
+assert.equal(a5Request.breakdown[0].cover.unitPrice, 700);
+assert.equal(JSON.parse(a5Request.breakdownData)[0].binding.unitPrice, 350);
+
+const wireA5 = normalizeA5Breakdown([
+  { quantity: 10, cover: { unitPrice: 1000, amount: 3500 }, binding: { type: 'wire', unitPrice: 500, amount: 3500 } }
+], a5Form);
+assert.equal(wireA5[0].cover.unitPrice, 350, 'A5 와이어 표지는 기존 1/2 × A5 70%를 상세단가에도 반영');
 
 const member = buildQuoteRequestData({
   calculatedQuote: calculated,
