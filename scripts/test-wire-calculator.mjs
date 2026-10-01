@@ -13,9 +13,9 @@ assert.equal(wire.getWireCoverCost(10000), 5000, '와이어 표지비는 1/2');
 assert.equal(wire.getWireCoverCost(0), 0, '표지비 0원은 그대로 0');
 
 assert.equal(
-  wire.getWireInnerPricingMultiplier({ sectionSizeValue: 'a5', normalSizeMultiplier: 1, isColorPrint: false }),
-  1,
-  'A5 와이어 내지는 공통 금액 단계에서 70%를 적용하므로 모듈 내부 배율은 1'
+  wire.getWireInnerPricingMultiplier({ sectionSizeValue: 'a5', normalSizeMultiplier: 0.85, isColorPrint: false }),
+  0.70,
+  'A5 와이어 내지는 70% 배율'
 );
 assert.equal(
   wire.getWireInnerPricingMultiplier({ sectionSizeValue: '0.9', normalSizeMultiplier: 0.9, isColorPrint: true }),
@@ -42,7 +42,7 @@ assert.equal(
   '추가 간지는 제본 페이지에 합산'
 );
 
-assert.equal(wire.getWireBindingSizeMultiplier(1), 1, 'A5 제본 기본 배율은 1이며 공통 단계에서 70% 적용');
+assert.equal(wire.getWireBindingSizeMultiplier(0.85), 1, 'A5 제본 배율은 1');
 assert.equal(wire.getWireBindingSizeMultiplier(0.9), 1, 'B5 제본 배율은 1');
 assert.equal(wire.getWireBindingSizeMultiplier(1.8), 1.8, 'B4 제본 배율은 1.8');
 assert.equal(wire.getWireBindingSizeMultiplier(2), 2, 'A3 제본 배율은 2');
