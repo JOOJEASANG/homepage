@@ -1,4 +1,5 @@
 import { formatPhoneHyphen, formatQuoteStatus, quoteStatusKind } from '../shared/page-utils.js';
+import '../../chat-read-receipts.js';
 
 export function getQuoteStatusMeta(status) {
   const label = formatQuoteStatus(status);
