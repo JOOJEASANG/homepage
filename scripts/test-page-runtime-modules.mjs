@@ -63,6 +63,10 @@ for (const expected of [
   'hasUnreadCustomerMessage: false',
   'data-customer-read-receipt="1"',
   "'읽음' : '안읽음'",
+  'hasLaterCustomerReply',
+  'customerReadQueued',
+  'removeLegacyReceiptLabels',
+  "event.target?.id !== 'chat-form'",
 ]) {
   assert.ok(chatReceipts.includes(expected), `chat read receipt contract missing: ${expected}`);
 }
