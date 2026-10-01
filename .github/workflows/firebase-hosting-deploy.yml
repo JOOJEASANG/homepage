@@ -21,6 +21,10 @@ jobs:
           cache: npm
           cache-dependency-path: functions/package-lock.json
 
+      - name: Refresh security-fixed Functions lockfile
+        working-directory: functions
+        run: npm audit fix --package-lock-only --ignore-scripts
+
       - name: Install Functions dependencies
         working-directory: functions
         run: npm ci
