@@ -25,6 +25,9 @@ jobs:
       - name: Install application dependencies
         run: npm ci
 
+      - name: Run book calculator regression tests
+        run: npm run test:book
+
       - name: Install Playwright test runner without changing lockfile
         run: npm install --no-save --package-lock=false @playwright/test@1.55.0
 
