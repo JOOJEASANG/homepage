@@ -84,7 +84,17 @@ function activateCustomerQuote(quoteId) {
 }
 
 function receiptMarkup(read) {
-  return `<span data-customer-read-receipt="1" class="text-[10px] mt-1 px-1 font-bold ${read ? 'text-emerald-600' : 'text-amber-600'}">${read ? '읽음' : '안읽음'}</span>`;
+  const state = read ? 'read' : 'unread';
+  return `<span data-customer-read-receipt="1" data-read-state="${state}" class="text-[10px] mt-1 px-1 font-bold ${read ? 'text-emerald-600' : 'text-amber-600'}">${read ? '읽음' : '안읽음'}</span>`;
+}
+
+function syncReceiptElement(element, read) {
+  const state = read ? 'read' : 'unread';
+  if (element.dataset.readState === state) return;
+  element.dataset.readState = state;
+  element.textContent = read ? '읽음' : '안읽음';
+  element.classList.toggle('text-emerald-600', read);
+  element.classList.toggle('text-amber-600', !read);
 }
 
 function annotateAdminReceipts() {
@@ -104,7 +114,7 @@ function annotateAdminReceipts() {
     const existing = row.querySelector('[data-customer-read-receipt="1"]');
     const read = data.readByCustomer === true;
     if (existing) {
-      existing.outerHTML = receiptMarkup(read);
+      syncReceiptElement(existing, read);
       return;
     }
     row.insertAdjacentHTML('beforeend', receiptMarkup(read));
