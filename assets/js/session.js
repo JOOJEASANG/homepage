@@ -18,23 +18,33 @@ function getCurrentFile() {
   }
 }
 
-// 관리자 로그인 후 견적페이지로 직접 들어왔을 때 기존 관리자 리다이렉트에 튕기지 않도록
-// 페이지 본문 로직보다 먼저 adminEdit 접근 플래그를 보정합니다.
+// 관리자 로그인 후 일반 견적페이지로 직접 들어왔을 때 기존 관리자 리다이렉트에 튕기지 않도록
+// 페이지 본문 로직보다 먼저 계산 전용 접근 플래그를 보정합니다.
+// 기존 고객 견적 수정 URL(adminEdit/edit)은 계산모드로 바꾸지 않습니다.
 try {
   const currentFile = getCurrentFile();
   const role = String(sessionStorage.getItem('userRole') || localStorage.getItem('userRole') || '').trim().toLowerCase();
   if (role === 'admin' && (currentFile === 'quote-book.html' || currentFile === 'quote-print.html')) {
     const url = new URL(location.href);
-    let changed = false;
-    if (url.searchParams.get('adminEdit') !== '1') {
-      url.searchParams.set('adminEdit', '1');
-      changed = true;
+    const existingAdminEdit = (
+      url.searchParams.get('adminEdit') === '1' ||
+      url.searchParams.get('admin_edit') === '1' ||
+      url.searchParams.get('edit') === '1'
+    );
+    const pricingMode = url.searchParams.get('adminPricing') === '1';
+
+    if (!existingAdminEdit || pricingMode) {
+      let changed = false;
+      if (url.searchParams.get('adminEdit') !== '1') {
+        url.searchParams.set('adminEdit', '1');
+        changed = true;
+      }
+      if (url.searchParams.get('adminPricing') !== '1') {
+        url.searchParams.set('adminPricing', '1');
+        changed = true;
+      }
+      if (changed) history.replaceState(history.state, '', `${url.pathname}${url.search}${url.hash}`);
     }
-    if (url.searchParams.get('adminPricing') !== '1') {
-      url.searchParams.set('adminPricing', '1');
-      changed = true;
-    }
-    if (changed) history.replaceState(history.state, '', `${url.pathname}${url.search}${url.hash}`);
   }
 } catch (e) {}
 
