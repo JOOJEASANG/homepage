@@ -28,6 +28,13 @@ jobs:
       - name: Run book calculator regression tests
         run: npm run test:book
 
+      - name: Run chat receipt and Q&A contract tests
+        run: |
+          node --check assets/js/chat-read-receipts.js
+          node --check functions/qna-api.js
+          npm run test:page-runtime
+          npm run test:qna-security
+
       - name: Install Playwright test runner without changing lockfile
         run: npm install --no-save --package-lock=false @playwright/test@1.55.0
 
