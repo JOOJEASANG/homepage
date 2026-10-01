@@ -1,6 +1,8 @@
 // 책자 견적 공통 계산 유틸
 // 제본 방식과 무관하게 재사용되는 숫자 보정, 단가 조회, 절삭, 페이지/규격 계산을 관리합니다.
 
+export const A5_UNIFORM_PRICE_MULTIPLIER = 0.70;
+
 /** 양수 숫자로 정규화합니다. 잘못된 값은 fallback을 반환합니다. */
 export function positiveNumber(value, fallback = 1) {
   const n = Number(value);
@@ -58,12 +60,27 @@ export function getInnerSheetsPerCopy(pages, printType) {
     : safePages;
 }
 
-/** 기존 정책대로 금액을 100원 단위로 절삭합니다. */
-export function floorToHundred(value) {
-  return Math.floor(value / 100) * 100;
+/** 현재 계산 중인 책자 항목의 규격 배율입니다. A5는 모든 금액에 70%를 한 번만 적용합니다. */
+export function getActiveBookItemPriceMultiplier() {
+  try {
+    return window.__bookA5ActiveItem === true ? A5_UNIFORM_PRICE_MULTIPLIER : 1;
+  } catch (_) {
+    return 1;
+  }
 }
 
-/** A4 이상만 표지/제본에 규격 배율을 적용하고 A5/B5는 1배를 사용합니다. */
+/**
+ * 기존 정책대로 금액을 100원 단위로 절삭합니다.
+ * A5 항목이면 표지/내지/간지/제본/후가공 등 모든 계산 금액에 70%를 여기서 한 번만 적용합니다.
+ */
+export function floorToHundred(value) {
+  const amount = Number(value);
+  const safeAmount = Number.isFinite(amount) ? amount : 0;
+  const adjusted = safeAmount * getActiveBookItemPriceMultiplier();
+  return Math.floor(adjusted / 100) * 100;
+}
+
+/** A4 이상만 표지/제본에 규격 배율을 적용하고 A5/B5는 1배를 사용합니다. A5 할인은 floorToHundred에서 일괄 적용합니다. */
 export function getLargeSizeMultiplier(itemSizeMultiplier = 1) {
   const multiplier = positiveNumber(itemSizeMultiplier, 1);
   return multiplier >= 1 ? multiplier : 1;
