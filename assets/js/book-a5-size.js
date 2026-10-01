@@ -2,34 +2,24 @@
 // book-a5-size.js — 책자/제본 A5 규격 보정
 //
 // - A5는 안정적인 저장키 "a5"를 사용합니다.
-// - A5 책자 항목은 표지/내지/간지/제본/후가공/디자인 등 계산 금액 전체에
-//   A4 대비 70%를 공통 계산 단계에서 한 번만 적용합니다.
-// - 개별 계산식에서 다시 70%를 곱하지 않도록 parseFloat('a5')는 내부적으로 1을 반환합니다.
+// - A5 70%는 내지 인쇄비에만 적용합니다.
+// - 표지·간지·제본·오시·디자인비에는 A5 할인율을 적용하지 않습니다.
 // ============================================================
 
-export const A5_FIXED_MULTIPLIER = 0.70;
-const KNOWN_NON_A5_SIZE_VALUES = new Set(['0.9', '1', '1.8', '2']);
+export const A5_INNER_MULTIPLIER = 0.70;
 
 function percentText() {
-  return Math.round(A5_FIXED_MULTIPLIER * 100);
+  return Math.round(A5_INNER_MULTIPLIER * 100);
 }
 
-// quote-book.js는 paperSize 값을 parseFloat()하여 규격 배율로 사용합니다.
-// A5 여부는 전역 계산 컨텍스트로 표시하고, 실제 70% 적용은 calculator-utils.js의
-// floorToHundred()에서 모든 금액 항목에 한 번만 수행합니다.
+// quote-book.js는 paperSize 값을 parseFloat()하여 내지 규격 배율로 사용합니다.
+// A5에 대해서만 0.70을 반환하고, 표지/제본은 getLargeSizeMultiplier()에서 1배로 유지됩니다.
 try {
   if (!window.__bookA5ParseFloatPatched) {
     const nativeParseFloat = window.parseFloat.bind(window);
     window.__bookA5NativeParseFloat = nativeParseFloat;
     window.parseFloat = function(value) {
-      const key = String(value ?? '').trim().toLowerCase();
-      if (key === 'a5') {
-        window.__bookA5ActiveItem = true;
-        return 1;
-      }
-      if (KNOWN_NON_A5_SIZE_VALUES.has(key)) {
-        window.__bookA5ActiveItem = false;
-      }
+      if (String(value ?? '').trim().toLowerCase() === 'a5') return A5_INNER_MULTIPLIER;
       return nativeParseFloat(value);
     };
     window.__bookA5ParseFloatPatched = true;
@@ -55,17 +45,14 @@ function ensureA5Option(select) {
     changed = true;
   }
 
-  const expectedLabel = `A5 (148×210) · A4의 ${percentText()}%`;
+  const expectedLabel = `A5 (148×210) · 내지 A4의 ${percentText()}%`;
   if (option.textContent !== expectedLabel) {
     option.textContent = expectedLabel;
     changed = true;
   }
-  option.dataset.multiplier = String(A5_FIXED_MULTIPLIER);
+  option.dataset.multiplier = String(A5_INNER_MULTIPLIER);
 
-  if (hadUnknownSavedValue) {
-    select.value = 'a5';
-  }
-
+  if (hadUnknownSavedValue) select.value = 'a5';
   return changed;
 }
 
@@ -77,7 +64,6 @@ function recalculateSelectedA5() {
   document.querySelectorAll('select.paperSize').forEach(select => {
     if (select.value !== 'a5') return;
     try { select.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
-    try { select.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) {}
   });
 }
 
@@ -132,7 +118,7 @@ function initObserver() {
   observer.observe(root, { childList: true, subtree: true });
 }
 
-window.__bookA5FixedMultiplier = A5_FIXED_MULTIPLIER;
+window.__bookA5Multiplier = A5_INNER_MULTIPLIER;
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initObserver, { once: true });
@@ -143,7 +129,3 @@ if (document.readyState === 'loading') {
 setTimeout(() => { applyToAllSelects(); recalculateSelectedA5(); }, 150);
 setTimeout(() => { applyToAllSelects(); recalculateSelectedA5(); }, 650);
 setTimeout(() => { applyToAllSelects(); recalculateSelectedA5(); }, 1600);
-
-// A5 계산 표시와 관리자 전용 하청 보조 계산기를 같은 책자 견적 페이지에서 함께 활성화합니다.
-import('./book-a5-display-fix.js').catch(() => null);
-import('./book-admin-subcontract-calculator.js').catch(() => null);
