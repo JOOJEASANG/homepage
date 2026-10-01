@@ -134,3 +134,7 @@ if (document.readyState === 'loading') {
 setTimeout(applyToAllSelects, 150);
 setTimeout(applyToAllSelects, 650);
 setTimeout(applyToAllSelects, 1600);
+
+// A5 계산 표시와 관리자 전용 하청 보조 계산기를 같은 책자 견적 페이지에서 함께 활성화합니다.
+import('./book-a5-display-fix.js').catch(() => null);
+import('./book-admin-subcontract-calculator.js').catch(() => null);
