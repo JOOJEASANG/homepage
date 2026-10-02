@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-ui-refresh="1" data-page="login">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -113,8 +113,10 @@
     wcs_add["wa"] = "93643ac58d5";
     if(window.wcs) { wcs_do(); }
     </script>
+    <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261002">
+    <script src="assets/js/responsive-ui.js?v=20261002" defer></script>
 </head>
-<body>
+<body data-page="login">
     <div class="login-grid"></div>
 
     <!-- Glow orbs -->

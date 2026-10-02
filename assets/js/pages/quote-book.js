@@ -1059,6 +1059,7 @@ function applyImagePreviewsToUI(root=document) {
         const grandTotalPriceCut = cut10(grandTotalPrice);
         const grandTotalSupplyPrice = cut10(grandTotalPriceCut / 1.1);
         const grandTotalVat = grandTotalPriceCut - grandTotalSupplyPrice;
+        DOMElements.priceBreakdownEl.dataset.quoteTotal = String(grandTotalPriceCut);
 
         if (finalBreakdownHtml) {
             finalBreakdownHtml += `

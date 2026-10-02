@@ -11,9 +11,9 @@ export function renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPri
                 <button type="button" class="remove-quote-item-btn text-red-400 hover:text-red-600 transition-colors p-2 ${quoteItemCounter === 1 ? 'hidden' : ''}" title="삭제"><i class="fas fa-trash-alt"></i></button>
             </div>
 
-            <div class="mb-8">
+            <div class="order-stage" data-order-stage="basics">
                 <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
-                    <i class="fas fa-pen-nib"></i> 기본 정보
+                    <i class="fas fa-pen-nib"></i> <span class="step-number">01</span> 기본 정보
                 </h2>
                 <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
                     <label class="block text-xs font-bold text-slate-500 mb-1">제작물 제목 (품명)</label>
@@ -21,9 +21,9 @@ export function renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPri
                 </div>
             </div>
 
-            <div class="mb-8">
+            <div class="order-stage" data-order-stage="cover">
                 <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
-                    <i class="fas fa-book-open"></i> 표지 설정
+                    <i class="fas fa-book-open"></i> <span class="step-number">02</span> 표지 선택
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
                     <div>
@@ -51,9 +51,9 @@ export function renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPri
                 </div>
             </div>
 
-            <div class="mb-8">
+            <div class="order-stage" data-order-stage="inner">
                 <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
-                    <i class="fas fa-file-alt"></i> 내지 설정
+                    <i class="fas fa-file-alt"></i> <span class="step-number">03</span> 규격·내지 인쇄
                 </h2>
                 <div class="space-y-3 inner-sections-container"></div>
                 <div class="mt-3 grid grid-cols-2 gap-3">
@@ -91,9 +91,9 @@ export function renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPri
                 </div>
             </div>
 
-            <div class="mb-8">
+            <div class="order-stage" data-order-stage="binding">
                 <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
-                    <i class="fas fa-cogs"></i> 제본 및 수량
+                    <i class="fas fa-cogs"></i> <span class="step-number">04</span> 제본·수량
                 </h2>
                 <div class="space-y-4">
                      <div>
@@ -175,9 +175,9 @@ export function renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPri
                 </div>
             </div>
             
-             <div>
+             <div class="order-stage" data-order-stage="remarks">
                 <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
-                    <i class="fas fa-comment-dots"></i> 비고 (요청사항)
+                    <i class="fas fa-comment-dots"></i> <span class="step-number">05</span> 요청사항
                 </h2>
                 <textarea name="remarks" rows="2" class="form-textarea w-full remarks resize-none" placeholder="특별히 요청하실 내용이 있다면 적어주세요."></textarea>
             </div>`;
