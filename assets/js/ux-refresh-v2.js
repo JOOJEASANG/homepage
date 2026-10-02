@@ -1,5 +1,5 @@
 // GreenOffice 2026 UX/UI runtime — visual and accessibility only.
-const VERSION = '20260718b';
+const VERSION = '20261002';
 
 function pageKey() {
   try {
@@ -88,32 +88,6 @@ function enhanceAccessibility(root = document) {
   });
 }
 
-function revealMainPage() {
-  if (pageKey() !== 'index') return;
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-  const items = Array.from(document.querySelectorAll('main section, .hero-section, .service-card, .panel-card, .portfolio-item'))
-    .filter(item => !item.closest('[id$="-modal"], [id$="Modal"], [id$="-overlay"]'))
-    .slice(0, 60);
-
-  items.forEach(item => item.classList.add('ux-reveal'));
-  document.querySelector('.hero-section')?.classList.add('ux-visible');
-
-  if (!('IntersectionObserver' in window)) {
-    items.forEach(item => item.classList.add('ux-visible'));
-    return;
-  }
-
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      entry.target.classList.add('ux-visible');
-      observer.unobserve(entry.target);
-    });
-  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
-
-  items.forEach(item => observer.observe(item));
-}
 
 function init() {
   markPage();
@@ -121,7 +95,7 @@ function init() {
   enhanceHeader();
   enhanceAccessibility();
   addScrollTop();
-  revealMainPage();
+  // Static content stays visible even if optional modules or animations fail.
   setTimeout(() => {
     enhanceHeader();
     enhanceAccessibility();

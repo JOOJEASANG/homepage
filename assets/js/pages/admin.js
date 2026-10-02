@@ -1078,7 +1078,7 @@ async function listenToQuotes() {
                         ` : isCancelRejected ? `
                             <span class="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-slate-200 text-slate-600">취소거절</span>
                         ` : `
-                            <select class="status-select text-xs font-bold px-2 py-1 rounded border bg-white border-slate-200 cursor-pointer outline-none focus:border-brand-500" data-id="${q.id}">
+                            <select aria-label="주문 상태 변경" class="status-select text-xs font-bold px-2 py-1 rounded border bg-white border-slate-200 cursor-pointer outline-none focus:border-brand-500" data-id="${q.id}">
                                 <option value="접수완료" ${q.status==='접수완료'?'selected':''}>접수완료</option>
                                 <option value="작업중" ${q.status==='작업중'?'selected':''}>작업중</option>
                                 <option value="작업완료" ${q.status==='작업완료'?'selected':''}>작업완료</option>

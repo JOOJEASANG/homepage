@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-ui-refresh="1" data-page="qna">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -37,8 +37,10 @@
         .animate-spin { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
+    <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261002">
+    <script src="assets/js/responsive-ui.js?v=20261002" defer></script>
 </head>
-<body class="antialiased">
+<body data-page="qna" class="antialiased">
     <div id="toast-container" class="fixed top-20 right-5 z-[9999] flex flex-col gap-2.5"></div>
     <div id="site-header"></div>
 
