@@ -723,6 +723,9 @@ loadEditPayloadIfAny();
       html += `<div class="flex justify-between"><span class="text-slate-500">공급가액</span><span class="font-extrabold">${supply.toLocaleString()}원</span></div>`;
       html += `<div class="flex justify-between"><span class="text-slate-500">부가세 (10%)</span><span class="font-bold">${vat.toLocaleString()}원</span></div>`;
       html += `</div>`;
+      const pricePerSheet = (totalRounded / qty).toLocaleString('ko-KR', { maximumFractionDigits: 2 });
+      html += `<div class="flex justify-between"><span class="text-slate-500">장당 평균 단가</span><span class="font-extrabold text-brand-700">${pricePerSheet}원/장</span></div>`;
+      html += `<div class="text-[11px] text-slate-400">부가세·후가공 포함 · 최종결제금액 ÷ ${qty.toLocaleString()}장</div>`;
       html += `<div class="bg-slate-800 rounded-lg p-3 mt-2 flex justify-between items-center"><span class="font-bold text-white text-sm">최종결제금액</span><span class="text-lg font-extrabold text-brand-300">${totalRounded.toLocaleString()}원</span></div>`;
       el.breakdown.innerHTML = html;
 
