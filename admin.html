@@ -441,7 +441,7 @@
     </script>
     <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261002">
     <script src="assets/js/responsive-ui.js?v=20261002" defer></script>
-    <link rel="stylesheet" href="assets/css/admin-price-workspace.css?v=20261006">
+    <link rel="stylesheet" href="assets/css/admin-price-workspace.css?v=20261006-settings">
 </head>
 <body data-page="admin" class="antialiased selection:bg-brand-100 selection:text-brand-900">
     <!-- ── 알림음 토글 (화면 우측 하단 고정) ─────────────────────────
@@ -519,27 +519,28 @@
                     <i class="fas fa-chevron-down ml-1 text-[9px] opacity-40"></i>
                 </button>
                 <div class="nav-dropdown-menu">
-                    <button onclick="window.openWorkGuideModal()" class="dropdown-item">
+                    <button id="work-guide-management-btn" type="button" class="dropdown-item nav-item" data-tab="work-guide-management">
                         <i class="fas fa-book-open text-slate-400"></i> 작업 가이드
                     </button>
                     <div class="h-px bg-slate-100 my-1"></div>
-                    <button id="company-info-btn" class="dropdown-item">
-                        <i class="fas fa-building text-slate-400"></i> 공급자 정보
-                    </button>
-                    <button id="image-management-btn" class="dropdown-item">
+
+                    <button id="image-management-btn" type="button" class="dropdown-item nav-item" data-tab="image-management">
                         <i class="fas fa-images text-slate-400"></i> 미리보기 이미지
                     </button>
-                    <button id="homepage-management-btn" class="dropdown-item">
+                    <button id="homepage-management-btn" type="button" class="dropdown-item nav-item" data-tab="homepage-management">
                         <i class="fas fa-desktop text-slate-400"></i> 홈페이지 콘텐츠
                     </button>
                     <div class="h-px bg-slate-100 my-1"></div>
-                    <button id="maintenance-mode-btn" class="dropdown-item">
+                    <button id="maintenance-mode-btn" type="button" class="dropdown-item nav-item" data-tab="maintenance-mode">
                         <i class="fas fa-tools text-slate-400"></i> 공사중 모드
                         <span id="maintenance-status-pill" class="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">OFF</span>
                     </button>
                 </div>
             </div>
 
+            <button id="company-info-btn" type="button" class="nav-btn dropdown-item admin-supplier-menu">
+                        <i class="fas fa-building text-slate-400"></i> 공급자 정보
+                    </button>
         </nav>
 
         <div class="flex items-center gap-2 min-w-max">
@@ -622,12 +623,10 @@
 
     <div class="mobile-menu-section">
       <div class="mobile-menu-title"><i class="fas fa-sliders-h mr-2 text-slate-400"></i>운영 설정</div>
-      <button class="mobile-menu-item" data-call="openWorkGuideModal">
+      <button class="mobile-menu-item" data-click="#work-guide-management-btn">
         <i class="fas fa-book-open text-slate-400"></i> 작업 가이드
       </button>
-      <button class="mobile-menu-item" data-click="#company-info-btn">
-        <i class="fas fa-building text-slate-400"></i> 공급자 정보
-      </button>
+
       <button class="mobile-menu-item" data-click="#image-management-btn">
         <i class="fas fa-images text-slate-400"></i> 미리보기 이미지
       </button>
@@ -648,6 +647,10 @@
       </button>
     </div>
 
+    <div class="mobile-menu-divider"></div>
+    <div class="mobile-menu-section admin-supplier-menu"><button class="mobile-menu-item" data-click="#company-info-btn">
+        <i class="fas fa-building text-slate-400"></i> 공급자 정보
+      </button></div>
     <div class="h-6"></div>
   </div>
 </div>
@@ -839,147 +842,8 @@
             <section id="print-price-management-content" class="main-tab-content admin-price-panel" aria-label="디지털출력 단가 관리">
                 <iframe id="print-price-frame" class="admin-price-frame" title="디지털출력 단가 관리" data-price-src="quote-print-price.html?adminEdit=1&amp;embed=admin"></iframe>
             </section>
-        </main>
-    </div>
-    
-    <div id="detailsModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col rounded-2xl overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                <h2 id="modal-title" class="text-lg font-bold text-slate-800">상세 정보</h2>
-                <button id="openSheetBtn" class="md:hidden px-3 h-9 rounded-lg bg-emerald-600 text-white text-sm font-bold flex items-center gap-2"><i class="fas fa-comments"></i><span>상담</span></button>
-<button id="closeModalBtn" class="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <div class="flex-grow flex flex-col md:flex-row overflow-hidden">
-                <div id="modalContent" class="w-full md:w-7/12 p-6 overflow-y-auto border-b md:border-b-0 md:border-r border-slate-200 bg-white"></div>
-                
-                <div id="modalSide" class="w-full md:w-5/12 flex flex-col bg-slate-50">
-                    <div id="sheetHandle" class="sheet-handle-area md:hidden"><div class="sheet-handle"></div><button id="closeSheetBtn" class="sheet-close-btn" aria-label="상담 닫기"><i class="fas fa-times"></i></button></div>
-                    <div class="border-b border-slate-200 bg-white flex-shrink-0 px-4 py-2.5 flex items-center justify-between">
-                        <span class="text-sm font-bold text-slate-700 flex items-center gap-2"><i class="fas fa-comments text-brand-500"></i>상담</span>
-                        <button id="toggle-files-panel-btn" type="button" class="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-brand-600 px-2 py-1 rounded-lg hover:bg-slate-100 transition" title="파일 목록">
-                            <i class="fas fa-paperclip text-[11px]"></i><span id="files-count-badge">파일</span>
-                        </button>
-                    </div>
-
-                    <!-- 파일 패널 (슬라이드 토글) -->
-                    <div id="files-panel" class="hidden border-b border-slate-200 bg-white px-4 py-3 max-h-40 overflow-y-auto">
-                        <div id="file-list" class="space-y-1.5"></div>
-                        <div id="file-list-empty" class="text-xs text-slate-400 text-center py-2">첨부 파일 없음</div>
-                    </div>
-                    
-                    <div id="chat-tab" class="tab-content active flex-grow flex flex-col overflow-hidden relative">
-                        <div id="chat-messages" class="flex-grow p-4 overflow-y-auto flex flex-col gap-3"></div>
-                        
-                        <div id="upload-progress-container" class="hidden px-4 pb-2 bg-white border-t border-slate-100">
-                            <div class="flex items-center justify-between text-xs py-2">
-                                <span id="upload-file-name" class="text-slate-600 truncate pr-2 font-medium"></span>
-                                <label class="flex items-center cursor-pointer flex-shrink-0 hover:text-brand-600">
-                                    <input type="checkbox" id="is-proof-checkbox" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
-                                    <span class="ml-1.5 font-bold">시안(Proof) 전송</span>
-                                </label>
-                            </div>
-                            <div class="w-full bg-slate-100 rounded-full h-1.5">
-                                <div id="upload-progress-bar" class="bg-brand-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
-                            </div>
-                        </div>
-
-                        <div id="chatInputBar" class="p-3 bg-white border-t border-slate-200 relative">
-                             <div id="canned-response-popover" class="absolute bottom-[100%] left-2 right-2 bg-white border border-slate-200 rounded-lg shadow-xl hidden z-10 overflow-hidden mb-2">
-                                <div class="p-2 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                                    <h4 class="text-xs font-bold text-slate-600">빠른 답변 선택</h4>
-                                    <button id="manage-canned-responses-btn" class="text-slate-400 hover:text-brand-600"><i class="fas fa-cog"></i></button>
-                                </div>
-                                <ul id="canned-response-list" class="max-h-48 overflow-y-auto text-sm divide-y divide-slate-100"></ul>
-                            </div>
-
-                            <form id="chat-form" class="flex gap-2 items-end">
-                                <button type="button" id="canned-response-btn" class="p-2 text-slate-400 hover:text-brand-600 transition-colors" title="빠른 답변"><i class="fas fa-bolt"></i></button>
-                                <button type="button" id="attach-file-btn" class="p-2 text-slate-400 hover:text-brand-600 transition-colors" title="파일 첨부"><i class="fas fa-paperclip"></i></button>
-                                <div class="flex-grow relative">
-                                    <input type="text" id="chat-input" class="w-full bg-slate-100 border-0 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all" placeholder="메시지 입력..." autocomplete="off">
-                                    <input type="file" id="file-input" class="hidden">
-                                </div>
-                                <button type="submit" class="p-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors shadow-sm"><i class="fas fa-paper-plane"></i></button>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- 메모 패널: 하단 고정 접이식 -->
-                    <div id="memo-panel" class="border-t border-slate-200 bg-white flex-shrink-0">
-                        <button id="toggle-memo-btn" type="button" class="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition">
-                            <span class="flex items-center gap-1.5"><i class="fas fa-sticky-note text-yellow-400"></i>관리자 메모</span>
-                            <i id="memo-chevron" class="fas fa-chevron-up text-[10px]"></i>
-                        </button>
-                        <div id="memo-body" class="hidden px-4 pb-3 bg-yellow-50/40">
-                            <div id="memo-list" class="space-y-2 mb-2 max-h-32 overflow-y-auto"></div>
-                            <form id="memo-form" class="flex gap-2">
-                                <input id="memo-input" type="text" class="form-input flex-grow text-xs py-1.5" placeholder="메모 입력 후 저장">
-                                <button type="submit" class="btn btn-sm bg-yellow-400 hover:bg-yellow-500 text-yellow-900 border-0 font-bold whitespace-nowrap">저장</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="companyInfoModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-[60]">
-        <div class="bg-white shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col rounded-2xl">
-            <div class="p-5 border-b border-slate-200 flex justify-between items-center">
-                <h2 class="text-lg font-bold text-slate-800">공급자 정보 관리</h2>
-                <button id="closeCompanyInfoModalBtn" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="flex-grow p-6 overflow-y-auto">
-                <form id="company-info-form" class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label class="block text-xs font-bold text-slate-500 mb-1">사업자등록번호</label><input type="text" id="bizNum" class="form-input w-full"></div>
-                        <div><label class="block text-xs font-bold text-slate-500 mb-1">상호</label><input type="text" id="companyName" class="form-input w-full"></div>
-                        <div><label class="block text-xs font-bold text-slate-500 mb-1">대표자</label><input type="text" id="ceoName" class="form-input w-full"></div>
-                        <div><label class="block text-xs font-bold text-slate-500 mb-1">주소</label><input type="text" id="address" class="form-input w-full"></div>
-                        <div><label class="block text-xs font-bold text-slate-500 mb-1">업태</label><input type="text" id="bizCategory" class="form-input w-full"></div>
-                        <div><label class="block text-xs font-bold text-slate-500 mb-1">종목</label><input type="text" id="bizType" class="form-input w-full"></div>
-                        <div><label class="block text-xs font-bold text-slate-500 mb-1">계좌번호</label><input type="text" id="accountNum" class="form-input w-full"></div>
-                        <div><label class="block text-xs font-bold text-slate-500 mb-1">예금주</label><input type="text" id="accountHolder" class="form-input w-full"></div>
-                        <div><label class="block text-xs font-bold text-slate-500 mb-1">전화번호</label><input type="text" id="tel" class="form-input w-full"></div>
-                        <div><label class="block text-xs font-bold text-slate-500 mb-1">팩스</label><input type="text" id="fax" class="form-input w-full"></div>
-                    </div>
-                    <div class="pt-4 border-t border-slate-100">
-                        <label class="block text-xs font-bold text-slate-500 mb-2">직인 이미지</label>
-                        <div class="flex items-center gap-4">
-                            <img id="companySealPreview" src="" class="h-20 w-20 object-contain border border-slate-200 rounded p-1 bg-slate-50">
-                            <input type="file" id="companySealFile" class="form-input flex-grow text-sm" accept="image/png, image/jpeg">
-                        </div>
-                    </div>
-                    <div class="text-right pt-4">
-                        <button type="button" id="saveCompanyInfoBtn" class="btn btn-primary px-6">저장하기</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <div id="cannedResponseManagementModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-[70]">
-        <div class="bg-white shadow-2xl w-full max-w-2xl h-[80vh] flex flex-col rounded-2xl">
-            <div class="p-4 border-b border-slate-200 flex justify-between items-center">
-                <h2 class="text-lg font-bold text-slate-800">빠른 답변 관리</h2>
-                <button id="closeCannedResponseModalBtn" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
-            </div>
-            <div id="response-list-container" class="flex-grow p-4 overflow-y-auto space-y-2 bg-slate-50"></div>
-            <div class="p-4 bg-white border-t border-slate-200">
-                <form id="add-response-form" class="space-y-3">
-                    <input type="text" id="new-response-title" class="form-input w-full" placeholder="제목 (예: 입금 확인 요청)" required>
-                    <textarea id="new-response-text" class="form-textarea w-full" rows="2" placeholder="내용" required></textarea>
-                    <button type="submit" class="btn btn-primary w-full">추가</button>
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <div id="imageManagementModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-[65]">
-        <div class="bg-white shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col rounded-2xl overflow-hidden ring-1 ring-slate-900/5">
+<section id="imageManagementModal" class="main-tab-content admin-settings-panel" data-workspace-tab="image-management" aria-label="미리보기 이미지">
+        <div class="admin-settings-card">
             <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white z-10">
                 <div>
                     <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -987,9 +851,7 @@
                     </h2>
                     <p class="text-xs text-slate-400 mt-1">견적서 미리보기에 사용될 이미지를 등록하고 관리합니다.</p>
                 </div>
-                <button id="closeImageManagementModalBtn" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors flex items-center justify-center">
-                    <i class="fas fa-times text-lg"></i>
-                </button>
+
             </div>
 
             <div class="px-6 bg-white border-b border-slate-100">
@@ -1033,10 +895,9 @@
                 <span>Auto Saved</span>
             </div>
         </div>
-    </div>
-
-    <div id="homepageManagementModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-[60]">
-        <div class="bg-white shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col rounded-2xl overflow-hidden ring-1 ring-slate-900/5">
+    </section>
+<section id="homepageManagementModal" class="main-tab-content admin-settings-panel" data-workspace-tab="homepage-management" aria-label="홈페이지 콘텐츠">
+        <div class="admin-settings-card">
             <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white z-10">
                 <div>
                     <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -1044,9 +905,7 @@
                     </h2>
                     <p class="text-xs text-slate-400 mt-1">메인 홈페이지에 노출되는 공지사항과 포트폴리오를 관리합니다.</p>
                 </div>
-                <button id="closeHomepageManagementModalBtn" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors flex items-center justify-center">
-                    <i class="fas fa-times text-lg"></i>
-                </button>
+
             </div>
 
             <div class="px-6 bg-white border-b border-slate-100">
@@ -1187,7 +1046,188 @@
                 </div>
             </div>
         </div>
+    </section>
+<section id="maintenanceModal" class="main-tab-content admin-settings-panel" data-workspace-tab="maintenance-mode" aria-label="공사중 모드">
+    <div class="admin-settings-card admin-maintenance-card">
+
+        <div class="flex items-center gap-3 mb-5">
+            <div class="w-11 h-11 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center">
+                <i class="fas fa-tools text-amber-500"></i>
+            </div>
+            <div>
+                <div class="text-lg font-bold text-slate-900">공사중 모드</div>
+                <div class="text-xs text-slate-500">활성화 시 일반 방문자는 점검 안내 페이지로 자동 이동됩니다.</div>
+            </div>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center justify-between mb-5">
+            <div>
+                <div class="text-sm font-bold text-slate-800">홈페이지 점검 모드</div>
+                <div class="text-xs text-slate-500 mt-0.5">관리자 본인은 영향을 받지 않습니다.</div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="maintenanceToggle" class="sr-only peer">
+                <div class="w-12 h-7 bg-slate-200 peer-checked:bg-emerald-500 rounded-full transition relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition peer-checked:after:translate-x-5"></div>
+            </label>
+        </div>
+
+        <div class="mb-2">
+            <label for="maintenanceMessageInput" class="block text-xs font-bold text-slate-500 mb-1">방문자에게 보여줄 안내문 (선택)</label>
+            <textarea id="maintenanceMessageInput" rows="3" maxlength="300" placeholder="비워두면 기본 안내문이 표시됩니다." class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none resize-none"></textarea>
+            <div class="text-[10px] text-slate-400 text-right mt-1">최대 300자</div>
+        </div>
+
+        <div class="flex items-center gap-2 mt-4">
+            <button id="cancelMaintenanceBtn" type="button" class="flex-1 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold">취소</button>
+            <button id="saveMaintenanceBtn" type="button" class="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold">저장</button>
+        </div>
     </div>
+</section>
+<section id="work-guide-management-content" class="main-tab-content admin-price-panel" aria-label="작업 가이드">
+                <iframe id="work-guide-frame" class="admin-price-frame" title="작업 가이드" data-price-src="work-guide.html?embed=admin"></iframe>
+            </section>
+        </main>
+    </div>
+
+    <div id="detailsModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col rounded-2xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h2 id="modal-title" class="text-lg font-bold text-slate-800">상세 정보</h2>
+                <button id="openSheetBtn" class="md:hidden px-3 h-9 rounded-lg bg-emerald-600 text-white text-sm font-bold flex items-center gap-2"><i class="fas fa-comments"></i><span>상담</span></button>
+<button id="closeModalBtn" class="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="flex-grow flex flex-col md:flex-row overflow-hidden">
+                <div id="modalContent" class="w-full md:w-7/12 p-6 overflow-y-auto border-b md:border-b-0 md:border-r border-slate-200 bg-white"></div>
+
+                <div id="modalSide" class="w-full md:w-5/12 flex flex-col bg-slate-50">
+                    <div id="sheetHandle" class="sheet-handle-area md:hidden"><div class="sheet-handle"></div><button id="closeSheetBtn" class="sheet-close-btn" aria-label="상담 닫기"><i class="fas fa-times"></i></button></div>
+                    <div class="border-b border-slate-200 bg-white flex-shrink-0 px-4 py-2.5 flex items-center justify-between">
+                        <span class="text-sm font-bold text-slate-700 flex items-center gap-2"><i class="fas fa-comments text-brand-500"></i>상담</span>
+                        <button id="toggle-files-panel-btn" type="button" class="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-brand-600 px-2 py-1 rounded-lg hover:bg-slate-100 transition" title="파일 목록">
+                            <i class="fas fa-paperclip text-[11px]"></i><span id="files-count-badge">파일</span>
+                        </button>
+                    </div>
+
+                    <!-- 파일 패널 (슬라이드 토글) -->
+                    <div id="files-panel" class="hidden border-b border-slate-200 bg-white px-4 py-3 max-h-40 overflow-y-auto">
+                        <div id="file-list" class="space-y-1.5"></div>
+                        <div id="file-list-empty" class="text-xs text-slate-400 text-center py-2">첨부 파일 없음</div>
+                    </div>
+
+                    <div id="chat-tab" class="tab-content active flex-grow flex flex-col overflow-hidden relative">
+                        <div id="chat-messages" class="flex-grow p-4 overflow-y-auto flex flex-col gap-3"></div>
+
+                        <div id="upload-progress-container" class="hidden px-4 pb-2 bg-white border-t border-slate-100">
+                            <div class="flex items-center justify-between text-xs py-2">
+                                <span id="upload-file-name" class="text-slate-600 truncate pr-2 font-medium"></span>
+                                <label class="flex items-center cursor-pointer flex-shrink-0 hover:text-brand-600">
+                                    <input type="checkbox" id="is-proof-checkbox" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                    <span class="ml-1.5 font-bold">시안(Proof) 전송</span>
+                                </label>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-1.5">
+                                <div id="upload-progress-bar" class="bg-brand-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <div id="chatInputBar" class="p-3 bg-white border-t border-slate-200 relative">
+                             <div id="canned-response-popover" class="absolute bottom-[100%] left-2 right-2 bg-white border border-slate-200 rounded-lg shadow-xl hidden z-10 overflow-hidden mb-2">
+                                <div class="p-2 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                                    <h4 class="text-xs font-bold text-slate-600">빠른 답변 선택</h4>
+                                    <button id="manage-canned-responses-btn" class="text-slate-400 hover:text-brand-600"><i class="fas fa-cog"></i></button>
+                                </div>
+                                <ul id="canned-response-list" class="max-h-48 overflow-y-auto text-sm divide-y divide-slate-100"></ul>
+                            </div>
+
+                            <form id="chat-form" class="flex gap-2 items-end">
+                                <button type="button" id="canned-response-btn" class="p-2 text-slate-400 hover:text-brand-600 transition-colors" title="빠른 답변"><i class="fas fa-bolt"></i></button>
+                                <button type="button" id="attach-file-btn" class="p-2 text-slate-400 hover:text-brand-600 transition-colors" title="파일 첨부"><i class="fas fa-paperclip"></i></button>
+                                <div class="flex-grow relative">
+                                    <input type="text" id="chat-input" class="w-full bg-slate-100 border-0 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all" placeholder="메시지 입력..." autocomplete="off">
+                                    <input type="file" id="file-input" class="hidden">
+                                </div>
+                                <button type="submit" class="p-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors shadow-sm"><i class="fas fa-paper-plane"></i></button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- 메모 패널: 하단 고정 접이식 -->
+                    <div id="memo-panel" class="border-t border-slate-200 bg-white flex-shrink-0">
+                        <button id="toggle-memo-btn" type="button" class="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition">
+                            <span class="flex items-center gap-1.5"><i class="fas fa-sticky-note text-yellow-400"></i>관리자 메모</span>
+                            <i id="memo-chevron" class="fas fa-chevron-up text-[10px]"></i>
+                        </button>
+                        <div id="memo-body" class="hidden px-4 pb-3 bg-yellow-50/40">
+                            <div id="memo-list" class="space-y-2 mb-2 max-h-32 overflow-y-auto"></div>
+                            <form id="memo-form" class="flex gap-2">
+                                <input id="memo-input" type="text" class="form-input flex-grow text-xs py-1.5" placeholder="메모 입력 후 저장">
+                                <button type="submit" class="btn btn-sm bg-yellow-400 hover:bg-yellow-500 text-yellow-900 border-0 font-bold whitespace-nowrap">저장</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="companyInfoModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-[60]">
+        <div class="bg-white shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col rounded-2xl">
+            <div class="p-5 border-b border-slate-200 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-slate-800">공급자 정보 관리</h2>
+                <button id="closeCompanyInfoModalBtn" type="button" aria-label="공급자 정보 닫기" class="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="flex-grow p-6 overflow-y-auto">
+                <form id="company-info-form" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">사업자등록번호</label><input type="text" id="bizNum" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">상호</label><input type="text" id="companyName" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">대표자</label><input type="text" id="ceoName" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">주소</label><input type="text" id="address" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">업태</label><input type="text" id="bizCategory" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">종목</label><input type="text" id="bizType" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">계좌번호</label><input type="text" id="accountNum" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">예금주</label><input type="text" id="accountHolder" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">전화번호</label><input type="text" id="tel" class="form-input w-full"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">팩스</label><input type="text" id="fax" class="form-input w-full"></div>
+                    </div>
+                    <div class="pt-4 border-t border-slate-100">
+                        <label class="block text-xs font-bold text-slate-500 mb-2">직인 이미지</label>
+                        <div class="flex items-center gap-4">
+                            <img id="companySealPreview" src="" class="h-20 w-20 object-contain border border-slate-200 rounded p-1 bg-slate-50">
+                            <input type="file" id="companySealFile" class="form-input flex-grow text-sm" accept="image/png, image/jpeg">
+                        </div>
+                    </div>
+                    <div class="text-right pt-4">
+                        <button type="button" id="saveCompanyInfoBtn" class="btn btn-primary px-6">저장하기</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="cannedResponseManagementModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-[70]">
+        <div class="bg-white shadow-2xl w-full max-w-2xl h-[80vh] flex flex-col rounded-2xl">
+            <div class="p-4 border-b border-slate-200 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-slate-800">빠른 답변 관리</h2>
+                <button id="closeCannedResponseModalBtn" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="response-list-container" class="flex-grow p-4 overflow-y-auto space-y-2 bg-slate-50"></div>
+            <div class="p-4 bg-white border-t border-slate-200">
+                <form id="add-response-form" class="space-y-3">
+                    <input type="text" id="new-response-title" class="form-input w-full" placeholder="제목 (예: 입금 확인 요청)" required>
+                    <textarea id="new-response-text" class="form-textarea w-full" rows="2" placeholder="내용" required></textarea>
+                    <button type="submit" class="btn btn-primary w-full">추가</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+
+
 
     <div id="inquiry-details-modal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-[60]">
         <div class="bg-white shadow-2xl w-full max-w-2xl flex flex-col rounded-2xl">
@@ -1238,44 +1278,7 @@
 
     
 <!-- 공사중 모드 모달 -->
-<div id="maintenanceModal" class="fixed inset-0 modal-bg items-center justify-center p-4 hidden z-[95]" style="display:none;">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
-        <button id="closeMaintenanceModalBtn" type="button" class="absolute top-3 right-3 w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400">
-            <i class="fas fa-times"></i>
-        </button>
-        <div class="flex items-center gap-3 mb-5">
-            <div class="w-11 h-11 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center">
-                <i class="fas fa-tools text-amber-500"></i>
-            </div>
-            <div>
-                <div class="text-lg font-bold text-slate-900">공사중 모드</div>
-                <div class="text-xs text-slate-500">활성화 시 일반 방문자는 점검 안내 페이지로 자동 이동됩니다.</div>
-            </div>
-        </div>
 
-        <div class="bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center justify-between mb-5">
-            <div>
-                <div class="text-sm font-bold text-slate-800">홈페이지 점검 모드</div>
-                <div class="text-xs text-slate-500 mt-0.5">관리자 본인은 영향을 받지 않습니다.</div>
-            </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" id="maintenanceToggle" class="sr-only peer">
-                <div class="w-12 h-7 bg-slate-200 peer-checked:bg-emerald-500 rounded-full transition relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition peer-checked:after:translate-x-5"></div>
-            </label>
-        </div>
-
-        <div class="mb-2">
-            <label for="maintenanceMessageInput" class="block text-xs font-bold text-slate-500 mb-1">방문자에게 보여줄 안내문 (선택)</label>
-            <textarea id="maintenanceMessageInput" rows="3" maxlength="300" placeholder="비워두면 기본 안내문이 표시됩니다." class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none resize-none"></textarea>
-            <div class="text-[10px] text-slate-400 text-right mt-1">최대 300자</div>
-        </div>
-
-        <div class="flex items-center gap-2 mt-4">
-            <button id="cancelMaintenanceBtn" type="button" class="flex-1 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold">취소</button>
-            <button id="saveMaintenanceBtn" type="button" class="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold">저장</button>
-        </div>
-    </div>
-</div>
 
 <div id="sheetOverlay" class="sheet-overlay hidden"></div>
   <!-- ── 관리자 전용 로그아웃 함수 ─────────────────────────────────────────
@@ -1352,57 +1355,6 @@ async function hardLogout(redirectUrl = 'index.html') {
 <!-- 관리자 페이지는 Firebase 이메일 로그인 전용 → 비회원 세션 처리 불필요 -->
 
 <script>
-  // work-guide 모달이 아직 로드되지 않았을 때를 대비한 안전장치
-  window.openWorkGuideModal = window.openWorkGuideModal || function () {
-    alert('가이드안내를 불러오는 중입니다. 잠시 후 다시 눌러주세요.');
-  };
-</script>
-<div id="workGuideContainer"></div>
-<script>
-    // work-guide.html 로드 및 안전한 스크립트 주입
-    fetch('work-guide.html')
-        .then(response => response.text())
-        .then(html => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            
-            // 1. 모달 HTML 가져오기 (ID 충돌 방지 확인)
-            const newModal = doc.getElementById('workGuideModal');
-            if (newModal && !document.getElementById('workGuideModal')) {
-                document.body.appendChild(newModal);
-            }
-
-            // 2. 모듈 스크립트 실행
-            // work-guide.html 은 외부 모듈 스크립트(src)를 사용하므로, src도 함께 복사해야 함.
-            const moduleScripts = doc.querySelectorAll('script[type="module"]');
-            moduleScripts.forEach(ms => {
-                const newScript = document.createElement('script');
-                newScript.type = "module";
-                if (ms.src) {
-                    // 상대경로 유지 (admin.html과 동일 폴더 기준)
-                    const url = new URL(ms.getAttribute('src'), location.href);
-                    newScript.src = url.pathname + url.search + url.hash;
-                } else {
-                    newScript.textContent = ms.textContent || "";
-                }
-                document.body.appendChild(newScript);
-            });
-
-            // 3. (필요시) 스타일 복사 (Tailwind가 있어서 대부분 괜찮지만 커스텀 스타일 위해)
-            const styles = doc.querySelectorAll('style');
-            styles.forEach(s => document.head.appendChild(s.cloneNode(true)));
-
-        })
-        .catch(err => logger.error('작업 가이드 로드 실패:', err));
-
-    // 혹시라도 로딩 전에 버튼이 눌릴 경우를 대비한 플레이스홀더 함수
-    if (!window.openWorkGuideModal) {
-        window.openWorkGuideModal = function() {
-            logger.warn('가이드안내 모듈이 아직 로딩 중입니다.');
-        };
-    }
-
-        
         // ── 알림 토글 초기화 ────────────────────────────────────
         // admin.js 모듈이 로드된 뒤 window.__toggleAdminNotifs 가 등록됩니다.
         // 버튼의 onclick="window.__toggleAdminNotifs()" 가 직접 호출하므로

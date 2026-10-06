@@ -1,8 +1,10 @@
-// Present existing price editors inside the authenticated admin workspace.
+// Present management pages inside the authenticated admin workspace.
 // Keep frames mounted so switching menus preserves unsaved edits.
 export function activateAdminWorkspace(tabId) {
   if (!tabId) return;
-  const panel = document.getElementById(`${tabId}-content`);
+  const panel = document.getElementById(`${tabId}-content`)
+    || [...document.querySelectorAll('.main-tab-content[data-workspace-tab]')]
+      .find(content => content.dataset.workspaceTab === tabId);
   if (!panel?.classList.contains('main-tab-content')) return;
 
   document.querySelectorAll('.nav-item[data-tab]').forEach(button => {

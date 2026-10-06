@@ -4,17 +4,20 @@ import "../session.js";
 
 // If opened inside a header layer (iframe), don't render the fixed header.
 const __WG_EMBED__ = (()=>{
-  try { return new URLSearchParams(location.search).get('embed') === '1'; } catch(e) { return false; }
+  try { return ['1', 'admin'].includes(new URLSearchParams(location.search).get('embed')); } catch(e) { return false; }
 })();
 
-document.addEventListener("DOMContentLoaded", ()=>{
+function initializeWorkGuidePage() {
   if (!__WG_EMBED__) initHeader("guide");
   // In embed mode, open the modal immediately (page has only modal markup)
   if (__WG_EMBED__) {
     // slight delay so DOM nodes exist
     setTimeout(()=>{ try { window.openWorkGuideModal?.(); } catch(e) {} }, 0);
   }
-});
+}
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeWorkGuidePage, { once: true });
+} else initializeWorkGuidePage();
 
 // [수정] listAll, deleteObject 추가 (이미지 삭제용)
     
@@ -195,7 +198,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
 
         // If this page is embedded in the header layer, also ask parent to close the layer.
-        if (__WG_EMBED__) {
+        if (new URLSearchParams(location.search).get('embed') === '1') {
             try { window.parent?.postMessage({ type: 'CLOSE_WORK_GUIDE' }, '*'); } catch(e) {}
         }
     };

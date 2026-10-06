@@ -3442,8 +3442,6 @@ document.getElementById('save-portfolio-content')?.addEventListener('click', han
              if (unsubscribeFiles) unsubscribeFiles();
             document.getElementById('closeCompanyInfoModalBtn').onclick = () => DOMElements.companyInfoModal.classList.add('hidden');
             document.getElementById('closeCannedResponseModalBtn').onclick = () => DOMElements.cannedResponseManagementModal.classList.add('hidden');
-            document.getElementById('closeImageManagementModalBtn').onclick = () => DOMElements.imageManagementModal.classList.add('hidden');
-            document.getElementById('closeHomepageManagementModalBtn').onclick = () => DOMElements.homepageManagementModal.classList.add('hidden');
             document.getElementById('close-inquiry-modal-btn').onclick = () => DOMElements.inquiryDetailsModal.classList.add('hidden');
 
             // 파일 패널 토글
@@ -3526,33 +3524,20 @@ DOMElements.quoteListBody.addEventListener('click', (e) => {
                 if (deleteBtn) deleteQuote(deleteBtn.dataset.id);
             });
 
-                        function setAdminNavActive(btnId) {
-                try {
-                    document.querySelectorAll('button.nav-item').forEach(b => b.classList.remove('active'));
-                    const target = document.getElementById(btnId);
-                    if (target) target.classList.add('active');
-                } catch(e) {}
-            }
-
-            // 2. [PC 상단 메뉴 버튼 연결] - (이 부분이 누락되어 있었습니다)
-            
+            // Supplier details remain a dialog; other menu items use the workspace.
             document.getElementById('company-info-btn').onclick = openCompanyInfoModal;
-            document.getElementById('image-management-btn').onclick = () => { setAdminNavActive('image-management-btn'); DOMElements.imageManagementModal.classList.remove('hidden'); };
-            document.getElementById('homepage-management-btn').onclick = () => { setAdminNavActive('homepage-management-btn'); DOMElements.homepageManagementModal.classList.remove('hidden'); };
             document.getElementById('maintenance-mode-btn')?.addEventListener('click', openMaintenanceModal);
 
             // 3. [모바일 메뉴 버튼 연결]
             document.getElementById('m-book-price-btn')?.addEventListener('click', () => document.getElementById('book-price-management-btn')?.click());
             document.getElementById('m-print-price-btn')?.addEventListener('click', () => document.getElementById('price-management-btn')?.click());
             document.getElementById('m-company-btn')?.addEventListener('click', openCompanyInfoModal);
-            document.getElementById('m-image-btn')?.addEventListener('click', () => DOMElements.imageManagementModal.classList.remove('hidden'));
-            document.getElementById('m-home-btn')?.addEventListener('click', () => DOMElements.homepageManagementModal.classList.remove('hidden'));
+            document.getElementById('m-image-btn')?.addEventListener('click', () => document.getElementById('image-management-btn')?.click());
+            document.getElementById('m-home-btn')?.addEventListener('click', () => document.getElementById('homepage-management-btn')?.click());
 
-            // 4. [공사중 모드 모달 로직]
-            const maintenanceModal = document.getElementById('maintenanceModal');
+            // Maintenance settings use the same save handler in the workspace.
             const maintenanceToggle = document.getElementById('maintenanceToggle');
             const maintenanceMessageInput = document.getElementById('maintenanceMessageInput');
-            const closeMaintenanceModalBtn = document.getElementById('closeMaintenanceModalBtn');
             const cancelMaintenanceBtn = document.getElementById('cancelMaintenanceBtn');
             const saveMaintenanceBtn = document.getElementById('saveMaintenanceBtn');
             const pcStatusPill = document.getElementById('maintenance-status-pill');
@@ -3568,29 +3553,37 @@ DOMElements.quoteListBody.addEventListener('click', (e) => {
                 });
             }
 
+            let maintenanceLoaded = false;
+            let maintenanceLoading = false;
             async function openMaintenanceModal() {
-                try { document.activeElement && document.activeElement.blur && document.activeElement.blur(); } catch(e) {}
+                activateAdminWorkspace('maintenance-mode');
+                if (maintenanceLoaded || maintenanceLoading) return;
+                maintenanceLoading = true;
+                maintenanceToggle.disabled = true;
+                maintenanceMessageInput.disabled = true;
+                saveMaintenanceBtn.disabled = true;
                 try {
                     const snap = await getDoc(doc(db, 'settings', 'site'));
                     const data = snap.exists() ? (snap.data() || {}) : {};
                     maintenanceToggle.checked = data.maintenance === true;
                     maintenanceMessageInput.value = data.maintenanceMessage || '';
+                    maintenanceLoaded = true;
                 } catch (e) {
-                    maintenanceToggle.checked = false;
-                    maintenanceMessageInput.value = '';
+                    showToast('공사중 설정을 불러오지 못했습니다. 다시 시도해 주세요.', 'error');
+                } finally {
+                    maintenanceLoading = false;
+                    maintenanceToggle.disabled = false;
+                    maintenanceMessageInput.disabled = false;
+                    saveMaintenanceBtn.disabled = !maintenanceLoaded;
                 }
-                maintenanceModal.style.display = 'flex';
-                maintenanceModal.classList.remove('hidden');
             }
 
             function closeMaintenanceModal() {
-                maintenanceModal.classList.add('hidden');
-                maintenanceModal.style.display = 'none';
+                maintenanceLoaded = false;
+                activateAdminWorkspace('reception-management');
             }
 
-            closeMaintenanceModalBtn?.addEventListener('click', closeMaintenanceModal);
             cancelMaintenanceBtn?.addEventListener('click', closeMaintenanceModal);
-            maintenanceModal?.addEventListener('click', (e) => { if (e.target === maintenanceModal) closeMaintenanceModal(); });
 
             saveMaintenanceBtn?.addEventListener('click', async () => {
                 const isOn = !!maintenanceToggle.checked;
@@ -3606,7 +3599,6 @@ DOMElements.quoteListBody.addEventListener('click', (e) => {
                     }, { merge: true });
                     updateMaintenancePill(isOn);
                     showToast(isOn ? '공사중 모드를 활성화했습니다.' : '공사중 모드를 해제했습니다.', 'success');
-                    closeMaintenanceModal();
                 } catch (e) {
                     console.error(e);
                     showToast('저장 중 오류가 발생했습니다.', 'error');
