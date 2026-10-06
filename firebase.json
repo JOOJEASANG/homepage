@@ -201,7 +201,10 @@
   "firestore": {
     "rules": "firestore.rules"
   },
-  "storage": {
-    "rules": "storage.rules"
-  }
+  "storage": [
+    {
+      "bucket": "worklist-1e83a.firebasestorage.app",
+      "rules": "storage.rules"
+    }
+  ]
 }

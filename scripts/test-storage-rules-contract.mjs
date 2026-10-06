@@ -20,7 +20,7 @@ for (const text of [
 ]) assert.ok(rules.includes(text), `storage.rules missing: ${text}`);
 
 
-assert.equal(firebase.storage?.rules, 'storage.rules');
+assert.deepEqual(firebase.storage, [{ bucket: 'worklist-1e83a.firebasestorage.app', rules: 'storage.rules' }]);
 assert.ok(policy.includes('MAX_FILE_BYTES = 300 * 1024 * 1024'));
 assert.ok(policy.includes('MAX_TOTAL_BYTES = 600 * 1024 * 1024'));
 assert.ok(policy.includes("'hwp'"));
