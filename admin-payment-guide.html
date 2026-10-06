@@ -11,12 +11,18 @@
   <style>body{font-family:'Pretendard',sans-serif;background:#f8fafc;color:#1e293b}.card{background:#fff;border:1px solid #e2e8f0;border-radius:1rem;box-shadow:0 1px 3px rgba(15,23,42,.05)}.form-input,.form-textarea{width:100%;border:1.5px solid #e2e8f0;border-radius:.75rem;padding:.75rem .9rem;background:white;font-size:.9rem}.form-input:focus,.form-textarea:focus{outline:none;border-color:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.1)}.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;border-radius:.75rem;padding:.75rem 1rem;font-weight:900;font-size:.9rem}.btn-primary{background:#16a34a;color:#fff}.btn-secondary{background:#fff;border:1px solid #cbd5e1;color:#475569}</style>
     <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261002">
     <script src="assets/js/responsive-ui.js?v=20261002" defer></script>
+    <script>
+      if (window.parent !== window && new URLSearchParams(location.search).get('embed') === 'admin') {
+        document.documentElement.dataset.adminEmbedded = '1';
+      }
+    </script>
+    <link rel="stylesheet" href="assets/css/admin-price-workspace.css?v=20261006-customer-center">
 </head>
 <body data-page="admin-payment-guide">
   <header class="bg-slate-900 text-white border-b border-slate-800">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <div><h1 class="text-lg font-black"><i class="fas fa-money-check-dollar text-emerald-400 mr-2"></i>결제안내 관리</h1><p class="text-xs text-slate-400 mt-0.5">계좌정보, 입금안내, 환불규정, 이용안내를 관리합니다.</p></div>
-      <div class="flex gap-2"><a href="admin.html" class="btn bg-white/10 hover:bg-white/15 text-white">관리자</a><a href="qna.html" class="btn bg-emerald-600 hover:bg-emerald-700 text-white">고객센터 보기</a></div>
+      <div class="flex gap-2"><a href="admin.html" class="btn bg-white/10 hover:bg-white/15 text-white">관리자</a><a href="qna.html" target="_blank" rel="noopener" class="btn bg-emerald-600 hover:bg-emerald-700 text-white">고객센터 보기</a></div>
     </div>
   </header>
   <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">

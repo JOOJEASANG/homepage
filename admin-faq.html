@@ -13,12 +13,18 @@
   </style>
     <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261002">
     <script src="assets/js/responsive-ui.js?v=20261002" defer></script>
+    <script>
+      if (window.parent !== window && new URLSearchParams(location.search).get('embed') === 'admin') {
+        document.documentElement.dataset.adminEmbedded = '1';
+      }
+    </script>
+    <link rel="stylesheet" href="assets/css/admin-price-workspace.css?v=20261006-customer-center">
 </head>
 <body data-page="admin-faq">
   <header class="bg-slate-900 text-white border-b border-slate-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <div><h1 class="text-lg font-black"><i class="fas fa-circle-question text-emerald-400 mr-2"></i>FAQ 관리</h1><p class="text-xs text-slate-400 mt-0.5">자주 묻는 질문을 직접 등록·수정·삭제합니다.</p></div>
-      <div class="flex gap-2"><a href="admin.html" class="btn bg-white/10 hover:bg-white/15 text-white">관리자</a><a href="qna.html" class="btn bg-emerald-600 hover:bg-emerald-700 text-white">고객센터 보기</a></div>
+      <div class="flex gap-2"><a href="admin.html" class="btn bg-white/10 hover:bg-white/15 text-white">관리자</a><a href="qna.html" target="_blank" rel="noopener" class="btn bg-emerald-600 hover:bg-emerald-700 text-white">고객센터 보기</a></div>
     </div>
   </header>
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">

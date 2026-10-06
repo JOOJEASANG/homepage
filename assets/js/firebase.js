@@ -10,7 +10,7 @@
 import { initializeApp, getApps, getApp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth, onAuthStateChanged, signOut, signInAnonymously,
+  getAuth, initializeAuth, indexedDBLocalPersistence, onAuthStateChanged, signOut, signInAnonymously,
   setPersistence, browserLocalPersistence, browserSessionPersistence,
   signInWithEmailAndPassword, createUserWithEmailAndPassword,
   updateProfile, sendPasswordResetEmail, deleteUser,
@@ -49,7 +49,19 @@ export function getFirebaseApp() {
 
 // 자주 쓰는 서비스 인스턴스 (전 파일 공유)
 export const app     = getFirebaseApp();
-export const auth    = getAuth(app);
+// Prefer the same localStorage session in the admin page and its embedded editors.
+// Keep older IndexedDB/sessionStorage logins available for migration.
+function getSharedAuth() {
+  try {
+    return initializeAuth(app, {
+      persistence: [browserLocalPersistence, indexedDBLocalPersistence, browserSessionPersistence],
+    });
+  } catch (error) {
+    if (error.code !== 'auth/already-initialized') throw error;
+    return getAuth(app);
+  }
+}
+export const auth    = getSharedAuth();
 export const db      = getFirestore(app);
 export const storage = getStorage(app);
 
@@ -88,7 +100,7 @@ function __renderMaintenanceModePills(on) {
   });
 }
 
-async function __getMaintenanceModeState() {
+export async function getMaintenanceModeState() {
   try {
     const snaps = await Promise.all([
       getDoc(doc(db, 'settings', 'site')).catch(() => null),
@@ -127,7 +139,7 @@ function __markMaintenanceBusy(busy) {
   });
 }
 
-async function __setMaintenanceMode(next) {
+export async function saveMaintenanceMode(next, message) {
   const user = auth.currentUser;
   const okAdmin = await __ensureAdminForMaintenance(user);
   if (!okAdmin) throw new Error('관리자 권한 확인 실패');
@@ -135,6 +147,8 @@ async function __setMaintenanceMode(next) {
   const payload = {
     maintenance: next,
     maintenanceMode: next,
+    isMaintenance: next,
+    isMaintenanceMode: next,
     siteMaintenance: next,
     siteMaintenanceMode: next,
     homepageMaintenance: next,
@@ -142,6 +156,7 @@ async function __setMaintenanceMode(next) {
     updatedAt: serverTimestamp(),
     updatedBy: user.uid,
   };
+  if (typeof message === 'string') payload.maintenanceMessage = message;
 
   // 방문자 체크와 관리자 UI가 같은 값을 보도록 두 문서에 같이 저장합니다.
   await Promise.all([
@@ -159,7 +174,7 @@ function __bindAdminMaintenanceModeToggle() {
   let busy = false;
 
   const refresh = async () => {
-    currentState = await __getMaintenanceModeState();
+    currentState = await getMaintenanceModeState();
     __renderMaintenanceModePills(currentState);
   };
 
@@ -169,7 +184,7 @@ function __bindAdminMaintenanceModeToggle() {
       document.body.dataset.maintenanceDelegateBound = '1';
       document.addEventListener('click', async (e) => {
         const btn = e.target?.closest?.('#maintenance-mode-btn');
-        if (!btn) return;
+        if (!btn || btn.dataset.tab === 'maintenance-mode') return;
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation?.();
@@ -182,9 +197,9 @@ function __bindAdminMaintenanceModeToggle() {
 
         try {
           // 클릭 직전 최신 상태를 다시 읽어서 ON/OFF 반전 오류를 막습니다.
-          currentState = await __getMaintenanceModeState();
+          currentState = await getMaintenanceModeState();
           const next = !currentState;
-          await __setMaintenanceMode(next);
+          await saveMaintenanceMode(next);
           currentState = next;
           __renderMaintenanceModePills(currentState);
           __toastMaintenance(next ? '홈페이지 점검모드가 ON 되었습니다.' : '홈페이지 점검모드가 OFF 되었습니다.', next ? 'warning' : 'success');

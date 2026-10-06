@@ -158,7 +158,8 @@ function ensureAdminShortcutLinks() {
 
     const book = makeDesktopShortcut('quote-book.html', 'fas fa-book', '책자/제본', 'admin-book-quote-shortcut');
     const print = makeDesktopShortcut('quote-print.html', 'fas fa-print', '디지털출력', 'admin-print-quote-shortcut');
-    topNav.append(divider, book, print);
+    const supplier = topNav.querySelector('.admin-supplier-menu');
+    for (const item of [divider, book, print]) topNav.insertBefore(item, supplier);
   }
 
   const mobileContent = document.querySelector('.mobile-menu-content');

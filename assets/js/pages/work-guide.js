@@ -3,11 +3,16 @@ import { initHeader } from "../header.js";
 import "../session.js";
 
 // If opened inside a header layer (iframe), don't render the fixed header.
+const __WG_WORKSPACE__ = document.body.dataset.page === 'admin';
 const __WG_EMBED__ = (()=>{
   try { return ['1', 'admin'].includes(new URLSearchParams(location.search).get('embed')); } catch(e) { return false; }
 })();
 
 function initializeWorkGuidePage() {
+  if (__WG_WORKSPACE__) {
+    setTimeout(() => loadGuides(), 0);
+    return;
+  }
   if (!__WG_EMBED__) initHeader("guide");
   // In embed mode, open the modal immediately (page has only modal markup)
   if (__WG_EMBED__) {
@@ -21,12 +26,17 @@ if (document.readyState === "loading") {
 
 // [수정] listAll, deleteObject 추가 (이미지 삭제용)
     
-    import Sortable from 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/modular/sortable.esm.js';
-
     let guides = [];
     let currentGuideId = null;
     let isAdmin = false;
     let sortableInstance = null; 
+    let Sortable = window.Sortable;
+    if (!Sortable) {
+        // A sorting CDN failure must not block authentication, viewing or editing.
+        import('https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/modular/sortable.esm.js')
+            .then(module => { Sortable = module.default; if (isAdmin) renderSidebar(); })
+            .catch(error => console.warn('Guide sorting unavailable:', error));
+    }
 
     function applyInlineStyleToSelection(styleObj) {
         const sel = window.getSelection();
@@ -265,7 +275,7 @@ if (document.readyState === "loading") {
             guideListEl.appendChild(div);
         });
 
-        if (isAdmin) {
+        if (isAdmin && Sortable) {
             if (sortableInstance) sortableInstance.destroy();
             
             sortableInstance = new Sortable(guideListEl, {
@@ -443,7 +453,7 @@ if (document.readyState === "loading") {
     if(closeD) closeD.onclick = window.closeWorkGuideModal;
     
     const modal = document.getElementById('workGuideModal');
-    if(modal) {
+    if(modal && !__WG_WORKSPACE__) {
         modal.onclick = (e) => { 
             if(e.target === modal) window.closeWorkGuideModal(); 
         };

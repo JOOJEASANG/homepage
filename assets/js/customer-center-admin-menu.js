@@ -1,22 +1,57 @@
-function go(url){location.href=url}
-function btn(id,label,url){var b=document.createElement('button');b.id=id;b.type='button';b.className='dropdown-item';b.textContent=label;b.onclick=function(){go(url)};return b}
-function mbtn(id,label,url){var b=document.createElement('button');b.id=id;b.type='button';b.className='mobile-menu-item';b.textContent=label;b.onclick=function(){go(url)};return b}
-function run(){
-  var file=(location.pathname||'').split('/').pop()||''; if(file!=='admin.html')return;
-  var home=document.getElementById('homepage-management-btn');
-  var maint=document.getElementById('maintenance-mode-btn');
-  var menu=(home&&home.closest('.nav-dropdown-menu'))||(maint&&maint.closest('.nav-dropdown-menu'));
-  if(menu){
-    if(!document.getElementById('cc-admin-title')){var t=document.createElement('div');t.id='cc-admin-title';t.className='px-4 py-2 text-xs font-black text-slate-400 border-t border-slate-100 mt-1';t.textContent='고객센터 관리';(maint||home||menu.lastElementChild).insertAdjacentElement('beforebegin',t)}
-    var anchor=document.getElementById('cc-admin-title');
-    if(!document.getElementById('cc-faq-btn'))anchor.insertAdjacentElement('afterend',btn('cc-faq-btn','FAQ 관리','admin-faq.html'));
-    if(!document.getElementById('cc-ai-btn'))document.getElementById('cc-faq-btn').insertAdjacentElement('afterend',btn('cc-ai-btn','AI 상담 관리','admin-ai-chat.html'));
-    if(!document.getElementById('cc-pay-btn'))document.getElementById('cc-ai-btn').insertAdjacentElement('afterend',btn('cc-pay-btn','결제안내 관리','admin-payment-guide.html'));
+const pages = [
+  ['faq', 'FAQ 관리', 'faq-management'],
+  ['ai', 'AI 상담 관리', 'ai-management'],
+  ['pay', '결제안내 관리', 'payment-management'],
+];
+
+function run() {
+  const file = (location.pathname || '').split('/').pop() || '';
+  if (file !== 'admin.html') return;
+  const home = document.getElementById('homepage-management-btn');
+  const maintenance = document.getElementById('maintenance-mode-btn');
+  const menu = home?.closest('.nav-dropdown-menu') || maintenance?.closest('.nav-dropdown-menu');
+  if (menu) {
+    let title = document.getElementById('cc-admin-title');
+    if (!title) {
+      title = document.createElement('div');
+      title.id = 'cc-admin-title';
+      title.className = 'px-4 py-2 text-xs font-black text-slate-400 border-t border-slate-100 mt-1';
+      title.textContent = '고객센터 관리';
+      (maintenance || home || menu.lastElementChild).insertAdjacentElement('beforebegin', title);
+    }
+    let anchor = title;
+    for (const [key, label, tab] of pages) {
+      let button = document.getElementById(`cc-${key}-btn`);
+      if (!button) {
+        button = document.createElement('button');
+        button.id = `cc-${key}-btn`;
+        button.type = 'button';
+        button.className = 'dropdown-item nav-item';
+        button.dataset.tab = tab;
+        button.textContent = label;
+        anchor.insertAdjacentElement('afterend', button);
+      }
+      anchor = button;
+    }
   }
-  var hm=document.querySelector('.mobile-menu-item[data-click="#homepage-management-btn"]');
-  var mm=document.querySelector('.mobile-menu-item[data-click="#maintenance-mode-btn"]');
-  var sec=(hm&&hm.closest('.mobile-menu-section'))||(mm&&mm.closest('.mobile-menu-section'));
-  if(sec&&!document.getElementById('m-cc-faq-btn')){sec.appendChild(mbtn('m-cc-faq-btn','FAQ 관리','admin-faq.html'));sec.appendChild(mbtn('m-cc-ai-btn','AI 상담 관리','admin-ai-chat.html'));sec.appendChild(mbtn('m-cc-pay-btn','결제안내 관리','admin-payment-guide.html'));}
+  const section = document.querySelector('.mobile-menu-item[data-click="#homepage-management-btn"]')?.closest('.mobile-menu-section');
+  if (!section) return;
+  for (const [key, label] of pages) {
+    if (document.getElementById(`m-cc-${key}-btn`)) continue;
+    const button = document.createElement('button');
+    button.id = `m-cc-${key}-btn`;
+    button.type = 'button';
+    button.className = 'mobile-menu-item';
+    button.textContent = label;
+    button.addEventListener('click', () => {
+      document.getElementById(`cc-${key}-btn`)?.click();
+      document.getElementById('mobileMenuCloseBtn')?.click();
+    });
+    section.appendChild(button);
+  }
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
-setTimeout(run,500);setTimeout(run,1500);setTimeout(run,3000);
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once: true });
+else run();
+setTimeout(run, 500);
+setTimeout(run, 1500);
+setTimeout(run, 3000);

@@ -177,7 +177,7 @@ async function initDirectAdminMaintenanceFallback() {
 
     document.addEventListener('click', async (e) => {
       const btn = e.target?.closest?.('#maintenance-mode-btn');
-      if (!btn) return;
+      if (!btn || btn.dataset.tab === 'maintenance-mode') return;
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation?.();

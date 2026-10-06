@@ -12,7 +12,7 @@
 // ============================================================
 
 import { app, auth, db, storage, onAuthStateChanged, signOut,
-         setPersistence, browserLocalPersistence,
+         setPersistence, browserLocalPersistence, getMaintenanceModeState, saveMaintenanceMode,
          collection, onSnapshot, query, orderBy,
          doc, updateDoc, addDoc, serverTimestamp, deleteDoc,
          getDoc, setDoc, getDocs, writeBatch, deleteField,
@@ -3565,7 +3565,7 @@ DOMElements.quoteListBody.addEventListener('click', (e) => {
                 try {
                     const snap = await getDoc(doc(db, 'settings', 'site'));
                     const data = snap.exists() ? (snap.data() || {}) : {};
-                    maintenanceToggle.checked = data.maintenance === true;
+                    maintenanceToggle.checked = await getMaintenanceModeState();
                     maintenanceMessageInput.value = data.maintenanceMessage || '';
                     maintenanceLoaded = true;
                 } catch (e) {
@@ -3592,11 +3592,7 @@ DOMElements.quoteListBody.addEventListener('click', (e) => {
                 const original = saveMaintenanceBtn.textContent;
                 saveMaintenanceBtn.textContent = '저장 중...';
                 try {
-                    await setDoc(doc(db, 'settings', 'site'), {
-                        maintenance: isOn,
-                        maintenanceMessage: message,
-                        updatedAt: serverTimestamp()
-                    }, { merge: true });
+                    await saveMaintenanceMode(isOn, message);
                     updateMaintenancePill(isOn);
                     showToast(isOn ? '공사중 모드를 활성화했습니다.' : '공사중 모드를 해제했습니다.', 'success');
                 } catch (e) {
@@ -3610,8 +3606,7 @@ DOMElements.quoteListBody.addEventListener('click', (e) => {
 
             (async () => {
                 try {
-                    const snap = await getDoc(doc(db, 'settings', 'site'));
-                    updateMaintenancePill(snap.exists() && snap.data()?.maintenance === true);
+                    updateMaintenancePill(await getMaintenanceModeState());
                 } catch (e) { updateMaintenancePill(false); }
             })();
         }

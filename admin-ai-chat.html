@@ -4,10 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI 상담 설정 | 그린오피스</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="assets/css/tailwind.css?v=20261006-customer-center">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261002">
     <script src="assets/js/responsive-ui.js?v=20261002" defer></script>
+    <script>
+      if (window.parent !== window && new URLSearchParams(location.search).get('embed') === 'admin') {
+        document.documentElement.dataset.adminEmbedded = '1';
+      }
+    </script>
+    <link rel="stylesheet" href="assets/css/admin-price-workspace.css?v=20261006-customer-center">
 </head>
 <body data-page="admin-ai-chat" class="bg-slate-100 text-slate-800 min-h-screen">
   <header class="bg-slate-900 text-white border-b border-slate-800">
@@ -18,7 +24,7 @@
       </div>
       <div class="flex gap-2">
         <a href="admin.html" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-sm font-bold">관리자</a>
-        <a href="index.html" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-sm font-bold">홈으로</a>
+        <a href="index.html" target="_blank" rel="noopener" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-sm font-bold">홈으로</a>
       </div>
     </div>
   </header>

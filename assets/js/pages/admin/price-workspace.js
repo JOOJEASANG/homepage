@@ -1,3 +1,5 @@
+import { loadWorkGuideWorkspace } from './work-guide-workspace.js';
+
 // Present management pages inside the authenticated admin workspace.
 // Keep frames mounted so switching menus preserves unsaved edits.
 export function activateAdminWorkspace(tabId) {
@@ -16,6 +18,8 @@ export function activateAdminWorkspace(tabId) {
   document.querySelectorAll('.main-tab-content').forEach(content => {
     content.classList.toggle('active', content === panel);
   });
+
+  if (tabId === 'work-guide-management') loadWorkGuideWorkspace(panel);
 
   const frame = panel.querySelector('iframe[data-price-src]');
   if (frame && !frame.hasAttribute('src')) frame.src = frame.dataset.priceSrc;

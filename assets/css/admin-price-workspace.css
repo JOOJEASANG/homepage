@@ -88,3 +88,48 @@ html[data-admin-embedded="1"] #closeGuideDesktop { display: none; }
   html[data-admin-embedded="1"] #snowBaseWrap > .grid > * { grid-column: auto; }
   html[data-admin-embedded="1"] #snowBaseWrap input { min-width: 0; padding-inline: 6px; }
 }
+
+/* Guide editor uses the main administrator document and its established login. */
+.admin-guide-panel { min-width: 0; }
+.admin-guide-panel .admin-guide-layout { min-width: 0; background: #fff; }
+.admin-guide-panel .admin-guide-shell {
+  width: 100%;
+  height: calc(100dvh - 130px);
+  min-height: 560px;
+  overflow: hidden;
+  border: 1px solid #e1e8e3;
+  border-radius: 14px;
+  background: #fff;
+}
+.admin-guide-panel #contentArea { position: static; min-width: 0; }
+.admin-guide-panel #closeGuideMobile,
+.admin-guide-panel #closeGuideDesktop { display: none; }
+.admin-guide-panel .sidebar-scroll { scrollbar-width: none; }
+.admin-guide-panel .ql-view-content { overflow-wrap: anywhere; }
+.admin-guide-panel .ql-view-content h1 { font-size: 1.6em; font-weight: 800; color: #1e293b; margin: 0.8em 0 0.5em; line-height: 1.3; }
+.admin-guide-panel .ql-view-content h2 { font-size: 1.3em; font-weight: 700; color: #334155; margin: 1em 0 0.5em; border-left: 4px solid #16a34a; padding-left: 10px; }
+.admin-guide-panel .ql-view-content p { margin-bottom: 0.8em; line-height: 1.7; color: #475569; word-break: keep-all; }
+.admin-guide-panel .ql-view-content ul, .admin-guide-panel .ql-view-content ol { padding-left: 1.4em; margin-bottom: 1em; color: #475569; }
+.admin-guide-panel .ql-view-content ul { list-style-type: disc; }
+.admin-guide-panel .ql-view-content ol { list-style-type: decimal; }
+.admin-guide-panel .ql-view-content img { border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 100%; margin: 1rem 0; }
+.admin-guide-panel .ql-view-content blockquote { border-left: 3px solid #cbd5e1; background: #f8fafc; padding: 0.8rem; margin: 1rem 0; color: #64748b; font-size: 0.95em; }
+.admin-guide-panel .ql-view-content strong { color: #0f172a; font-weight: 700; }
+.admin-guide-panel .ql-view-content img,
+.admin-guide-panel #wg-content-editor img { max-width: 100%; }
+.admin-guide-panel #wg-content-editor:empty::before { content: attr(data-placeholder); color: #cbd5e1; }
+.admin-guide-panel :is(.ql-view-content, #wg-content-editor) ul { list-style: disc; padding-left: 1.25rem; }
+.admin-guide-panel :is(.ql-view-content, #wg-content-editor) ol { list-style: decimal; padding-left: 1.25rem; }
+html[data-admin-embedded="1"] body[data-page^="admin-"] > header {
+  background: #fff;
+  color: #172c20;
+  border-color: #e1e8e3;
+}
+html[data-admin-embedded="1"] body[data-page^="admin-"] > header a[href="admin.html"] { display: none; }
+html[data-admin-embedded="1"] body[data-page^="admin-"] > header > div { max-width: none; flex-wrap: wrap; }
+html[data-admin-embedded="1"] body[data-page^="admin-"] > main { max-width: none; }
+@media (max-width: 767px) {
+  .admin-guide-panel .admin-guide-shell { height: calc(100dvh - 160px); min-height: 480px; }
+  .admin-guide-panel #sidebarArea,
+  .admin-guide-panel #contentArea { height: auto; min-height: 0; flex: 1; }
+}
