@@ -40,7 +40,6 @@ for (const [file, importPath] of [
 
 for (const legacyImport of [
   "import('./customer-center-admin-menu.js')",
-  "import('./portfolio-crop-helper.js')",
   "import('./admin-safety-patches.js')",
 ]) {
   assert.ok(!session.includes(legacyImport), `session should not directly load ${legacyImport}`);

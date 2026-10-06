@@ -61,10 +61,6 @@ service firebase.storage {
       allow delete: if canAccessQuote(quoteId);
     }
 
-    match /portfolio/{allPaths=**} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
     match /previews/{allPaths=**} {
       allow read: if true;
       allow write: if isAdmin();

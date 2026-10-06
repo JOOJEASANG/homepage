@@ -8,7 +8,7 @@
 //   - 고객 1:1 채팅 메시지 실시간 수신·발송
 //   - 파일 업로드 / 다운로드 처리
 //   - 알림음 + 브라우저 데스크탑 알림 + 탭 제목 깜빡임
-//   - 공지사항 CRUD / 포트폴리오 관리 / 홈페이지 콘텐츠 관리
+//   - 공지사항 CRUD / 홈페이지 콘텐츠 관리
 // ============================================================
 
 import { app, auth, db, storage, onAuthStateChanged, signOut,
@@ -308,7 +308,6 @@ function updateNotifStatus(){
         let currentQuoteId = null;
         let unsubscribeMessages = null;
         let unsubscribeFiles = null;
-        let homepageContentCache = {};
         let imagePreviewsCache = {};
         let completedFileInfo = null;
         let companyInfoCache = {};
@@ -2114,25 +2113,8 @@ function loadFiles(quoteId) {
         }
 
     // ========================================================
-    // [수정] 홈페이지 콘텐츠 관리 (공지사항 & 포트폴리오)
+    // [수정] 홈페이지 공지사항 관리
     // ========================================================
-
-    // 1. 데이터 로드 통합 함수
-    async function loadHomepageContent() {
-        try {
-            // 포트폴리오 데이터 로드
-            const docRef = doc(db, "settings", "homepageContent");
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                homepageContentCache = docSnap.data();
-            } else {
-                homepageContentCache = { portfolio: [] };
-            }
-            renderPortfolioListAdmin();
-        } catch (error) {
-            logger.error("홈페이지 콘텐츠 로딩 실패:", error);
-        }
-    }
 
     // 2. 공지사항 실시간 리스너
     function listenToNotices() {
@@ -2172,62 +2154,6 @@ div.innerHTML = `
         <button class="btn btn-secondary btn-sm edit-notice-btn text-xs px-3 py-1" data-id="${n.id}">수정</button>
         <button class="btn btn-danger btn-sm delete-notice-btn text-xs px-3 py-1" data-id="${n.id}">삭제</button>
     </div>`;
-            list.appendChild(div);
-        });
-    }
-
-    // 4. 포트폴리오 렌더링 함수 (매우 중요: ID 및 클래스명 복구)
-    function renderPortfolioListAdmin() {
-        const list = document.getElementById('portfolio-list-admin');
-        if (!list) return;
-        
-        list.innerHTML = '';
-        const portfolio = homepageContentCache.portfolio || [];
-
-        portfolio.forEach((p, idx) => {
-            const div = document.createElement('div');
-            // 디자인은 유지하되, 기능 동작을 위한 클래스(.portfolio-item 등) 유지
-            div.className = "portfolio-item bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col";
-            div.dataset.index = idx;
-            
-            const imgUrl = p.imageUrl || 'https://placehold.co/150?text=No+Image';
-            
-            div.innerHTML = `
-                <div class="relative w-full h-44 bg-slate-100 overflow-hidden group">
-                    <img src="${sanitizeHTML(imgUrl)}" class="w-full h-full object-cover portfolio-image-preview">
-                    <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button type="button" class="text-white text-xs font-bold change-image-btn border border-white px-3 py-2 rounded-lg hover:bg-white hover:text-black transition-colors">
-                            이미지 변경
-                        </button>
-                    </div>
-                    <input type="file" class="hidden portfolio-image-upload" accept="image/*">
-                </div>
-
-                <div class="p-4 flex flex-col gap-3 min-w-0">
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-500 mb-1">제목</label>
-                        <input type="text" class="form-input w-full portfolio-title" disabled value="${sanitizeHTML(p.title || '')}" placeholder="프로젝트 제목">
-                    </div>
-
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-500 mb-1">설명</label>
-                        <textarea class="form-textarea w-full text-xs portfolio-description" disabled rows="3" placeholder="프로젝트 설명">${sanitizeHTML(p.description || '')}</textarea>
-                    </div>
-
-                    <div class="mt-1 flex gap-2">
-                        <button type="button" class="btn flex-1 bg-white border border-slate-200 hover:bg-brand-50 hover:text-brand-700 text-slate-600 edit-portfolio-btn">
-                            <i class="fas fa-pen mr-1"></i>수정
-                        </button>
-                        <button type="button" class="btn flex-1 bg-brand-600 hover:bg-brand-700 text-white save-portfolio-item-btn hidden">
-                            <i class="fas fa-save mr-1"></i>저장
-                        </button>
-                        <button type="button" class="btn bg-white border border-slate-200 hover:bg-red-50 hover:text-red-600 text-slate-600 remove-portfolio-btn" title="삭제">
-                            <i class="fas fa-trash-alt mr-1"></i>삭제
-                        </button>
-                    </div>
-                    </div>
-                </div>
-            `;
             list.appendChild(div);
         });
     }
@@ -2387,38 +2313,6 @@ async function handleNoticeSave(e) {
         btn.disabled = false;
     }
 }
-
-// 6. 포트폴리오 저장 로직
-    async function handlePortfolioSave() {
-        const newPortfolio = [];
-        // DOM에서 현재 입력된 값들을 모두 읽어옴
-        document.querySelectorAll('.portfolio-item').forEach(el => {
-            newPortfolio.push({
-                imageUrl: el.querySelector('img').src,
-                title: el.querySelector('.portfolio-title').value,
-                description: el.querySelector('.portfolio-description').value
-            });
-        });
-        
-        homepageContentCache.portfolio = newPortfolio;
-        
-        const btn = document.getElementById('save-portfolio-content');
-        const originalText = btn.textContent;
-        btn.textContent = "저장 중...";
-        btn.disabled = true;
-
-        try {
-            await setDoc(doc(db, "settings", "homepageContent"), homepageContentCache, {merge: true});
-            showToast('포트폴리오가 저장되었습니다.', 'success');
-            renderPortfolioListAdmin(); // 목록 재렌더링
-        } catch(err) {
-            logger.error(err);
-            showToast('저장 실패', 'error');
-        } finally {
-            btn.textContent = originalText;
-            btn.disabled = false;
-        }
-    }
 
         // 문의 답변 처리
         document.getElementById('inquiry-list-body')?.addEventListener('click', async (e) => {
@@ -3099,7 +2993,7 @@ async function handleNoticeSave(e) {
 
 
 // ── 이벤트 바인딩 및 초기화 ────────────────────────────────────
-// 공지사항, 포트폴리오, 홈페이지 콘텐츠 등 설정 탭의 이벤트를 연결
+// 공지사항과 홈페이지 설정 탭의 이벤트를 연결
 
 // 1. 공지사항
     document.getElementById('notice-form')?.addEventListener('submit', handleNoticeSave);
@@ -3138,154 +3032,6 @@ async function handleNoticeSave(e) {
                 document.getElementById('notice-isPopup').checked = !!data.isPopup;
                 // 입력창으로 스크롤 이동
                 document.getElementById('notice-form').scrollIntoView({ behavior: 'smooth' });
-            }
-        }
-    });
-
-    // 2. 포트폴리오 관련 이벤트
-    // 추가 버튼
-    document.getElementById('add-portfolio-item')?.addEventListener('click', () => {
-        if(!homepageContentCache.portfolio) homepageContentCache.portfolio = [];
-        // 빈 항목 추가
-        homepageContentCache.portfolio.push({ title: '', description: '', imageUrl: 'https://placehold.co/150' });
-        renderPortfolioListAdmin();
-        // 스크롤 맨 아래로
-        setTimeout(() => {
-            const list = document.getElementById('portfolio-list-admin');
-            list.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-    });
-
-    // 전체 저장 버튼
-    
-    
-    // (v10) 포트폴리오 자동저장 제거: '수정/저장' 버튼으로 명시적 저장만 수행
-
-document.getElementById('save-portfolio-content')?.addEventListener('click', handlePortfolioSave);
-
-    // 포트폴리오 리스트 내부 이벤트 (삭제/이미지변경) - 이벤트 위임
-    document.getElementById('portfolio-list-admin')?.addEventListener('click', async (e) => {
-
-        // 수정 버튼: 해당 항목만 편집 가능 상태로 전환
-        if (e.target.closest('.edit-portfolio-btn')) {
-            const item = e.target.closest('.portfolio-item');
-            if (!item) return;
-            item.classList.add('ring-2','ring-brand-200');
-            const titleEl = item.querySelector('.portfolio-title');
-            const descEl  = item.querySelector('.portfolio-description');
-            if (titleEl) titleEl.disabled = false;
-            if (descEl)  descEl.disabled = false;
-
-            // 저장 버튼 노출
-            item.querySelector('.save-portfolio-item-btn')?.classList.remove('hidden');
-            // 수정 버튼은 숨김(중복 클릭 방지)
-            item.querySelector('.edit-portfolio-btn')?.classList.add('hidden');
-
-            // 포커스
-            try { titleEl?.focus(); } catch(e) {}
-            return;
-        }
-
-        // 저장 버튼: 전체 저장(홈페이지Content.portfolio) 실행 후, 다시 잠금
-        if (e.target.closest('.save-portfolio-item-btn')) {
-            const item = e.target.closest('.portfolio-item');
-            try { await handlePortfolioSave(); } catch(e) {}
-            // 저장 후에는 전체가 재렌더링되므로 별도 처리 불필요
-            return;
-        }
-
-        // 삭제 버튼 (완전삭제: Firestore(settings/homepageContent.portfolio) 반영)
-        if (e.target.closest('.remove-portfolio-btn')) {
-            const item = e.target.closest('.portfolio-item');
-            if (!item) return;
-            const idx = parseInt(item.dataset.index);
-            const target = (homepageContentCache.portfolio || [])[idx] || null;
-
-            const title = (target && (target.title || target.name)) ? (target.title || target.name) : '포트폴리오';
-            const ok = confirm(`"${title}" 항목을 삭제할까요?
-
-삭제 후에는 복구할 수 없습니다.`);
-            if (!ok) return;
-
-            try {
-                homepageContentCache.portfolio = homepageContentCache.portfolio || [];
-                homepageContentCache.portfolio.splice(idx, 1);
-
-                // Firestore에 즉시 반영 (index 실시간 반영은 index에서 onSnapshot으로 처리)
-                await setDoc(doc(db, "settings", "homepageContent"), { portfolio: homepageContentCache.portfolio }, { merge: true });
-
-                showToast("포트폴리오가 삭제되었습니다.", "success");
-            } catch (err) {
-                logger.error("Portfolio delete failed:", err);
-                showToast("삭제에 실패했습니다. (권한/네트워크 확인)", "error");
-            } finally {
-                renderPortfolioListAdmin();
-            }
-            return;
-        }
-        // 이미지 변경 버튼
-        if (e.target.closest('.change-image-btn')) {
-            const item = e.target.closest('.portfolio-item');
-            item.querySelector('.portfolio-image-upload').click();
-        }
-    });
-
-    // 포트폴리오 파일 선택 시 처리
-    document.getElementById('portfolio-list-admin')?.addEventListener('change', async (e) => {
-        if(e.target.classList.contains('portfolio-image-upload')) {
-            const file = e.target.files[0];
-            if(!file) return;
-            
-            const itemEl = e.target.closest('.portfolio-item');
-            const btn = itemEl.querySelector('.change-image-btn');
-            const img = itemEl.querySelector('.portfolio-image-preview');
-            
-            btn.textContent = "업로드...";
-            btn.disabled = true;
-            
-            try {
-                const uid = auth?.currentUser?.uid;
-                if (!uid) {
-                    btn.textContent = "로그인필요";
-                    showToast("업로드하려면 관리자 계정으로 로그인되어 있어야 합니다.", "error");
-                    throw new Error("AUTH_REQUIRED_FOR_STORAGE_UPLOAD");
-                }
-                const storageRef = ref(storage, `portfolio/${Date.now()}_${file.name}`);
-                const task = await uploadBytesResumable(storageRef, file);
-                const url = await getDownloadURL(task.ref);
-                
-                img.src = url; // 미리보기 업데이트
-
-                // ✅ 업로드 성공 즉시 Firestore(settings/homepageContent.portfolio)를 갱신하여 index에 바로 보이게 함
-                try {
-                    const newPortfolio = [];
-                    document.querySelectorAll('.portfolio-item').forEach(el => {
-                        newPortfolio.push({
-                            imageUrl: el.querySelector('img')?.src || '',
-                            title: el.querySelector('.portfolio-title')?.value || '',
-                            description: el.querySelector('.portfolio-description')?.value || ''
-                        });
-                    });
-                    homepageContentCache.portfolio = newPortfolio;
-                    await setDoc(doc(db, "settings", "homepageContent"), { portfolio: newPortfolio }, { merge: true });
-                } catch (e) {
-                    logger.error("Portfolio Firestore save failed after upload:", e);
-                }
-                btn.textContent = "완료";
-            } catch(err) { 
-                // Firebase Storage 권한/인증 문제(403)는 사용자에게 원인을 바로 안내
-                const msg = (err && (err.code || err.message)) ? (err.code || err.message) : String(err);
-                if (msg.includes("storage/unauthorized") || msg.includes("storage/unauthenticated") || msg.includes("403") || msg.includes("AUTH_REQUIRED_FOR_STORAGE_UPLOAD")) {
-                    btn.textContent = "권한없음";
-                    showToast("업로드 권한이 없습니다. 관리자 Firebase 로그인/Storage 규칙을 확인하세요.", "error");
-                } else {
-                    btn.textContent = "실패";
-                    showToast("이미지 업로드 실패", "error");
-                }
-                logger.error(err);
-            } finally {
-                btn.disabled = false;
-                setTimeout(() => { btn.textContent = "변경"; }, 2000);
             }
         }
     });
@@ -3635,7 +3381,6 @@ document.getElementById('auth-check-overlay').classList.add('hidden');
                 setupEventListeners();
                 listenToQuotes();
                 listenToInquiries();
-                loadHomepageContent();
                 listenToNotices();
                 listenToCannedResponses();
                 loadImagePreviews();

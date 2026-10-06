@@ -104,7 +104,7 @@ test('all former menu dialogs use the workspace and supplier information is last
   await expect(page.locator('#companyInfoModal')).toBeHidden();
 });
 
-test('maintenance, notice, portfolio and image saves still work in the workspace', async ({ page }) => {
+test('maintenance, notice and image saves still work in the workspace', async ({ page }) => {
   await openAdmin(page);
   await choose(page, 'maintenance-mode-btn');
   await expect(page.locator('#maintenanceMessageInput')).toHaveValue('기존 안내문');
@@ -126,14 +126,6 @@ test('maintenance, notice, portfolio and image saves still work in the workspace
   await page.locator('#save-notice-btn').click();
   await expect.poll(async () => (await writes(page, 'notices')).length).toBe(1);
   expect((await writes(page, 'notices'))[0].data.content).toContain('공지 본문');
-  await page.locator('#homepage-sub-tab-nav [data-tab="portfolio-content-panel"]').click();
-  await page.locator('#add-portfolio-item').click();
-  await page.locator('.edit-portfolio-btn').click();
-  await page.locator('.portfolio-title').fill('테스트 포트폴리오');
-  await page.locator('.portfolio-description').fill('프로젝트 설명');
-  await page.locator('#save-portfolio-content').click();
-  await expect.poll(async () => (await writes(page, 'settings/homepageContent')).length).toBe(2);
-  expect((await writes(page, 'settings/homepageContent'))[1].data.portfolio[0].title).toBe('테스트 포트폴리오');
   await choose(page, 'image-management-btn');
   await page.locator('#image-modal-tabs [data-tab="innerPaper-previews"]').click();
   await expect(page.locator('#innerPaper-previews-tab')).toBeVisible();

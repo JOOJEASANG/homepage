@@ -10,7 +10,7 @@
     <meta property="og:locale" content="ko_KR">
     <title>그린오피스 | 디지털 인쇄·출력·제본 전문</title>
     <link rel="icon" href="favicon.ico" />
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20261006">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20261006-remove-work-section">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -105,18 +105,6 @@
         .status-badge-waiting { background-color: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; font-size: 10px; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
         .status-badge-process { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: bold; white-space: nowrap; }
         .status-badge-done { background-color: #eff6ff; color: #1e40af; border: 1px solid #93c5fd; font-size: 10px; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
-
-        /* === PORTFOLIO === */
-        .portfolio-section { background: #ffffff; }
-        .portfolio-item {
-            overflow: hidden;
-            border-radius: 12px;
-            cursor: pointer;
-            aspect-ratio: 1 / 1;
-            background: #f1f5f9;
-        }
-        .portfolio-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
-        .portfolio-item:hover img { transform: scale(1.06); }
 
         /* === FOOTER === */
         .site-footer { background: #0a0f1e; border-top: 1px solid rgba(255,255,255,0.06); }
@@ -243,25 +231,6 @@
             </div>
         </section>
         <section class="order-process"><div class="renew-container"><div class="section-heading"><div><p class="eyebrow">SIMPLE ORDER</p><h2>주문은 간단하게, 제작은 꼼꼼하게.</h2></div></div><ol class="process-grid"><li><span>01</span><div><h3>사양 선택·견적 확인</h3><p>규격, 용지, 인쇄와 수량을 선택합니다.</p></div></li><li><span>02</span><div><h3>파일 첨부·주문 접수</h3><p>인쇄 파일과 요청사항을 전달합니다.</p></div></li><li><span>03</span><div><h3>상담·금액 확정·제작</h3><p>접수 내용을 확인하고 제작을 진행합니다.</p></div></li></ol></div></section>
-
-        <!-- ===== PORTFOLIO SECTION ===== -->
-        <section class="portfolio-section py-16 border-t border-slate-100">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex items-center justify-between mb-8">
-                    <div>
-                        <span class="text-xs font-bold tracking-widest text-emerald-600 uppercase">Portfolio</span>
-                        <h2 class="text-2xl font-black text-slate-900 mt-1">작업 포트폴리오</h2>
-                    </div>
-                </div>
-                <div id="portfolio-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                    <div class="col-span-full py-12 flex flex-col items-center justify-center text-slate-300">
-                        <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
-                        <span class="text-xs">Loading...</span>
-                    </div>
-                </div>
-                <div id="portfolio-page-controls" class="mt-6 flex justify-center gap-2"></div>
-            </div>
-        </section>
 
         <!-- ===== REALTIME SECTION ===== -->
         <section class="realtime-section py-16 border-t border-slate-100">
@@ -410,25 +379,6 @@
                 <h3 id="notice-modal-title" class="text-xl font-bold text-slate-900 mb-2"></h3>
                 <p id="notice-modal-date" class="text-xs text-slate-400 mb-6 pb-4 border-b border-slate-100"></p>
                 <div id="notice-modal-content" class="prose prose-sm max-w-none text-slate-600 leading-relaxed"></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="portfolio-image-modal" class="fixed inset-0 bg-black/95 z-[130] hidden items-center justify-center p-4">
-        <div class="relative w-full max-w-5xl h-full max-h-[90vh] flex flex-col items-center justify-center">
-            <button id="close-portfolio-image-modal-btn" aria-label="이미지 닫기" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition z-50">
-                <i class="fas fa-times" aria-hidden="true"></i>
-            </button>
-            <button id="portfolio-modal-prev" aria-label="이전 이미지" class="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition z-50">
-                <i class="fas fa-chevron-left text-lg" aria-hidden="true"></i>
-            </button>
-            <button id="portfolio-modal-next" aria-label="다음 이미지" class="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition z-50">
-                <i class="fas fa-chevron-right text-lg" aria-hidden="true"></i>
-            </button>
-            <img id="portfolio-image-img" src="" alt="Portfolio" class="max-w-full max-h-full object-contain rounded-xl shadow-2xl">
-            <div class="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
-                <p id="portfolio-image-title" class="text-white font-bold text-lg drop-shadow-md"></p>
-                <p id="portfolio-image-desc" class="text-slate-300 text-sm drop-shadow-md"></p>
             </div>
         </div>
     </div>

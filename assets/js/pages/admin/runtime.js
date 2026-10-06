@@ -2,7 +2,6 @@ import { formatPhoneHyphen, formatQuoteStatus, quoteStatusKind } from '../shared
 
 // 기존 관리자 보정 모듈을 한 진입점으로 묶습니다.
 import '../../customer-center-admin-menu.js';
-import '../../portfolio-crop-helper.js';
 import '../../admin-safety-patches.js';
 import '../../chat-read-receipts.js';
 

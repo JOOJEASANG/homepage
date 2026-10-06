@@ -3,7 +3,7 @@ import {
   onAuthStateChanged, signOut, signInAnonymously,
   setPersistence, browserLocalPersistence,
   doc, getDoc, collection, query, where,
-  orderBy, limit, getDocs, onSnapshot,
+  orderBy, limit, getDocs,
 } from "../firebase.js";
 import { initHeader } from "../header.js";
 import "../overlays.js";
@@ -392,146 +392,6 @@ async function loadNotices() {
   } catch(err) { console.error('공지사항 로드 오류:', err); }
 }
 
-// ── 포트폴리오 ────────────────────────────────────────────────
-async function loadPortfolio() {
-  try {
-    const docRef = doc(db, 'settings', 'homepageContent');
-    const grid   = document.getElementById('portfolio-grid');
-    const pager  = document.getElementById('portfolio-page-controls');
-    window.__portfolioMainPerPage = 9;
-    window.__portfolioMainPage = window.__portfolioMainPage || 1;
-
-    const closeImageModal = () => {
-      const m = document.getElementById('portfolio-image-modal');
-      document.getElementById('portfolio-image-img').src = '';
-      m.classList.add('hidden'); m.classList.remove('flex');
-    };
-
-    const render = () => {
-      const all  = Array.isArray(window.__portfolioAll) ? window.__portfolioAll : [];
-      const item = all[window.__portfolioModalIndex] || {};
-      document.getElementById('portfolio-image-img').src = sanitizeHTML(item.imageUrl || '');
-      document.getElementById('portfolio-image-title').textContent = item.title || 'Portfolio';
-      document.getElementById('portfolio-image-desc').textContent  = item.description || item.desc || '';
-    };
-
-    const openImageModal = index => {
-      const all = Array.isArray(window.__portfolioAll) ? window.__portfolioAll : [];
-      if (!all.length) return;
-      window.__portfolioModalIndex = (index % all.length + all.length) % all.length;
-      if (!window.__portfolioModalNavBound) {
-        window.__portfolioModalNavBound = true;
-        const prevBtn = document.getElementById('portfolio-modal-prev');
-        const nextBtn = document.getElementById('portfolio-modal-next');
-        prevBtn?.addEventListener('click', e => {
-          e.stopPropagation();
-          const a = Array.isArray(window.__portfolioAll) ? window.__portfolioAll : [];
-          if (a.length) { window.__portfolioModalIndex = (window.__portfolioModalIndex - 1 + a.length) % a.length; render(); }
-        });
-        nextBtn?.addEventListener('click', e => {
-          e.stopPropagation();
-          const a = Array.isArray(window.__portfolioAll) ? window.__portfolioAll : [];
-          if (a.length) { window.__portfolioModalIndex = (window.__portfolioModalIndex + 1) % a.length; render(); }
-        });
-        window.addEventListener('keydown', e => {
-          const m = document.getElementById('portfolio-image-modal');
-          if (!m || m.classList.contains('hidden')) return;
-          if      (e.key === 'Escape')     { closeImageModal(); }
-          else if (e.key === 'ArrowLeft')  { prevBtn?.click(); }
-          else if (e.key === 'ArrowRight') { nextBtn?.click(); }
-        });
-        document.getElementById('close-portfolio-image-modal-btn')?.addEventListener('click', closeImageModal);
-        document.getElementById('portfolio-image-modal')?.addEventListener('click', e => {
-          if (e.target === document.getElementById('portfolio-image-modal')) closeImageModal();
-        });
-      }
-      render();
-      const m = document.getElementById('portfolio-image-modal');
-      m.classList.remove('hidden'); m.classList.add('flex');
-    };
-
-    const renderPager = (page, totalPages) => {
-      if (!pager) return;
-      if (totalPages <= 1) { pager.classList.add('hidden'); pager.innerHTML = ''; return; }
-      pager.classList.remove('hidden');
-      pager.innerHTML = '';
-      const cls = active => 'w-8 h-8 flex items-center justify-center rounded border text-xs font-bold transition-colors ' +
-        (active ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50');
-      const mkBtn = (label, pageNum, isActive) => {
-        const b = document.createElement('button');
-        b.textContent = label; b.className = cls(isActive);
-        b.onclick = () => renderMainPage(pageNum);
-        return b;
-      };
-      const start = Math.max(1, page - 2), end = Math.min(totalPages, start + 4);
-      if (page > 1) pager.appendChild(mkBtn('<', page - 1, false));
-      for (let i = start; i <= end; i++) pager.appendChild(mkBtn(i, i, i === page));
-      if (page < totalPages) pager.appendChild(mkBtn('>', page + 1, false));
-    };
-
-    const renderMainPage = page => {
-      const list = Array.isArray(window.__portfolioAll) ? window.__portfolioAll : [];
-      const perPage = window.__portfolioMainPerPage;
-      const totalPages = Math.max(1, Math.ceil(list.length / perPage));
-      const safePage = Math.min(Math.max(1, page), totalPages);
-      window.__portfolioMainPage = safePage;
-      if (!grid) return;
-      if (!list.length) {
-        grid.innerHTML = '<div class="col-span-full text-center py-10 text-slate-300 text-sm">등록된 포트폴리오가 없습니다.</div>';
-        renderPager(1, 1); return;
-      }
-      const startIdx = (safePage - 1) * perPage;
-      grid.innerHTML = '';
-      list.slice(startIdx, startIdx + perPage).forEach((item, i) => {
-        const div = document.createElement('div');
-        div.className = 'group relative aspect-square bg-slate-100 border border-slate-200 overflow-hidden cursor-pointer';
-        div.innerHTML = `
-          <img src="${sanitizeHTML(item.imageUrl)}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="포트폴리오">
-          <div class="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <span class="text-white font-bold border border-white px-3 py-1 text-xs uppercase tracking-widest">View</span>
-          </div>
-        `;
-        div.onclick = () => openImageModal(startIdx + i);
-        grid.appendChild(div);
-      });
-      renderPager(safePage, totalPages);
-    };
-
-    const applyList = raw => {
-      const list = Array.isArray(raw) ? raw.slice().reverse() : [];
-      window.__portfolioAll = list;
-      const totalPages = Math.max(1, Math.ceil(list.length / window.__portfolioMainPerPage));
-      if ((window.__portfolioMainPage || 1) > totalPages) window.__portfolioMainPage = totalPages;
-      renderMainPage(window.__portfolioMainPage || 1);
-      try {
-        const m = document.getElementById('portfolio-image-modal');
-        if (m && !m.classList.contains('hidden')) {
-          if (!list.length) { closeImageModal(); return; }
-          window.__portfolioModalIndex = (window.__portfolioModalIndex % list.length + list.length) % list.length;
-          render();
-        }
-      } catch {}
-    };
-
-    if (typeof window.__portfolioSettingsUnsub === 'function') {
-      try { window.__portfolioSettingsUnsub(); } catch {}
-    }
-    window.__portfolioSettingsUnsub = onSnapshot(docRef, snap => {
-      applyList(snap.exists() ? snap.data().portfolio : []);
-    }, err => {
-      console.error('포트폴리오 리스너 오류:', err);
-      if (pager) { pager.classList.add('hidden'); pager.innerHTML = ''; }
-      if (grid) grid.innerHTML = '<div class="col-span-full text-center py-10 text-red-300 text-sm">포트폴리오를 불러오지 못했습니다.</div>';
-    });
-  } catch(err) {
-    console.error('포트폴리오 로드 오류:', err);
-    const grid = document.getElementById('portfolio-grid');
-    const pager = document.getElementById('portfolio-page-controls');
-    if (pager) { pager.classList.add('hidden'); pager.innerHTML = ''; }
-    if (grid) grid.innerHTML = '<div class="col-span-full text-center py-10 text-red-300 text-sm">포트폴리오를 불러오지 못했습니다.</div>';
-  }
-}
-
 // ── 비회원 조회 폼 ─────────────────────────────────────────────
 const guestModal        = document.getElementById('guest-lookup-overlay');
 const guestForm         = document.getElementById('guest-lookup-form');
@@ -602,5 +462,4 @@ document.getElementById('userMenuEditInfoBtn')?.addEventListener('click', () => 
 document.addEventListener('DOMContentLoaded', () => {
   initHeader('index');
   loadNotices().catch(e => console.error('[index] loadNotices:', e));
-  loadPortfolio().catch(e => console.error('[index] loadPortfolio:', e));
 });
