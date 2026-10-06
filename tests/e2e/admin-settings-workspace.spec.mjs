@@ -31,8 +31,12 @@ async function fixture(page, role = 'admin', realSession = true) {
     export const serverTimestamp = () => 'fixture-time', deleteField = () => 'fixture-delete';
     const docs = [];
     const snapshot = { docs, size: 0, empty: true, forEach: fn => docs.forEach(fn), docChanges: () => [] };
-    export const getDocs = async () => snapshot;
-    export const onSnapshot = (_, callback) => { queueMicrotask(() => callback(snapshot)); return () => {}; };
+    const snapshotFor = path => {
+      const docs = path === 'quotes' ? (window.__fixtureQuotes || []).map(data => ({ id: data.id, data: () => data })) : [];
+      return { docs, size: docs.length, empty: !docs.length, forEach: fn => docs.forEach(fn), docChanges: () => docs.map(doc => ({ type: 'added', doc })) };
+    };
+    export const getDocs = async path => snapshotFor(path);
+    export const onSnapshot = (path, callback) => { queueMicrotask(() => callback(snapshotFor(path))); return () => {}; };
     export const getDoc = async path => {
       (window.__fixtureReads ||= []).push(path);
       const data = path.startsWith('users/') ? { role: ${JSON.stringify(role)} }
@@ -51,7 +55,7 @@ async function fixture(page, role = 'admin', realSession = true) {
     export const deleteDoc = async () => {}, signOut = async () => {};
     export const writeBatch = () => ({ update() {}, commit: async () => {} });
     export const ref = (_, fullPath) => ({ fullPath });
-    export const uploadBytesResumable = ref => ({ snapshot: { ref }, on: (_, progress, fail, done) => queueMicrotask(done) });
+    export const uploadBytesResumable = (ref, file) => { (window.__fixtureUploads ||= []).push({ path: ref.fullPath, name: file.name, type: file.type }); return { snapshot: { ref }, on: (_, progress, fail, done) => queueMicrotask(done) }; };
     export const uploadBytes = async () => ({}), getDownloadURL = async () => '/favicon.ico';
     export const listAll = async () => ({ items: [] }), deleteObject = async () => {};
   `)));
@@ -322,4 +326,43 @@ test('digital print guide loads once, sanitizes stored images before display, an
   await expect(guide.locator('img[src="/favicon.ico"]')).toHaveCount(1);
   expect(await page.evaluate(() => (window.__fixtureReads || []).filter(path => path === 'settings/print').length)).toBe(1);
   expect(await page.evaluate(() => !!window.__guideXss)).toBe(false);
+});
+
+
+test('administrator design files reach the real quote upload handler', async ({ page }) => {
+  await fixture(page);
+  await page.addInitScript(() => { window.__fixtureQuotes = [{ id: 'fixture-order', userId: 'customer', isGuest: false, status: '접수완료', productType: 'print', orderName: '파일 검증 접수', totalPrice: 10000, createdAt: { toDate: () => new Date() } }]; });
+  await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('.view-details-btn[data-id="fixture-order"]:visible').first().click();
+  const input = page.locator('#file-input');
+  const errors = []; page.on('pageerror', error => errors.push(error.message));
+  for (const [name, mimeType] of [['design.ai','application/illustrator'], ['design.psd','application/vnd.adobe.photoshop'], ['book.hwpx','application/vnd.hancom.hwpx']]) {
+    await input.setInputFiles({ name, mimeType, buffer: Buffer.from('design') });
+    await expect(page.locator('#upload-file-name')).toContainText('업로드 완료');
+  }
+  expect(await page.evaluate(() => (window.__fixtureUploads || []).map(file => file.name))).toEqual(['design.ai','design.psd','book.hwpx']);
+  expect(await page.evaluate(() => (window.__fixtureUploads || []).every(file => file.path.startsWith('quotes/fixture-order/admin/')))).toBe(true);
+  await input.setInputFiles([]);
+  expect(errors).toEqual([]);
+});
+
+test('customer design files and cancelled selections use the real quote upload handler', async ({ page }) => {
+  await fixture(page, 'user', false);
+  await page.addInitScript(() => {
+    localStorage.removeItem('userRole'); sessionStorage.removeItem('userRole');
+    window.__fixtureQuotes = [{ id: 'fixture-order', userId: 'fixture-admin', isGuest: false, status: '접수완료', productType: 'print', orderName: '고객 파일 검증', totalPrice: 10000, createdAt: { toDate: () => new Date() } }];
+  });
+  const errors = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/mypage.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('.view-details-btn[data-id="fixture-order"]:visible').first().click();
+  const input = page.locator('#file-input');
+  for (const [name, mimeType] of [['design.ai','application/illustrator'], ['design.psd','application/vnd.adobe.photoshop'], ['book.hwpx','application/vnd.hancom.hwpx']]) {
+    await input.setInputFiles({ name, mimeType, buffer: Buffer.from('design') });
+    await expect.poll(() => page.evaluate(() => (window.__fixtureUploads || []).at(-1)?.name)).toBe(name);
+    await expect(page.locator('#chat-form button[type="submit"]')).toBeEnabled();
+  }
+  expect(await page.evaluate(() => (window.__fixtureUploads || []).map(file => file.name))).toEqual(['design.ai','design.psd','book.hwpx']);
+  expect(await page.evaluate(() => (window.__fixtureUploads || []).every(file => file.path.startsWith('quotes/fixture-order/')))).toBe(true);
+  await input.setInputFiles([]);
+  expect(errors).toEqual([]);
 });

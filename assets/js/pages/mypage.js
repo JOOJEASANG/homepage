@@ -22,6 +22,7 @@ import { app, auth, db, storage,
 import { initHeader } from "../header.js";
 import "../overlays.js";
 import "../session.js";
+import { validateUploadFiles } from "../file-upload-policy.js";
 
 // 페이지 로드 시 공통 헤더 렌더링
 // NOTE: mypage.js는 top-level await(아래) 및 session.js(모듈 그래프에 top-level await)를
@@ -1118,35 +1119,13 @@ const cancelState = quote.cancelRequestState || (quote.status === '취소요청'
 
         function handleFileSelection(event) {
             const file = event.target.files[0];
-            // 업로드 제한(규칙과 동일): 300MB / 주요 문서·이미지·압축 파일만 허용
-            const MAX_UPLOAD_BYTES = 300 * 1024 * 1024;
-            const ext = (file?.name?.split('.').pop() || '').toLowerCase();
-            const allowedExt = ['pdf','jpg','jpeg','png','gif','webp','zip','doc','docx','xls','xlsx','ppt','pptx','hwp','heic'];
-            if (file.size > MAX_UPLOAD_BYTES) {
-                showToast(`파일 용량이 너무 큽니다. 최대 ${Math.floor(MAX_UPLOAD_BYTES/1024/1024)}MB까지 업로드 가능합니다.`, 'error');
-                event.target.value = '';
-                resetUploadUI && resetUploadUI();
-                return;
-            }
-            // 일부 환경에서 file.type이 비어있는 경우가 있어 확장자 기준도 함께 체크
-            if (file.type && !(file.type.startsWith('image/') || ['application/pdf','application/zip','application/x-zip-compressed',
-                'application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.presentationml.presentation',
-                'application/octet-stream'].includes(file.type))) {
-                showToast('허용되지 않은 파일 형식입니다. (pdf/이미지/zip/docx/xlsx/pptx 등)', 'error');
-                event.target.value = '';
-                resetUploadUI && resetUploadUI();
-                return;
-            }
-            if (!file.type && ext && !allowedExt.includes(ext)) {
-                showToast('허용되지 않은 파일 확장자입니다. (pdf/이미지/zip/docx/xlsx/pptx 등)', 'error');
-                event.target.value = '';
-                resetUploadUI && resetUploadUI();
-                return;
-            }
-
             if (!file || !currentQuoteId) return;
+            const validation = validateUploadFiles([file]);
+            if (!validation.ok) {
+                showToast(validation.message, 'error');
+                resetUploadUI();
+                return;
+            }
             DOMElements.uploadFileName.textContent = file.name;
             DOMElements.uploadProgressContainer.classList.remove('hidden');
             DOMElements.uploadProgressBar.style.width = '0%';

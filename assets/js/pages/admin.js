@@ -20,6 +20,7 @@ import { app, auth, db, storage, onAuthStateChanged, signOut,
 } from "../firebase.js";
 import { initHeader } from "../header.js";
 import "../session.js";
+import { validateUploadFiles } from "../file-upload-policy.js";
 import { activateAdminWorkspace, initAdminWorkspaceNavigation } from "./admin/price-workspace.js";
 
 // 페이지 로드 시 헤더 렌더링 (관리자 페이지는 활성 메뉴 없음)
@@ -1813,36 +1814,15 @@ try {
         document.getElementById('attach-file-btn')?.addEventListener('click', () => document.getElementById('file-input').click());
         document.getElementById('file-input')?.addEventListener('change', async (e) => {
             const file = e.target.files[0];
-            // 업로드 제한(규칙과 동일): 300MB / 주요 문서·이미지·압축 파일만 허용
-            const MAX_UPLOAD_BYTES = 300 * 1024 * 1024;
-            const ext = (file?.name?.split('.').pop() || '').toLowerCase();
-            const allowedExt = ['pdf','jpg','jpeg','png','gif','webp','zip','doc','docx','xls','xlsx','ppt','pptx','hwp','heic'];
-            if (file.size > MAX_UPLOAD_BYTES) {
-                showToast(`파일 용량이 너무 큽니다. 최대 ${Math.floor(MAX_UPLOAD_BYTES/1024/1024)}MB까지 업로드 가능합니다.`, 'error');
-                e.target.value = '';
-                container.classList.add('hidden');
-                return;
-            }
-            if (file.type && !(file.type.startsWith('image/') || ['application/pdf','application/zip','application/x-zip-compressed',
-                'application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.presentationml.presentation',
-                'application/octet-stream'].includes(file.type))) {
-                showToast('허용되지 않은 파일 형식입니다. (pdf/이미지/zip/docx/xlsx/pptx 등)', 'error');
-                e.target.value = '';
-                container.classList.add('hidden');
-                return;
-            }
-            if (!file.type && ext && !allowedExt.includes(ext)) {
-                showToast('허용되지 않은 파일 확장자입니다. (pdf/이미지/zip/docx/xlsx/pptx 등)', 'error');
-                e.target.value = '';
-                container.classList.add('hidden');
-                return;
-            }
-
-            if(!file) return;
-            
+            if (!file || !currentQuoteId) return;
             const container = document.getElementById('upload-progress-container');
+            const validation = validateUploadFiles([file]);
+            if (!validation.ok) {
+                showToast(validation.message, 'error');
+                e.target.value = '';
+                container.classList.add('hidden');
+                return;
+            }
             const nameEl = document.getElementById('upload-file-name');
             const bar = document.getElementById('upload-progress-bar');
             
