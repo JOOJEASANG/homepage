@@ -17,7 +17,18 @@
       "assets/css/input.css",
       "tailwind.config.js",
       "package.json",
-      "package-lock.json"
+      "package-lock.json",
+      ".github/**",
+      "docs/**",
+      "scripts/**",
+      "tests/**",
+      "test-results/**",
+      "playwright-report/**",
+      "playwright.config.mjs",
+      "README.md",
+      "assets/css/tailwind-compat.css",
+      "**/*.bundle",
+      "**/*.zip"
     ],
     "rewrites": [
       {

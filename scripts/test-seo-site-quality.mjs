@@ -11,6 +11,10 @@ const canonicalOrigin = 'https://www.g-print.co.kr';
 const robots = read('robots.txt');
 const sitemap = read('sitemap.xml');
 const hosting = JSON.parse(read('firebase.json'));
+// Keep development fixtures, CI files and backups out of the public hosting root.
+for (const pattern of ['.github/**', 'docs/**', 'scripts/**', 'tests/**', 'test-results/**', 'playwright-report/**', 'functions/**', '**/*.bundle', '**/*.zip']) {
+  assert.ok(hosting.hosting.ignore.includes(pattern), `hosting must exclude ${pattern}`);
+}
 const session = read('assets/js/session.js');
 const aiApi = read('functions/ai-api.js');
 const seo = await import(pathToFileURL(path.join(root, 'assets/js/seo-runtime.js')).href + `?t=${Date.now()}`);

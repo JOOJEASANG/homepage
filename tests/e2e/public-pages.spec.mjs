@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 const PAGES = [
   ['/', '그린오피스'],
   ['/quote-book.html', '책자'],
-  ['/quote-print.html', '인쇄'],
+  ['/quote-print.html', /디지털\s*(?:인쇄|출력)/],
   ['/qna.html', '고객'],
   ['/login.html', '주문 조회'],
 ];
@@ -61,7 +61,8 @@ async function assertSharedHeaderNavigation(page) {
 
   const expectedLinks = [
     ['quote-book.html', '책자/제본'],
-    ['quote-print.html', '디지털인쇄'],
+    // The fallback header uses 인쇄; the existing runtime normalizes it to 출력.
+    ['quote-print.html', /디지털\s*(?:인쇄|출력)/],
     ['qna.html', '고객센터'],
   ];
   const desktop = (page.viewportSize()?.width || 0) >= 1024;
@@ -160,7 +161,8 @@ test.describe('public page browser smoke', () => {
       const response = await page.goto(url, { waitUntil: 'domcontentloaded' });
       expect(response?.ok(), `${url} should return 2xx`).toBeTruthy();
       await assertDocumentBasics(page);
-      expect((await page.title()).toLowerCase()).toContain(titleHint.toLowerCase());
+      if (titleHint instanceof RegExp) await expect(page).toHaveTitle(titleHint);
+      else expect((await page.title()).toLowerCase()).toContain(titleHint.toLowerCase());
       await page.waitForTimeout(750);
       expect(fatalErrors).toEqual([]);
     });

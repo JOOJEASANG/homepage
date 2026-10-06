@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-ui-refresh="1" data-page="maintenance">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,7 +7,7 @@
     <title>잠시 점검 중입니다 | 그린오피스</title>
     <meta name="description" content="홈페이지 점검 중입니다. 잠시 후 다시 이용해 주세요.">
     <link rel="icon" href="favicon.ico" />
-    <link rel="stylesheet" href="assets/css/tailwind.css">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20261006">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -30,8 +30,10 @@
         }
         .animate-float { animation: float 6s ease-in-out infinite; }
     </style>
+    <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261002">
+    <script src="assets/js/responsive-ui.js?v=20261002" defer></script>
 </head>
-<body class="relative overflow-hidden">
+<body data-page="maintenance" class="relative overflow-hidden">
     <div class="glow w-[480px] h-[480px] bg-emerald-500/15 top-[-120px] left-[-80px]"></div>
     <div class="glow w-[360px] h-[360px] bg-teal-400/10 bottom-[-60px] right-[-60px]"></div>
 

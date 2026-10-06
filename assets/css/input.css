@@ -1,3 +1,7 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Keep utilities unlayered so existing page styles retain their cascade order. */
+@import "tailwindcss/theme.css";
+@import "./tailwind-compat.css";
+@import "tailwindcss/utilities.css" source(none);
+@config "../../tailwind.config.js";
+@source "../../*.html";
+@source "../js";
