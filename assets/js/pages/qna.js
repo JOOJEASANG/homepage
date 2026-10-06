@@ -549,7 +549,7 @@ document.addEventListener('DOMContentLoaded', () => { try { syncQnaVisibilityUI(
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>등록 중...';
 
             try {
-                const pwHash = pw ? await sha256(pw) : null;
+                const pwHash = isSecret && pw ? await sha256(pw) : null;
                 await addDoc(collection(db, "qna"), {
                     name, pwHash, title, body,
                     isSecret: !!isSecret,

@@ -68,7 +68,7 @@ export const storage = getStorage(app);
 // ── 관리자 공사중/점검모드 토글 보정 ─────────────────────────
 // admin.html에는 버튼이 있으나 저장 로직이 누락/불일치될 수 있어 공통 Firebase 모듈에서 안전하게 연결합니다.
 function __isAdminPageForMaintenance() {
-  try { return ((location.pathname || '').split('/').pop() || '') === 'admin.html'; }
+  try { return ['admin', 'admin.html'].includes((location.pathname || '').split('/').pop() || ''); }
   catch (e) { return false; }
 }
 
@@ -234,7 +234,7 @@ try {
 // ── 관리자 연락처 전체 표시 보정 ─────────────────────────────
 // admin.js에는 비회원 연락처 뒤 4자리를 숨기는 레거시 로직이 있어, 관리자 화면에서는 원본 번호로 다시 표시합니다.
 function __isAdminPageForContactUnmask() {
-  try { return ((location.pathname || '').split('/').pop() || '') === 'admin.html'; }
+  try { return ['admin', 'admin.html'].includes((location.pathname || '').split('/').pop() || ''); }
   catch (e) { return false; }
 }
 
@@ -370,7 +370,7 @@ try { __bindAdminContactUnmask(); } catch (e) {}
 function __fixAdminSearchBoxPadding() {
   try {
     const current = ((location.pathname || '').split('/').pop() || '');
-    if (current !== 'admin.html') return;
+    if (!['admin', 'admin.html'].includes(current)) return;
     if (document.getElementById('admin-searchbox-padding-fix')) return;
     const style = document.createElement('style');
     style.id = 'admin-searchbox-padding-fix';

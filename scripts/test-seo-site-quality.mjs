@@ -12,7 +12,7 @@ const robots = read('robots.txt');
 const sitemap = read('sitemap.xml');
 const hosting = JSON.parse(read('firebase.json'));
 // Keep development fixtures, CI files and backups out of the public hosting root.
-for (const pattern of ['.github/**', 'docs/**', 'scripts/**', 'tests/**', 'test-results/**', 'playwright-report/**', 'functions/**', '**/*.bundle', '**/*.zip']) {
+for (const pattern of ['.github/**', 'docs/**', 'scripts/**', 'tests/**', 'test-results/**', 'playwright-report/**', 'functions/**', '**/*.bundle', '**/*.zip', 'firestore.rules', 'storage.rules', 'firebase.emulators.json']) {
   assert.ok(hosting.hosting.ignore.includes(pattern), `hosting must exclude ${pattern}`);
 }
 const session = read('assets/js/session.js');
@@ -25,7 +25,7 @@ for (const page of ['/', '/quote-book.html', '/quote-print.html', '/qna.html', '
   assert.ok(sitemap.includes(`<loc>${canonicalOrigin}${page === '/' ? '/' : page}</loc>`), `sitemap missing ${page}`);
 }
 
-for (const privatePath of ['/admin', '/admin.html', '/admin-ai-chat.html', '/mypage.html', '/login.html', '/maintenance.html']) {
+for (const privatePath of ['/admin', '/admin.html', '/admin-ai-chat.html', '/price-editor.html', '/print-price-editor.html', '/mypage.html', '/login.html', '/maintenance.html']) {
   assert.ok(robots.includes(`Disallow: ${privatePath}`), `robots must disallow ${privatePath}`);
 }
 assert.ok(robots.includes(`Sitemap: ${canonicalOrigin}/sitemap.xml`));

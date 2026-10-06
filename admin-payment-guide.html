@@ -55,18 +55,26 @@
   </main>
   <script type="module">
     import { auth, db, onAuthStateChanged, doc, getDoc, setDoc, serverTimestamp } from './assets/js/firebase.js';
-    const $=id=>document.getElementById(id); const ref=doc(db,'settings','paymentGuide');
+    const $=id=>document.getElementById(id); const ref=doc(db,'settings','paymentGuide'); let authRevision=0;
     const defaults={enabled:true,bankName:'',accountNumber:'',accountHolder:'그린오피스',depositNotice:'입금 확인 후 작업이 진행됩니다.\n입금자명이 주문자명과 다를 경우 관리자 확인이 지연될 수 있습니다.',refundPolicy:'작업 시작 전에는 취소가 가능할 수 있습니다.\n파일 확인 및 출력/제본 작업이 시작된 이후에는 취소 또는 환불이 제한될 수 있습니다.\n파일 자체 오류로 인한 출력 결과는 환불이 제한될 수 있습니다.',usageGuide:'파일은 PDF 접수를 권장합니다.\n출력/제본 가능 여부와 최종 금액은 파일 확인 후 확정됩니다.\n급한 작업은 전화 또는 관리자 확인을 권장합니다.',processGuide:'접수완료 → 파일확인 → 결제확인 → 작업진행 → 완료 순서로 진행됩니다.\n대량 작업은 일정 확인 후 진행됩니다.'};
     function setStatus(m,t='info'){const c=t==='error'?'border-red-200 bg-red-50 text-red-700':t==='success'?'border-emerald-200 bg-emerald-50 text-emerald-700':'border-slate-200 bg-white text-slate-500';$('status').className='card px-4 py-3 text-sm '+c;$('status').textContent=m;}
-    function roleCacheAdmin(){try{return sessionStorage.getItem('userRole')==='admin'||localStorage.getItem('userRole')==='admin';}catch(e){return false;}}
-    async function isAdmin(user){try{if(roleCacheAdmin())return true;if(!user||user.isAnonymous)return false;const s=await getDoc(doc(db,'users',user.uid));const ok=s.exists()&&s.data()?.role==='admin';if(ok)try{sessionStorage.setItem('userRole','admin')}catch(e){}return ok;}catch(e){return roleCacheAdmin();}}
+    async function isAdmin(user){try{if(!user||user.isAnonymous)return false;const s=await getDoc(doc(db,'users',user.uid));return s.exists()&&s.data()?.role==='admin';}catch(e){return false;}}
     function fill(d){const x={...defaults,...(d||{})};['bankName','accountNumber','accountHolder','depositNotice','refundPolicy','usageGuide','processGuide'].forEach(id=>$(id).value=x[id]||'');$('enabled').checked=x.enabled!==false;preview();}
     function collect(){const o={enabled:$('enabled').checked};['bankName','accountNumber','accountHolder','depositNotice','refundPolicy','usageGuide','processGuide'].forEach(id=>o[id]=($(id).value||'').trim());return o;}
     function preview(){const o=collect();$('pvBank').textContent=o.bankName||'-';$('pvAccount').textContent=o.accountNumber||'-';$('pvHolder').textContent=o.accountHolder||'-';$('pvNotice').textContent=o.depositNotice||'';}
     $('defaultBtn').onclick=()=>fill(defaults); document.getElementById('form').addEventListener('input',preview); document.getElementById('form').addEventListener('change',preview);
     document.getElementById('form').onsubmit=async e=>{e.preventDefault();try{$('saveBtn').disabled=true;await setDoc(ref,{...collect(),updatedAt:serverTimestamp()},{merge:true});setStatus('결제안내 저장 완료','success');}catch(err){setStatus('저장 실패: '+(err.message||err),'error');}finally{$('saveBtn').disabled=false;}};
-    onAuthStateChanged(auth,async user=>{if(!await isAdmin(user)){setStatus('관리자 로그인이 필요합니다.','error');return;}setStatus('관리자 확인 완료. 결제안내를 수정할 수 있습니다.','success');$('form').classList.remove('hidden');const s=await getDoc(ref).catch(()=>null);fill(s&&s.exists()?s.data():defaults);});
-    setTimeout(async()=>{if(roleCacheAdmin()&&$('form').classList.contains('hidden')){setStatus('관리자 확인 완료. 결제안내를 수정할 수 있습니다.','success');$('form').classList.remove('hidden');const s=await getDoc(ref).catch(()=>null);fill(s&&s.exists()?s.data():defaults);}},700);
+    onAuthStateChanged(auth,async user=>{
+      const revision=++authRevision; $('form').classList.add('hidden');
+      const allowed=await isAdmin(user);
+      if(revision!==authRevision)return;
+      if(!allowed){setStatus('관리자 로그인이 필요합니다.','error');return;}
+      const snapshot=await getDoc(ref).catch(()=>null);
+      if(revision!==authRevision || auth.currentUser?.uid!==user?.uid)return;
+      fill(snapshot&&snapshot.exists()?snapshot.data():defaults);
+      setStatus('관리자 확인 완료. 결제안내를 수정할 수 있습니다.','success');
+      $('form').classList.remove('hidden');
+    });
   </script>
 </body>
 </html>

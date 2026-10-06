@@ -7,4 +7,7 @@ Disallow: /mypage.html
 Disallow: /login.html
 Disallow: /maintenance.html
 
+Disallow: /price-editor.html
+Disallow: /print-price-editor.html
+
 Sitemap: https://www.g-print.co.kr/sitemap.xml

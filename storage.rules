@@ -45,6 +45,14 @@ service firebase.storage {
           || request.resource.contentType == 'application/vnd.ms-powerpoint'
           || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
           || request.resource.contentType == 'application/postscript'
+          || request.resource.contentType == 'application/illustrator'
+          || request.resource.contentType == 'application/x-photoshop'
+          || request.resource.contentType == 'application/vnd.adobe.photoshop'
+          || request.resource.contentType == 'application/x-indesign'
+          || request.resource.contentType == 'application/x-hwp'
+          || request.resource.contentType == 'application/haansofthwp'
+          || request.resource.contentType == 'application/vnd.hancom.hwp'
+          || request.resource.contentType == 'application/vnd.hancom.hwpx'
           || request.resource.contentType == 'application/octet-stream'
         );
     }

@@ -37,7 +37,8 @@ const PUBLIC_PAGES = {
 };
 
 const PRIVATE_PAGES = new Set([
-  '/admin', '/admin.html', '/admin-ai-chat.html', '/mypage.html', '/login.html', '/maintenance.html',
+  '/admin', '/admin.html', '/admin-ai-chat.html', '/admin-faq.html', '/admin-payment-guide.html',
+  '/admin-work-guides-seed.html', '/price-editor.html', '/print-price-editor.html', '/404.html', '/mypage.html', '/login.html', '/maintenance.html',
 ]);
 
 function ensureMeta(selector, attrs) {

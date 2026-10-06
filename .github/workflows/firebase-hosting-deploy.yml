@@ -35,11 +35,11 @@ jobs:
 
       - name: Syntax check Functions entrypoint
         working-directory: functions
-        run: node --check index.js && node --check guest-access.js
+        run: node --check main.js && node --check qna-api.js && node --check index.js && node --check guest-access.js
 
       - name: Load Functions module
         working-directory: functions
-        run: node -e "const m=require('./index.js'); if(!m.aiChat||!m.aiChatConfig||!m.guestQuoteAccess) process.exit(1); console.log('functions module load passed')"
+        run: node -e "const m=require('./main.js'); if(!m.qnaSecure||!m.guestQuoteAccess||!m.aiChat||!m.aiChatConfig||!m.guestQuoteAccess) process.exit(1); console.log('functions module load passed')"
 
   build_and_deploy:
     needs: validate_functions

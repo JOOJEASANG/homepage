@@ -1,6 +1,7 @@
 import { app, auth, db, storage, getApps, getApp, onAuthStateChanged, collection, addDoc, getDocs, query, orderBy, doc, updateDoc, deleteDoc, serverTimestamp, getDoc, writeBatch, ref as storageRef, uploadBytes, getDownloadURL, listAll, deleteObject } from "../firebase.js";
 import { initHeader } from "../header.js";
 import "../session.js";
+import { sanitizeRichText } from "../rich-text-sanitizer.js";
 
 // If opened inside a header layer (iframe), don't render the fixed header.
 const __WG_WORKSPACE__ = document.body.dataset.page === 'admin';
@@ -267,11 +268,11 @@ if (document.readyState === "loading") {
                 <div class="flex items-center gap-3 overflow-hidden w-full pointer-events-none">
                     ${isAdmin ? '<div class="handle pointer-events-auto cursor-grab px-1 text-slate-300 hover:text-slate-600"><i class="fas fa-grip-vertical"></i></div>' : ''}
                     <span class="text-[14px] font-semibold truncate flex-1">
-                        ${g.title}
                     </span>
                 </div>
                 ${isActive ? '<i class="fas fa-chevron-right text-xs text-brand-600 shrink-0 ml-2"></i>' : ''}
             `;
+            div.querySelector('span').textContent = g.title || '';
             guideListEl.appendChild(div);
         });
 
@@ -332,7 +333,7 @@ if (document.readyState === "loading") {
         document.getElementById('mobileHeaderTitle').textContent = g.title;
         
         const viewContent = document.getElementById('viewContent');
-        if (g.contentHtml) viewContent.innerHTML = g.contentHtml;
+        if (g.contentHtml) viewContent.innerHTML = sanitizeRichText(g.contentHtml);
         else viewContent.textContent = g.content || '';
 
         const adminActions = document.getElementById('adminContentAction');
@@ -362,7 +363,7 @@ if (document.readyState === "loading") {
         document.getElementById('editGuideId').value = g.id;
         document.getElementById('editTitle').value = g.title;
         const editor = document.getElementById('wg-content-editor');
-        if(g.contentHtml) editor.innerHTML = g.contentHtml;
+        if(g.contentHtml) editor.innerHTML = sanitizeRichText(g.contentHtml);
         else editor.innerText = g.content || '';
         document.getElementById('guideViewer').classList.add('hidden');
         const editorSec = document.getElementById('guideEditor');
@@ -384,7 +385,7 @@ if (document.readyState === "loading") {
         const id = document.getElementById('editGuideId').value;
         const title = document.getElementById('editTitle').value.trim();
         const editor = document.getElementById('wg-content-editor');
-        const contentHtml = editor.innerHTML;
+        const contentHtml = sanitizeRichText(editor.innerHTML);
         const contentText = editor.innerText;
 
         if (!title) return alert('제목을 입력해주세요.');

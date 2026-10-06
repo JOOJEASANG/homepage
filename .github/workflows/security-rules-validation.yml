@@ -7,6 +7,8 @@ on:
       - 'firestore.rules'
       - 'storage.rules'
       - 'firebase.json'
+      - 'firebase.emulators.json'
+      - 'tests/security/**'
       - '.github/workflows/security-rules-validation.yml'
 
 permissions:
@@ -24,6 +26,8 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
-      - name: Parse Firestore and Storage rules with Firebase emulators
+      - name: Install security test dependencies
+        run: npm ci --prefix tests/security
+      - name: Test Firestore and Storage authorization
         shell: bash
-        run: npx --yes firebase-tools@latest emulators:exec --only firestore,storage --project demo-greenoffice "echo Firebase rules parsed"
+        run: npx --yes firebase-tools@latest emulators:exec --config firebase.emulators.json --only firestore,storage --project demo-greenoffice "npm test --prefix tests/security"

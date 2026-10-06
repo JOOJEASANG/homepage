@@ -102,17 +102,10 @@ service cloud.firestore {
     }
 
     function isGuestClaimToMember() {
-      return signedIn()
-        && resource.data.isGuest == true
-        && resource.data.userId == 'guest'
+      return isGuestQuoteOwnerStrict(resource)
         && request.resource.data.isGuest == false
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.guestLookupKey == resource.data.guestLookupKey
-        && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.productType == resource.data.productType
-        && (!('guestPwLast4' in resource.data) || request.resource.data.guestPwLast4 == resource.data.guestPwLast4)
-        && (!('guestNameNorm' in resource.data) || request.resource.data.guestNameNorm == resource.data.guestNameNorm)
-        && (!('guestUid' in resource.data) || request.resource.data.guestUid == resource.data.guestUid);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isGuest', 'userId', 'claimedAt', 'claimedFrom']);
     }
 
     function memberImmutableOk() {
@@ -133,17 +126,17 @@ service cloud.firestore {
     }
 
     function customerDidNotChangeAdminFields() {
-      return !request.resource.data.diff(resource.data).changedKeys().hasAny([
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
         'adminFinalPrice', 'adminPrice', 'confirmedPrice', 'paymentStatus',
         'paidAt', 'adminMemo', 'internalMemo', 'approvedBy', 'completedBy',
         'cancelApprovedAt', 'cancelRejectedAt', 'cancelHandledAt'
       ])
-      && (!request.resource.data.diff(resource.data).changedKeys().hasAny(['lastEditedBy'])
+      && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastEditedBy'])
           || request.resource.data.lastEditedBy == 'customer');
     }
 
     function customerCancelRequestIsSafe() {
-      return !request.resource.data.diff(resource.data).changedKeys().hasAny(['cancelRequestState'])
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['cancelRequestState'])
         || (
           resource.data.status == '접수완료'
           && request.resource.data.status == resource.data.status
@@ -159,7 +152,7 @@ service cloud.firestore {
         && request.resource.data.isGuest == resource.data.isGuest
         && (!('guestUid' in resource.data) || request.resource.data.guestUid == resource.data.guestUid)
         && (!('guestLookupKey' in resource.data) || request.resource.data.guestLookupKey == resource.data.guestLookupKey)
-        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'lastMessage', 'lastMessageAt', 'updatedAt',
           'unreadByAdmin', 'unreadByCustomer',
           'hasUnreadAdminMessage', 'hasUnreadCustomerMessage'
@@ -190,6 +183,7 @@ service cloud.firestore {
         );
 
       allow update: if isAdmin()
+        || isGuestClaimToMember()
         || (
           isMemberQuoteOwner(resource)
           && isEditableByCustomer()
@@ -204,7 +198,6 @@ service cloud.firestore {
           && customerDidNotChangeAdminFields()
           && customerCancelRequestIsSafe()
         )
-        || isGuestClaimToMember()
         || ((isMemberQuoteOwner(resource) || isGuestOwnerUpdate()) && isChatMetaOnlyUpdate());
 
       allow delete: if isAdmin();
@@ -223,7 +216,7 @@ service cloud.firestore {
 
       function isCustomerReadReceiptUpdate() {
         return isCustomerForThisQuote()
-          && request.resource.data.diff(resource.data).changedKeys().hasOnly(['readByCustomer', 'readByCustomerAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readByCustomer', 'readByCustomerAt'])
           && request.resource.data.readByCustomer == true;
       }
 
@@ -233,7 +226,7 @@ service cloud.firestore {
           && resource.data.isProof == true
           && request.resource.data.sender == resource.data.sender
           && request.resource.data.isProof == resource.data.isProof
-          && request.resource.data.diff(resource.data).changedKeys().hasOnly(['proofStatus', 'rejectionReason'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['proofStatus', 'rejectionReason'])
           && request.resource.data.proofStatus in ['approved', 'rejected']
           && (!('rejectionReason' in request.resource.data) || request.resource.data.rejectionReason is string);
       }
@@ -298,11 +291,23 @@ service cloud.firestore {
 
     match /qna/{id} {
       allow read: if isAdmin() || isPublicQna(resource);
-      allow create: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['name', 'pwHash', 'title', 'body', 'isSecret', 'createdAt', 'status', 'answer', 'answeredAt', 'ownerUid'])
+        && request.resource.data.name is string
+        && request.resource.data.title is string
+        && request.resource.data.body is string
+        && request.resource.data.isSecret is bool
+        && request.resource.data.status == 'open'
+        && request.resource.data.answer == ''
+        && request.resource.data.answeredAt == null
+        && (!('ownerUid' in request.resource.data) || request.resource.data.ownerUid == request.auth.uid)
+        && (request.resource.data.isSecret == true || !('pwHash' in request.resource.data) || request.resource.data.pwHash == null);
       allow update: if isAdmin()
         || (
           signedIn()
-          && request.resource.data.diff(resource.data).changedKeys().hasOnly(['answerReadByCustomer', 'answerReadAt'])
+          && ('ownerUid' in resource.data)
+          && resource.data.ownerUid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answerReadByCustomer', 'answerReadAt'])
           && request.resource.data.answerReadByCustomer == true
         );
       allow delete: if isAdmin();

@@ -6,7 +6,7 @@ const pages = [
 
 function run() {
   const file = (location.pathname || '').split('/').pop() || '';
-  if (file !== 'admin.html') return;
+  if (!['admin', 'admin.html'].includes(file)) return;
   const home = document.getElementById('homepage-management-btn');
   const maintenance = document.getElementById('maintenance-mode-btn');
   const menu = home?.closest('.nav-dropdown-menu') || maintenance?.closest('.nav-dropdown-menu');

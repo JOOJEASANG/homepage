@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 
 // Exercise the real admin and guide modules without touching customer or site data.
 async function fixture(page, role = 'admin', realSession = true) {
@@ -13,7 +14,7 @@ async function fixture(page, role = 'admin', realSession = true) {
   await page.route('**/sortable.esm.js', route => route.fulfill(js('export default class Sortable { destroy() {} }')));
   await page.route('https://www.gstatic.com/firebasejs/10.12.2/firebase-*.js', route => route.fulfill(js(`
     export const app = {}, db = {}, storage = {}, browserLocalPersistence = {};
-    export const auth = { currentUser: { uid: 'fixture-admin' } };
+    export const auth = { currentUser: ${role === null ? 'null' : "{ uid: 'fixture-admin' }"} };
     export const setPersistence = async () => {};
     export const initializeApp = () => app, getAuth = () => auth;
     export const initializeAuth = () => { window.__fixtureAuthInitializations = (window.__fixtureAuthInitializations || 0) + 1; return auth; };
@@ -38,6 +39,7 @@ async function fixture(page, role = 'admin', realSession = true) {
       return { exists: () => data !== null, data: () => data || {} };
     };
     export const onAuthStateChanged = (_, callback) => {
+      (window.__fixtureAuthListeners ||= []).push(callback);
       queueMicrotask(() => callback(auth.currentUser)); return () => {};
     };
     function write(path, data, options) { (window.__fixtureWrites ||= []).push({ path, data, options }); }
@@ -233,4 +235,74 @@ test('customer center editors stay in the workspace and preserve and save all th
   await expect(ai.locator('header a[href="index.html"]')).toHaveAttribute('target', '_blank');
   await expect(page).toHaveURL(/admin\.html$/);
   await expect(page.locator('#main-content')).toBeVisible();
+});
+
+for (const [path, form] of [['admin-faq.html', '#faqFormWrap'], ['admin-payment-guide.html', '#form'], ['admin-ai-chat.html', '#aiForm']]) {
+  for (const role of ['user', null]) {
+    test(`${path} rejects cached admin roles with ${role || 'no authenticated user'}`, async ({ page }) => {
+      await fixture(page, role, false);
+      await page.goto('/' + path, { waitUntil: 'domcontentloaded' });
+      await expect(page.locator('#status')).toContainText('관리자 로그인이 필요합니다');
+      await expect(page.locator(form)).toBeHidden();
+      expect(await page.evaluate(() => (window.__fixtureWrites || []).length)).toBe(0);
+    });
+  }
+  test(`${path} closes the editor when authentication is lost`, async ({ page }) => {
+    await fixture(page, 'admin', false);
+    await page.goto('/' + path, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator(form)).toBeVisible();
+    await page.evaluate(async () => { const { auth } = await import('/assets/js/firebase.js'); auth.currentUser = null; for (const callback of window.__fixtureAuthListeners || []) callback(null); });
+    await expect(page.locator(form)).toBeHidden();
+  });
+}
+
+test('admin alias exposes customer center menus and the guide workspace', async ({ page }) => {
+  await fixture(page);
+  await page.route('**/admin', route => route.fulfill({ contentType: 'text/html', body: readFileSync(new URL('../../admin.html', import.meta.url), 'utf8') }));
+  await page.goto('/admin', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#main-content')).toBeVisible();
+  await expect(page.locator('#cc-pay-btn')).toHaveCount(1);
+  await choose(page, 'cc-pay-btn');
+  await expect(page.frameLocator('#payment-management-frame').locator('#form')).toBeVisible();
+  await choose(page, 'work-guide-management-btn');
+  await expect(page.locator('#work-guide-management-content #workGuideModal')).toBeVisible();
+  await expect(page).toHaveURL(/\/admin$/);
+});
+
+test('stored guide formatting survives sanitization while executable markup is removed', async ({ page }) => {
+  await fixture(page, 'user', false);
+  await page.goto('/work-guide.html?embed=1', { waitUntil: 'domcontentloaded' });
+  const result = await page.evaluate(async () => {
+    const { sanitizeRichText } = await import('/assets/js/rich-text-sanitizer.js');
+    const clean = sanitizeRichText('<p style="color: red; font-size: 18px; position: fixed" onclick="window.__xss=1"><b>안내</b><img src="/favicon.ico" onerror="window.__xss=1"><a href="javascript:alert(1)">링크</a><script>window.__xss=1</script><iframe srcdoc="bad"></iframe></p>');
+    const target = document.createElement('div'); target.innerHTML = clean; document.body.append(target);
+    return { clean, text: target.textContent, color: target.querySelector('p').style.color, image: target.querySelector('img')?.getAttribute('src'), executed: !!window.__xss };
+  });
+  expect(result.text).toBe('안내링크');
+  expect(result.color).toBe('red');
+  expect(result.image).toBe('/favicon.ico');
+  expect(result.clean).not.toMatch(/onerror|onclick|javascript:|<script|<iframe|position:/i);
+  expect(result.executed).toBe(false);
+});
+
+
+test('administrator uploads use the same design-file and size policy as customer uploads', async ({ page }) => {
+  await openAdmin(page);
+  const results = await page.evaluate(async () => {
+    const { validateUploadFiles, MAX_FILE_BYTES, MAX_TOTAL_BYTES } = await import('/assets/js/file-upload-policy.js');
+    const checks = {
+      design: validateUploadFiles([{ name: 'print.AI', size: 100 }, { name: 'image.psd', size: 100 }, { name: 'book.hwpx', size: 100 }]).ok,
+      executable: validateUploadFiles([{ name: 'print.exe', size: 100 }]).ok,
+      large: validateUploadFiles([{ name: 'print.pdf', size: MAX_FILE_BYTES + 1 }]).ok,
+      batch: validateUploadFiles(Array.from({ length: 3 }, () => ({ name: 'print.pdf', size: MAX_TOTAL_BYTES / 3 + 1 }))).ok,
+    };
+    const input = document.createElement('input'); input.type = 'file'; input.id = 'file-input'; document.body.append(input);
+    let handled = 0; input.addEventListener('change', () => handled++);
+    const select = (name, type) => { const files = new DataTransfer(); files.items.add(new File(['design'], name, { type })); input.files = files.files; input.dispatchEvent(new Event('change', { bubbles: true })); };
+    select('design.ai', 'application/illustrator'); select('design.psd', 'application/vnd.adobe.photoshop'); select('book.hwpx', 'application/vnd.hancom.hwpx');
+    const designHandled = handled;
+    select('script.exe', 'application/octet-stream');
+    return { ...checks, designHandled, invalidHandled: handled - designHandled, cleared: input.files.length === 0 };
+  });
+  expect(results).toEqual({ design: true, executable: false, large: false, batch: false, designHandled: 3, invalidHandled: 0, cleared: true });
 });

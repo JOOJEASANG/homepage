@@ -8,6 +8,8 @@ on:
       - 'firestore.rules'
       - 'storage.rules'
       - 'firebase.json'
+      - 'firebase.emulators.json'
+      - 'tests/security/**'
       - '.github/workflows/firebase-security-rules-deploy.yml'
   workflow_dispatch:
 
@@ -29,12 +31,15 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Validate Firestore and Storage rules
+      - name: Install security test dependencies
+        run: npm ci --prefix tests/security
+
+      - name: Test Firestore and Storage authorization
         shell: bash
-        run: npx --yes firebase-tools@latest emulators:exec --only firestore,storage --project worklist-1e83a "echo security rules validation passed"
+        run: npx --yes firebase-tools@latest emulators:exec --config firebase.emulators.json --only firestore,storage --project demo-greenoffice "npm test --prefix tests/security"
 
   deploy_rules:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.ref == 'refs/heads/main'
     needs: validate_rules
     runs-on: ubuntu-latest
     steps:

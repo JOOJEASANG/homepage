@@ -62,34 +62,36 @@
   <script type="module" src="assets/js/pages/admin-faq-seed.js"></script>
   <script type="module">
     import { auth, db, onAuthStateChanged, doc, getDoc, collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp } from './assets/js/firebase.js';
-    const $ = id => document.getElementById(id); const status = $('status'); let allFaqs = []; let faqWatchStarted = false;
+    const $ = id => document.getElementById(id); const status = $('status'); let allFaqs = []; let faqUnsubscribe = null; let authRevision = 0;
     function escapeHtml(str){return String(str||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
     function norm(v){return String(v||'').toLowerCase().replace(/\s+/g,' ').trim();}
-    function roleCacheAdmin(){try{return sessionStorage.getItem('userRole')==='admin'||localStorage.getItem('userRole')==='admin';}catch(e){return false;}}
-    function waitAuthUser(timeoutMs=5000){return new Promise(resolve=>{let done=false;let unsub=null;const finish=u=>{if(done)return;done=true;try{if(typeof unsub==='function')unsub();}catch(e){}resolve(u||auth.currentUser||null);};try{if(auth.currentUser)return finish(auth.currentUser);unsub=onAuthStateChanged(auth,u=>finish(u),()=>finish(null));}catch(e){finish(null);}setTimeout(()=>finish(auth.currentUser||null),timeoutMs);});}
     async function requireAdmin(user){
-      try{
-        const u = (user && !user.isAnonymous) ? user : await waitAuthUser();
-        if(u && !u.isAnonymous && u.uid){
-          const snap = await getDoc(doc(db,'users',u.uid));
-          const ok = snap.exists() && snap.data()?.role === 'admin';
-          if(ok){try{sessionStorage.setItem('userRole','admin');}catch(e){} return true;}
-        }
-        return roleCacheAdmin();
-      }catch(e){return roleCacheAdmin();}
+      if (!user || user.isAnonymous) return false;
+      try {
+        const snap = await getDoc(doc(db,'users',user.uid));
+        return snap.exists() && snap.data()?.role === 'admin';
+      } catch (_) { return false; }
     }
     function setStatus(msg,type='info'){const colors=type==='error'?'border-red-200 bg-red-50 text-red-700':type==='success'?'border-emerald-200 bg-emerald-50 text-emerald-700':'border-slate-200 bg-white text-slate-500';status.className='card px-4 py-3 text-sm '+colors;status.textContent=msg;}
     function resetForm(){ $('editingId').value=''; $('category').value=''; $('keywords').value=''; $('question').value=''; $('answer').value=''; $('order').value='100'; $('isActive').checked=true; $('formTitle').textContent='FAQ 직접 등록'; $('question').focus(); }
     function editFaq(item){ if(!item)return; $('editingId').value=item.id; $('category').value=item.category||''; $('keywords').value=item.keywords||''; $('question').value=item.question||''; $('answer').value=item.answer||''; $('order').value=Number(item.order||100); $('isActive').checked=item.isActive!==false; $('formTitle').textContent='FAQ 수정'; window.scrollTo({top:0,behavior:'smooth'}); }
     async function removeFaq(id){ if(!id||!confirm('이 FAQ를 삭제할까요?'))return; await deleteDoc(doc(db,'faq',id)); setStatus('삭제 완료','success'); }
     function renderFaqs(){ const keyword=norm($('search').value); const list=$('faqList'); let items=allFaqs.slice(); if(keyword)items=items.filter(x=>norm((x.category||'')+' '+(x.keywords||'')+' '+(x.question||'')+' '+(x.answer||'')).includes(keyword)); $('faqCount').textContent=keyword?`검색 결과 ${items.length}개 / 전체 ${allFaqs.length}개`:`전체 ${allFaqs.length}개`; if(!items.length){list.innerHTML='<div class="p-10 text-center text-slate-400 text-sm">표시할 FAQ가 없습니다.</div>';return;} list.innerHTML=items.map(item=>`<article class="p-5 hover:bg-slate-50 transition-colors"><div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4"><div class="min-w-0 flex-1"><div class="flex flex-wrap items-center gap-2 mb-2"><span class="inline-flex px-2 py-0.5 rounded text-[11px] font-black ${item.isActive===false?'bg-slate-100 text-slate-500':'bg-emerald-50 text-emerald-700'}">${item.isActive===false?'숨김':'표시'}</span>${item.category?`<span class="inline-flex px-2 py-0.5 rounded text-[11px] font-black bg-blue-50 text-blue-700">${escapeHtml(item.category)}</span>`:''}<span class="text-xs text-slate-400 font-mono">순서 ${Number(item.order||100)}</span></div><h3 class="font-black text-slate-900 break-words">Q. ${escapeHtml(item.question||'질문 없음')}</h3><p class="mt-2 text-sm text-slate-600 whitespace-pre-wrap break-words">${escapeHtml(item.answer||'답변 없음')}</p>${item.keywords?`<p class="mt-2 text-xs text-slate-400">키워드: ${escapeHtml(item.keywords)}</p>`:''}</div><div class="flex gap-2 shrink-0"><button type="button" class="btn btn-secondary btn-edit" data-id="${item.id}"><i class="fas fa-pen"></i>수정</button><button type="button" class="btn btn-danger btn-delete" data-id="${item.id}"><i class="fas fa-trash"></i>삭제</button></div></div></article>`).join(''); list.querySelectorAll('.btn-edit').forEach(btn=>btn.addEventListener('click',()=>editFaq(allFaqs.find(x=>x.id===btn.dataset.id)))); list.querySelectorAll('.btn-delete').forEach(btn=>btn.addEventListener('click',()=>removeFaq(btn.dataset.id).catch(e=>setStatus('삭제 실패: '+(e.message||e),'error')))); }
-    function startFaqWatch(){ if(faqWatchStarted)return; faqWatchStarted=true; const q=query(collection(db,'faq'),orderBy('order','asc')); onSnapshot(q,snap=>{allFaqs=[];snap.forEach(d=>allFaqs.push({id:d.id,...d.data()}));renderFaqs();},err=>setStatus('FAQ 목록을 불러오지 못했습니다: '+(err.message||err),'error')); }
+    function startFaqWatch(){ if(faqUnsubscribe)return; const q=query(collection(db,'faq'),orderBy('order','asc')); faqUnsubscribe=onSnapshot(q,snap=>{allFaqs=[];snap.forEach(d=>allFaqs.push({id:d.id,...d.data()}));renderFaqs();},err=>setStatus('FAQ 목록을 불러오지 못했습니다: '+(err.message||err),'error')); }
     function unlockAdminFaq(){ setStatus('관리자 확인 완료. FAQ를 직접 관리할 수 있습니다.','success'); $('faqFormWrap').classList.remove('hidden'); $('faqListWrap').classList.remove('hidden'); startFaqWatch(); }
     $('resetBtn').addEventListener('click',resetForm); $('search').addEventListener('input',renderFaqs);
     $('faqForm').addEventListener('submit',async e=>{e.preventDefault();const question=$('question').value.trim();const answer=$('answer').value.trim();if(!question||!answer){setStatus('질문과 답변을 모두 입력하세요.','error');return;}const data={category:$('category').value.trim(),keywords:$('keywords').value.trim(),question,answer,order:Number($('order').value||100),isActive:$('isActive').checked,updatedAt:serverTimestamp()};const id=$('editingId').value;try{$('saveBtn').disabled=true;if(id)await updateDoc(doc(db,'faq',id),data);else await addDoc(collection(db,'faq'),{...data,createdAt:serverTimestamp()});setStatus(id?'수정 완료':'등록 완료','success');resetForm();}catch(err){setStatus('저장 실패: '+(err.message||err),'error');}finally{$('saveBtn').disabled=false;}});
     setStatus('관리자 로그인 상태를 확인하는 중입니다...');
-    if(roleCacheAdmin()) setTimeout(()=>requireAdmin(auth.currentUser).then(ok=>ok?unlockAdminFaq():setStatus('관리자 로그인이 필요합니다. admin.html에서 로그인 후 다시 접속하세요.','error')),100);
-    onAuthStateChanged(auth,async user=>{try{if(await requireAdmin(user))unlockAdminFaq();else setTimeout(async()=>{if(await requireAdmin(auth.currentUser))unlockAdminFaq();else setStatus('관리자 로그인이 필요합니다. admin.html에서 로그인 후 다시 접속하세요.','error');},1800);}catch(e){setStatus('관리자 확인 실패: '+(e.message||e),'error');}});
+    onAuthStateChanged(auth, async user => {
+      const revision = ++authRevision;
+      $('faqFormWrap').classList.add('hidden');
+      $('faqListWrap').classList.add('hidden');
+      faqUnsubscribe?.(); faqUnsubscribe = null;
+      const allowed = await requireAdmin(user);
+      if (revision !== authRevision) return;
+      if (allowed && auth.currentUser?.uid === user?.uid) unlockAdminFaq();
+      else setStatus('관리자 로그인이 필요합니다. admin.html에서 로그인 후 다시 접속하세요.','error');
+    });
   </script>
 </body>
 </html>

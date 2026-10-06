@@ -28,106 +28,172 @@
       "README.md",
       "assets/css/tailwind-compat.css",
       "**/*.bundle",
-      "**/*.zip"
+      "**/*.zip",
+      "firestore.rules",
+      "storage.rules",
+      "firebase.emulators.json",
+      "**/*-debug.log",
+      "**/*.log"
     ],
     "rewrites": [
       {
         "source": "/admin",
         "destination": "/admin.html"
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
       }
     ],
     "headers": [
       {
         "source": "**",
         "headers": [
-          { "key": "X-Content-Type-Options", "value": "nosniff" },
-          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-          { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=()" },
-          { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
+          },
+          {
+            "key": "Permissions-Policy",
+            "value": "camera=(), microphone=(), geolocation=(), payment=()"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "SAMEORIGIN"
+          },
+          {
+            "key": "Strict-Transport-Security",
+            "value": "max-age=31536000"
+          },
+          {
+            "key": "Content-Security-Policy",
+            "value": "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; upgrade-insecure-requests"
+          }
         ]
       },
       {
         "source": "**/*.html",
         "headers": [
-          { "key": "Cache-Control", "value": "no-cache, max-age=0" }
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0"
+          }
         ]
       },
       {
         "source": "**/*.@(js|mjs)",
         "headers": [
-          { "key": "Cache-Control", "value": "no-cache, max-age=0" }
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0"
+          }
         ]
       },
       {
         "source": "**/*.css",
         "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=86400" }
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400"
+          }
         ]
       },
       {
         "source": "**/*.@(png|jpg|jpeg|webp|gif|svg|ico)",
         "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=2592000" }
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=2592000"
+          }
         ]
       },
       {
-        "source": "/@(admin|admin-ai-chat|mypage|login|maintenance).html",
+        "source": "/@(admin|admin-ai-chat|admin-faq|admin-payment-guide|admin-work-guides-seed|price-editor|print-price-editor|mypage|login|maintenance|404).html",
         "headers": [
-          { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" },
-          { "key": "Cache-Control", "value": "no-store, max-age=0" }
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex, nofollow, noarchive"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-store, max-age=0"
+          }
         ]
       },
       {
         "source": "/admin",
         "headers": [
-          { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" },
-          { "key": "Cache-Control", "value": "no-store, max-age=0" }
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex, nofollow, noarchive"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-store, max-age=0"
+          }
         ]
       },
       {
         "source": "/",
         "headers": [
-          { "key": "Link", "value": "<https://www.g-print.co.kr/>; rel=\"canonical\"" }
+          {
+            "key": "Link",
+            "value": "<https://www.g-print.co.kr/>; rel=\"canonical\""
+          }
         ]
       },
       {
         "source": "/index.html",
         "headers": [
-          { "key": "Link", "value": "<https://www.g-print.co.kr/>; rel=\"canonical\"" }
+          {
+            "key": "Link",
+            "value": "<https://www.g-print.co.kr/>; rel=\"canonical\""
+          }
         ]
       },
       {
         "source": "/quote-book.html",
         "headers": [
-          { "key": "Link", "value": "<https://www.g-print.co.kr/quote-book.html>; rel=\"canonical\"" }
+          {
+            "key": "Link",
+            "value": "<https://www.g-print.co.kr/quote-book.html>; rel=\"canonical\""
+          }
         ]
       },
       {
         "source": "/quote-print.html",
         "headers": [
-          { "key": "Link", "value": "<https://www.g-print.co.kr/quote-print.html>; rel=\"canonical\"" }
+          {
+            "key": "Link",
+            "value": "<https://www.g-print.co.kr/quote-print.html>; rel=\"canonical\""
+          }
         ]
       },
       {
         "source": "/qna.html",
         "headers": [
-          { "key": "Link", "value": "<https://www.g-print.co.kr/qna.html>; rel=\"canonical\"" }
+          {
+            "key": "Link",
+            "value": "<https://www.g-print.co.kr/qna.html>; rel=\"canonical\""
+          }
         ]
       },
       {
         "source": "/work-guide.html",
         "headers": [
-          { "key": "Link", "value": "<https://www.g-print.co.kr/work-guide.html>; rel=\"canonical\"" }
+          {
+            "key": "Link",
+            "value": "<https://www.g-print.co.kr/work-guide.html>; rel=\"canonical\""
+          }
         ]
       },
       {
         "source": "/@(robots.txt|sitemap.xml)",
         "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=3600" }
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=3600"
+          }
         ]
       }
     ]
