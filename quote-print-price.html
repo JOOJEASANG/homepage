@@ -68,10 +68,16 @@
     </script>
     <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261002">
     <script src="assets/js/responsive-ui.js?v=20261002" defer></script>
+    <script>
+      if (window.parent !== window && new URLSearchParams(location.search).get('embed') === 'admin') {
+        document.documentElement.dataset.adminEmbedded = '1';
+      }
+    </script>
+    <link rel="stylesheet" href="assets/css/admin-price-workspace.css?v=20261006">
 </head>
 <body data-page="quote-print-price" class="antialiased">
   <div class="max-w-6xl mx-auto px-4 py-6">
-    <div class="flex items-center justify-between gap-3 mb-5">
+    <div class="price-toolbar flex items-center justify-between gap-3 mb-5">
       <div>
         <h1 class="text-xl font-extrabold text-slate-800">디지털 인쇄 단가관리</h1>
         <p class="text-sm text-slate-500 mt-1">기준단가: <b>A4 · 1면 · 200g</b> / 자동계산: 두께계수 + 사이즈계수(하한 포함) + 단면·양면</p>

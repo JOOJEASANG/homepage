@@ -20,6 +20,7 @@ import { app, auth, db, storage, onAuthStateChanged, signOut,
 } from "../firebase.js";
 import { initHeader } from "../header.js";
 import "../session.js";
+import { activateAdminWorkspace, initAdminWorkspaceNavigation } from "./admin/price-workspace.js";
 
 // 페이지 로드 시 헤더 렌더링 (관리자 페이지는 활성 메뉴 없음)
 document.addEventListener("DOMContentLoaded", () => initHeader(""));
@@ -3369,23 +3370,7 @@ document.getElementById('save-portfolio-content')?.addEventListener('click', han
                     
                     // 네비게이션 아이템인 경우 (상단 메뉴)
                     if(btn.classList.contains('nav-item')) {
-                        // 1. 모든 네비게이션 active 제거
-                        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-                        // 2. 현재 버튼 active 추가
-                        btn.classList.add('active');
-                        
-                        // 3. 모바일/PC 동기화 (data-tab이 같은게 있다면)
-                        const tabId = btn.dataset.tab;
-                        if(tabId) {
-                            // 모바일 메뉴도 동기화
-                            document.querySelectorAll(`#mobile-nav-bar .nav-item[data-tab="${tabId}"]`).forEach(mBtn => mBtn.classList.add('active'));
-                            document.querySelectorAll(`#top-nav-bar .nav-item[data-tab="${tabId}"]`).forEach(pcBtn => pcBtn.classList.add('active'));
-
-                            // 컨텐츠 패널 전환
-                            document.querySelectorAll('.main-tab-content').forEach(c => c.classList.remove('active'));
-                            const content = document.getElementById(tabId + '-content');
-                            if(content) content.classList.add('active');
-                        }
+                        activateAdminWorkspace(btn.dataset.tab);
                     } 
                     // 일반 탭 버튼인 경우 (모달 등)
                     else {
@@ -3436,8 +3421,7 @@ document.getElementById('save-portfolio-content')?.addEventListener('click', han
                 });
             }
 
-            handleTab('top-nav-bar', 'main-tab-content');
-            handleTab('mobile-nav-bar', 'main-tab-content'); // 모바일 메뉴 연결
+            initAdminWorkspaceNavigation();
             
             handleTab('modal-tabs', 'tab-content');
             handleTab('homepage-sub-tab-nav', 'homepage-sub-tab-content');
@@ -3542,39 +3526,6 @@ DOMElements.quoteListBody.addEventListener('click', (e) => {
                 if (deleteBtn) deleteQuote(deleteBtn.dataset.id);
             });
 
-            // 1. [아이프레임 모달 로직]
-            const iframeModal = document.getElementById('iframeModal');
-            const contentIframe = document.getElementById('contentIframe');
-            const closeIframeBtn = document.getElementById('closeIframeModalBtn');
-
-            function openIframeModal(url) {
-                // 드롭다운 호버 상태를 즉시 풀어 메뉴가 닫히도록 포커스 해제
-                try { document.activeElement && document.activeElement.blur && document.activeElement.blur(); } catch(e) {}
-                // Defer opening to avoid the same click event immediately closing the modal
-                // (backdrop appears under cursor and receives the click).
-                contentIframe.src = url;
-                requestAnimationFrame(() => {
-                    iframeModal.classList.remove('hidden');
-                });
-            }
-
-            if(closeIframeBtn) {
-                closeIframeBtn.onclick = () => {
-                    iframeModal.classList.add('hidden');
-                    contentIframe.src = ''; 
-                }
-            // Close when clicking backdrop (only when target is the backdrop itself)
-            if (iframeModal) {
-                iframeModal.addEventListener('click', (e) => {
-                    if (e.target === iframeModal) {
-                        iframeModal.classList.add('hidden');
-                        contentIframe.src = '';
-                    }
-                });
-            }
-;
-            }
-
                         function setAdminNavActive(btnId) {
                 try {
                     document.querySelectorAll('button.nav-item').forEach(b => b.classList.remove('active'));
@@ -3584,8 +3535,6 @@ DOMElements.quoteListBody.addEventListener('click', (e) => {
             }
 
             // 2. [PC 상단 메뉴 버튼 연결] - (이 부분이 누락되어 있었습니다)
-            document.getElementById('book-price-management-btn').onclick = () => openIframeModal('quote-book-price.html?adminEdit=1');
-            document.getElementById('price-management-btn').onclick = () => openIframeModal('quote-print-price.html?adminEdit=1');
             
             document.getElementById('company-info-btn').onclick = openCompanyInfoModal;
             document.getElementById('image-management-btn').onclick = () => { setAdminNavActive('image-management-btn'); DOMElements.imageManagementModal.classList.remove('hidden'); };
@@ -3593,8 +3542,8 @@ DOMElements.quoteListBody.addEventListener('click', (e) => {
             document.getElementById('maintenance-mode-btn')?.addEventListener('click', openMaintenanceModal);
 
             // 3. [모바일 메뉴 버튼 연결]
-            document.getElementById('m-book-price-btn')?.addEventListener('click', () => openIframeModal('quote-book-price.html?adminEdit=1'));
-            document.getElementById('m-print-price-btn')?.addEventListener('click', () => openIframeModal('quote-print-price.html?adminEdit=1'));
+            document.getElementById('m-book-price-btn')?.addEventListener('click', () => document.getElementById('book-price-management-btn')?.click());
+            document.getElementById('m-print-price-btn')?.addEventListener('click', () => document.getElementById('price-management-btn')?.click());
             document.getElementById('m-company-btn')?.addEventListener('click', openCompanyInfoModal);
             document.getElementById('m-image-btn')?.addEventListener('click', () => DOMElements.imageManagementModal.classList.remove('hidden'));
             document.getElementById('m-home-btn')?.addEventListener('click', () => DOMElements.homepageManagementModal.classList.remove('hidden'));

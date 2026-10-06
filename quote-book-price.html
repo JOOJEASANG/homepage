@@ -124,6 +124,12 @@
     </script>
     <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261002">
     <script src="assets/js/responsive-ui.js?v=20261002" defer></script>
+    <script>
+      if (window.parent !== window && new URLSearchParams(location.search).get('embed') === 'admin') {
+        document.documentElement.dataset.adminEmbedded = '1';
+      }
+    </script>
+    <link rel="stylesheet" href="assets/css/admin-price-workspace.css?v=20261006">
 </head>
 <body data-page="quote-book-price" class="antialiased selection:bg-brand-100 selection:text-brand-900">
 

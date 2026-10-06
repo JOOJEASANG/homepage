@@ -1,0 +1,49 @@
+/* Price management is a normal admin content panel, without a modal backdrop. */
+.admin-price-panel { min-width: 0; }
+.admin-price-frame {
+  display: block;
+  width: 100%;
+  height: calc(100dvh - 130px);
+  min-height: 560px;
+  border: 1px solid #e1e8e3;
+  border-radius: 14px;
+  background: #fff;
+}
+body[data-page="admin"] .dropdown-item.active {
+  color: var(--ux-brand);
+  background: var(--ux-brand-soft);
+}
+/* Keep the editors' own authenticated loading and save handlers. */
+html[data-admin-embedded="1"] body { background: #fff !important; }
+html[data-admin-embedded="1"] #main-header,
+html[data-admin-embedded="1"] #ux-scroll-top { display: none !important; }
+html[data-admin-embedded="1"] body > .container {
+  width: 100%;
+  max-width: none;
+  min-height: 100dvh;
+  padding: 0;
+}
+html[data-admin-embedded="1"] #page-content {
+  max-width: none;
+  min-height: 100dvh;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 24px;
+}
+html[data-admin-embedded="1"] body > .max-w-6xl { max-width: none; padding: 24px; }
+html[data-admin-embedded="1"] .price-toolbar { flex-wrap: wrap; align-items: flex-start; }
+html[data-admin-embedded="1"] .price-toolbar > div { min-width: 0; }
+html[data-admin-embedded="1"] .price-toolbar > div:last-child { flex-wrap: wrap; }
+@media (max-width: 767px) {
+  .admin-price-frame { height: calc(100dvh - 130px); min-height: 480px; }
+  html[data-admin-embedded="1"] #page-content,
+  html[data-admin-embedded="1"] body > .max-w-6xl { padding: 16px; }
+  html[data-admin-embedded="1"] #page-content > .flex.border-b { overflow-x: auto; gap: 8px; }
+  html[data-admin-embedded="1"] #snowBaseWrap > .grid {
+    grid-template-columns: 12px minmax(68px, 1fr) 12px minmax(70px, 1.5fr) 26px;
+    gap: 6px;
+  }
+  html[data-admin-embedded="1"] #snowBaseWrap > .grid > * { grid-column: auto; }
+  html[data-admin-embedded="1"] #snowBaseWrap input { min-width: 0; padding-inline: 6px; }
+}

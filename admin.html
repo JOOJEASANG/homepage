@@ -441,6 +441,7 @@
     </script>
     <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261002">
     <script src="assets/js/responsive-ui.js?v=20261002" defer></script>
+    <link rel="stylesheet" href="assets/css/admin-price-workspace.css?v=20261006">
 </head>
 <body data-page="admin" class="antialiased selection:bg-brand-100 selection:text-brand-900">
     <!-- ── 알림음 토글 (화면 우측 하단 고정) ─────────────────────────
@@ -503,10 +504,10 @@
                     <i class="fas fa-chevron-down ml-1 text-[9px] opacity-40"></i>
                 </button>
                 <div class="nav-dropdown-menu">
-                    <button id="book-price-management-btn" class="dropdown-item">
+                    <button id="book-price-management-btn" type="button" class="dropdown-item nav-item" data-tab="book-price-management">
                         <i class="fas fa-book text-slate-400"></i> 책자 단가 설정
                     </button>
-                    <button id="price-management-btn" class="dropdown-item">
+                    <button id="price-management-btn" type="button" class="dropdown-item nav-item" data-tab="print-price-management">
                         <i class="fas fa-print text-slate-400"></i> 인쇄 단가 설정
                     </button>
                 </div>
@@ -832,6 +833,12 @@
                     </div>
                 </div>
             </div>
+            <section id="book-price-management-content" class="main-tab-content admin-price-panel" aria-label="책자 단가 관리">
+                <iframe id="book-price-frame" class="admin-price-frame" title="책자 단가 관리" data-price-src="quote-book-price.html?adminEdit=1&amp;embed=admin"></iframe>
+            </section>
+            <section id="print-price-management-content" class="main-tab-content admin-price-panel" aria-label="디지털출력 단가 관리">
+                <iframe id="print-price-frame" class="admin-price-frame" title="디지털출력 단가 관리" data-price-src="quote-print-price.html?adminEdit=1&amp;embed=admin"></iframe>
+            </section>
         </main>
     </div>
     
@@ -1270,16 +1277,7 @@
     </div>
 </div>
 
-<div id="iframeModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-[90]">
-    <div class="bg-white shadow-2xl w-full max-w-7xl h-[95vh] flex flex-col rounded-2xl overflow-hidden relative">
-        <button id="closeIframeModalBtn" class="absolute top-4 right-6 z-50 w-10 h-10 rounded-full bg-white shadow-lg hover:bg-slate-100 flex items-center justify-center text-slate-500 transition-colors border border-slate-200">
-            <i class="fas fa-times text-lg"></i>
-        </button>
-        <iframe id="contentIframe" class="w-full h-full border-0 bg-slate-50"></iframe>
-    </div>
-
 <div id="sheetOverlay" class="sheet-overlay hidden"></div>
-</div>
   <!-- ── 관리자 전용 로그아웃 함수 ─────────────────────────────────────────
        session.js 모듈이 로드되기 전에 인라인에서도 hardLogout() 을 호출할 수 있도록
        별도로 정의합니다. 모듈 로드 후에는 window.hardLogout 이 재정의됩니다.
@@ -1580,6 +1578,7 @@ async function hardLogout(redirectUrl = 'index.html') {
       const sel = btn.getAttribute('data-click');
       const target = sel ? document.querySelector(sel) : null;
       if(target) target.click();
+      syncCurrentLabel();
       closeMenu();
     });
   });
