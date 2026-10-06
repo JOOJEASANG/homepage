@@ -1579,6 +1579,10 @@ try {
                             const mulText = (dp.mul != null && !isNaN(dp.mul)) ? Number(dp.mul).toFixed(3) : (dp.mul != null ? String(dp.mul) : '-');
                             const qtyText = (item.quantity != null) ? `${Number(item.quantity).toLocaleString()}매` : '-';
                             const unitPriceText = (dp.unitPrice != null) ? `${r(dp.unitPrice)}원` : '-';
+                            const sheetQty = Number(item.quantity);
+                            const perSheetTotal = Number(item.itemTotal || dp.totalRounded || dp.total || dp.totalPrice);
+                            const perSheetPrice = Number.isFinite(sheetQty) && sheetQty > 0 && Number.isFinite(perSheetTotal) && perSheetTotal >= 0
+                                ? (perSheetTotal / sheetQty).toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : null;
 
                             const groupHeader = (title, icon, tone) => `
                                 <tr class="${tone}">
@@ -1629,6 +1633,7 @@ try {
                                                 ${(dp.roundingDiff != null && Number(dp.roundingDiff) !== 0) ? row('반올림 차이', `${r(dp.roundingDiff)}원`, '') : ''}
                                                 ${(pricingObj && pricingObj.supply != null) ? row('공급가액', `${r(pricingObj.supply)}원`, '') : ''}
                                                 ${(pricingObj && pricingObj.vat != null) ? row('부가세(10%)', `${r(pricingObj.vat)}원`, '') : ''}
+                                                ${perSheetPrice !== null ? row('장당 평균 단가', `${perSheetPrice}원/장`, '부가세·후가공 포함') : ''}
                                                 ${row('항목 소계', `${r(item.itemTotal || dp.totalRounded || dp.total || dp.totalPrice || 0)}원`, '해당 항목 합계')}
                                             </tbody>
                                         </table>
