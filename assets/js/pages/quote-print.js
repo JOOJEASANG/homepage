@@ -16,6 +16,7 @@ import { app, auth, db, storage, doc, getDoc, collection, addDoc, updateDoc,
 import { initHeader } from "../header.js";
 import "../overlays.js";
 import "../session.js";
+import { loadPrintGuide } from "../print-guide-recovery.js";
 
 // 페이지 로드 시 공통 헤더 렌더링
 document.addEventListener("DOMContentLoaded", () => initHeader("print"));
@@ -346,21 +347,6 @@ document.getElementById('member-go-login-btn')?.addEventListener('click', () => 
       }
     }
 
-
-    async function loadPrintGuide(){
-      const elGuide = document.getElementById('guideText');
-      if (!elGuide) return;
-      try{
-        const snap = await getDoc(doc(db, "settings", "print"));
-        const data = snap.exists() ? (snap.data()||{}) : {};
-        const guideHtml = (data.guideHtml || '').trim();
-        const guide = (data.guide || '').trim();
-        if (guideHtml) elGuide.innerHTML = guideHtml;
-        else elGuide.textContent = guide ? guide : '등록된 안내문이 없습니다.';
-      }catch(e){
-        elGuide.textContent = "안내문을 불러오지 못했습니다.";
-      }
-    }
 
     function findPrice(category, spec, quantity){
       const config = unitPriceConfig?.digital_print;

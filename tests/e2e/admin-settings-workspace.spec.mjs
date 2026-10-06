@@ -34,8 +34,10 @@ async function fixture(page, role = 'admin', realSession = true) {
     export const getDocs = async () => snapshot;
     export const onSnapshot = (_, callback) => { queueMicrotask(() => callback(snapshot)); return () => {}; };
     export const getDoc = async path => {
+      (window.__fixtureReads ||= []).push(path);
       const data = path.startsWith('users/') ? { role: ${JSON.stringify(role)} }
-        : path === 'settings/site' ? { maintenance: false, maintenanceMessage: '기존 안내문' } : null;
+        : path === 'settings/site' ? { maintenance: false, maintenanceMessage: '기존 안내문' }
+        : path === 'settings/print' ? { guideHtml: window.__fixtureGuideHtml || '' } : null;
       return { exists: () => data !== null, data: () => data || {} };
     };
     export const onAuthStateChanged = (_, callback) => {
@@ -305,4 +307,19 @@ test('administrator uploads use the same design-file and size policy as customer
     return { ...checks, designHandled, invalidHandled: handled - designHandled, cleared: input.files.length === 0 };
   });
   expect(results).toEqual({ design: true, executable: false, large: false, batch: false, designHandled: 3, invalidHandled: 0, cleared: true });
+});
+
+
+test('digital print guide loads once, sanitizes stored images before display, and survives late initialization', async ({ page }) => {
+  await fixture(page, 'user', false);
+  await page.addInitScript(() => { localStorage.removeItem('userRole'); sessionStorage.removeItem('userRole'); window.__fixtureGuideHtml = '<p>파일 준비 안내</p><img src="/favicon.ico" alt="안내 이미지"><img src="/missing-guide-image.png" onerror="window.__guideXss=1"><script>window.__guideXss=1</script>'; });
+  await page.goto('/quote-print.html', { waitUntil: 'domcontentloaded' });
+  const guide = page.locator('#guideText');
+  await expect(guide).toHaveAttribute('data-guide-state', 'loaded');
+  await expect(guide.locator('img[src="/favicon.ico"]')).toHaveCount(1);
+  await expect(guide.locator('[onerror], script')).toHaveCount(0);
+  await page.waitForTimeout(3500);
+  await expect(guide.locator('img[src="/favicon.ico"]')).toHaveCount(1);
+  expect(await page.evaluate(() => (window.__fixtureReads || []).filter(path => path === 'settings/print').length)).toBe(1);
+  expect(await page.evaluate(() => !!window.__guideXss)).toBe(false);
 });

@@ -1,10 +1,13 @@
 // Digital print guide recovery.
 // The legacy quote-print flow can attempt Firestore reads before anonymous auth is restored.
-// This module retries after auth and replaces transient guide-load errors without touching pricing logic.
+// One shared loader retries transient failures without overwriting successfully rendered content.
 import {
   auth, db, doc, getDoc, onAuthStateChanged, signInAnonymously
 } from "./firebase.js";
 
+import { sanitizeRichText } from "./rich-text-sanitizer.js";
+
+let pendingLoad = null;
 const GUIDE_SELECTOR = "#guideText";
 const PRINT_SETTINGS = ["settings", "print"];
 
@@ -20,7 +23,7 @@ function applyGuideData(data) {
   const guideHtml = typeof safe.guideHtml === "string" ? safe.guideHtml.trim() : "";
   const guide = typeof safe.guide === "string" ? safe.guide.trim() : "";
 
-  if (guideHtml) el.innerHTML = guideHtml;
+  if (guideHtml) el.innerHTML = sanitizeRichText(guideHtml);
   else el.textContent = guide || "등록된 안내문이 없습니다.";
 
   el.dataset.guideState = "loaded";
@@ -67,38 +70,36 @@ async function ensureReadableAuth() {
 
 async function recoverGuide() {
   const el = guideElement();
-  if (!el) return;
-
-  // Public-read rules may already allow this. Try without forcing auth first.
-  try {
-    await readGuide();
-    return;
-  } catch (err) {
-    console.warn("[print-guide] initial read failed; retrying after auth:", err);
+  if (!el) return false;
+  el.dataset.guideState = "loading";
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await readGuide();
+      return true;
+    } catch (error) {
+      console.warn("[print-guide] read failed:", error);
+      if (attempt === 0) await ensureReadableAuth();
+      if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 800 * (attempt + 1)));
+    }
   }
-
-  await ensureReadableAuth();
-
-  try {
-    await readGuide();
-  } catch (err) {
-    console.warn("[print-guide] authenticated read failed:", err);
-  }
+  el.dataset.guideState = "error";
+  el.textContent = "안내문을 불러오지 못했습니다. 페이지를 새로고침하거나 고객센터로 문의해주세요.";
+  return false;
 }
 
-function scheduleRecovery() {
-  if (!guideElement()) return;
-  recoverGuide();
-  // The legacy page loader can write its error message after our first attempt.
-  // Retry after initialization settles so a successful guide always wins.
-  setTimeout(recoverGuide, 1200);
-  setTimeout(recoverGuide, 3200);
+export function loadPrintGuide() {
+  if (guideElement()?.dataset.guideState === "loaded") return Promise.resolve(true);
+  if (!pendingLoad) pendingLoad = recoverGuide().finally(() => { pendingLoad = null; });
+  return pendingLoad;
 }
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", scheduleRecovery, { once: true });
-} else {
-  scheduleRecovery();
-}
+function init() { loadPrintGuide().catch(error => console.warn("[print-guide] load failed:", error)); }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
+else init();
 
-window.addEventListener("pageshow", () => setTimeout(recoverGuide, 100));
+window.addEventListener("pageshow", event => {
+  if (!event.persisted) return;
+  const el = guideElement();
+  if (el) delete el.dataset.guideState;
+  init();
+});
