@@ -81,6 +81,18 @@ test.describe('responsive renewal', () => {
       await expect(page.locator('.mobile-order-submit')).toBeEnabled();
       await page.locator('.order-step-nav button').nth(1).click();
       await expect(page.locator('.order-step-nav button').nth(1)).toHaveAttribute('aria-current','step');
+      await page.evaluate(button => { document.getElementById(button).hidden = true; },button);
+      await expect(page.locator('.mobile-order-bar')).toBeHidden();
+      await page.evaluate(button => { document.getElementById(button).hidden = false; },button);
+      await expect(page.locator('.mobile-order-bar')).toBeVisible();
+      await page.evaluate(button => {
+        const banner = document.createElement('div');
+        banner.id = 'admin-pricing-mode-banner';
+        document.body.append(banner);
+        document.getElementById(button).disabled = true;
+      },button);
+      await expect(page.locator('.mobile-order-bar')).toBeHidden();
+
     }
   });
   test('admin sidebar settings remain clickable and distinct from desktop orders', async ({ page }) => {

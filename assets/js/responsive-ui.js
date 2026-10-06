@@ -117,14 +117,14 @@
       const amount = book ? priceSource?.dataset.quoteTotal : priceSource?.textContent;
       const number = Number(String(amount || '').replace(/[^0-9.]/g, ''));
       bar.querySelector('strong').textContent = /주문 불가/.test(amount || '') ? '사양 확인 필요' : number > 0 ? `${number.toLocaleString('ko-KR')}원` : '계산 대기';
-      bar.hidden = getComputedStyle(submit).display === 'none';
+      bar.hidden = submit.hidden || getComputedStyle(submit).display === 'none' || Boolean(document.getElementById('admin-pricing-mode-banner'));
       mobileSubmit.disabled = submit.disabled;
       mobileSubmit.textContent = submit.disabled ? '처리 중…' : /수정/.test(submit.textContent) ? '견적 수정' : '주문 접수';
       if (sheet.open) copyBreakdown();
     }
     updateBar();
     new MutationObserver(updateBar).observe(priceSource, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-quote-total'] });
-    new MutationObserver(updateBar).observe(submit, { attributes: true, attributeFilter: ['disabled', 'style', 'class'], childList: true, subtree: true });
+    new MutationObserver(updateBar).observe(submit, { attributes: true, attributeFilter: ['disabled', 'style', 'class', 'hidden'], childList: true, subtree: true });
     if (!book) new MutationObserver(() => { if (sheet.open) copyBreakdown(); }).observe(source, { childList: true, subtree: true });
     const observed = new WeakSet();
     const observer = new IntersectionObserver(entries => {

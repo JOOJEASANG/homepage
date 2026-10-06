@@ -34,3 +34,12 @@
 ![메인 모바일](home-mobile.png)
 ![관리자 PC](admin-desktop.png)
 ![관리자 모바일](admin-mobile.png)
+
+## 2026-10-06 병합 전 재점검
+
+- 기존 런타임의 ‘디지털출력’ 표시와 정적 헤더의 ‘디지털인쇄’ 표시를 모두 정확히 검증하도록 브라우저 검사 수정.
+- Tailwind CLI 4.3.3 및 보안 수정된 Parcel watcher 2.6으로 전환. v3 reset·색상·줄높이를 호환 CSS에 유지하고 기존 페이지의 cascade 순서를 유지. 주요 5개 화면 × PC/모바일 10장 비교에서 픽셀 및 배치 일치.
+- 루트 및 Functions 의존성 전체 `npm audit`: 취약점 0건. Functions gRPC 1.14.5로 수정 및 모듈 로드 확인.
+- 모바일 접수 바가 원본 버튼의 hidden 상태와 관리자 계산 모드를 따르도록 수정하고 회귀 검사 추가.
+- 테스트 결과, CI 설정, 개발 문서 및 백업 압축파일을 Firebase Hosting 공개 파일에서 제외.
+- 새 CSS에는 Safari 16.4+, Chrome 111+, Firefox 128+가 필요함 (Tailwind v4 기준).
