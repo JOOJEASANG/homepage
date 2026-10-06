@@ -6,12 +6,12 @@ const SITE_ORIGIN = 'https://www.g-print.co.kr';
 const PUBLIC_PAGES = {
   '/': {
     canonical: '/',
-    title: '그린오피스 | 디지털 인쇄·출력·제본 전문',
+    title: '그린오피스 | 디지털출력·제본 전문',
     description: '천안 디지털 인쇄·출력·제본 전문 그린오피스. 책자, 보고서, 학원교재, 리플렛, 전단지, 포스터 등 온라인 견적과 제작 상담을 제공합니다.',
   },
   '/index.html': {
     canonical: '/',
-    title: '그린오피스 | 디지털 인쇄·출력·제본 전문',
+    title: '그린오피스 | 디지털출력·제본 전문',
     description: '천안 디지털 인쇄·출력·제본 전문 그린오피스. 책자, 보고서, 학원교재, 리플렛, 전단지, 포스터 등 온라인 견적과 제작 상담을 제공합니다.',
   },
   '/quote-book.html': {
@@ -21,7 +21,7 @@ const PUBLIC_PAGES = {
   },
   '/quote-print.html': {
     canonical: '/quote-print.html',
-    title: '디지털 인쇄 견적 | 그린오피스',
+    title: '디지털출력 견적 | 그린오피스',
     description: '리플렛, 전단지, 안내장, 포스터 등 디지털 칼라인쇄 사양을 입력하고 온라인 견적을 확인하세요.',
   },
   '/qna.html': {
@@ -62,6 +62,7 @@ function ensureCanonical(url) {
 }
 
 function applyPublicMeta(meta) {
+  document.title = meta.title;
   const canonical = SITE_ORIGIN + meta.canonical;
   ensureCanonical(canonical);
   ensureMeta('meta[name="description"]', { name: 'description', content: meta.description });
