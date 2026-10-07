@@ -15,6 +15,7 @@ import {
   setPersistence, browserSessionPersistence,
 } from "./firebase.js";
 import { getSessionState, hardLogout } from "./session.js";
+import "./work-guide-layer.js";
 
 // ── 상단 메뉴 목록 ───────────────────────────────────────────
 const MENU = [
@@ -220,14 +221,6 @@ function _bindEvents() {
   const mobileMenu = document.getElementById("mobile-menu");
   mobileBtn?.addEventListener("click", () => mobileMenu?.classList.toggle("hidden"));
 
-  document.getElementById("site-header")?.querySelectorAll('[data-action="work-guide"]').forEach(el => {
-    el.addEventListener("click", e => {
-      e.preventDefault();
-      mobileMenu?.classList.add("hidden");
-      openWorkGuideLayer();
-    });
-  });
-
   const lookupModal    = document.getElementById("hdr-lookup-modal");
   const lookupForm     = document.getElementById("hdr-lookup-form");
   const lookupLoggedin = document.getElementById("hdr-lookup-loggedin");
@@ -338,40 +331,6 @@ function _setBtnLoading(btn, loading) {
   btn.disabled = loading;
   if (txt)  txt.style.opacity = loading ? "0.5" : "1";
   if (spin) spin.classList.toggle("hidden", !loading);
-}
-
-function openWorkGuideLayer() {
-  if (document.getElementById("wg-layer-overlay")) return;
-
-  const overlay = document.createElement("div");
-  overlay.id = "wg-layer-overlay";
-  overlay.className = "fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in";
-
-  const panel = document.createElement("div");
-  panel.className = "relative w-full h-[90vh] max-w-6xl bg-white rounded-xl shadow-2xl overflow-hidden animate-slide-up";
-
-  const iframe = document.createElement("iframe");
-  iframe.src   = "work-guide.html?embed=1";
-  iframe.className = "w-full h-full border-0 block";
-  iframe.title = "가이드안내";
-
-  panel.appendChild(iframe);
-  overlay.appendChild(panel);
-  document.body.appendChild(overlay);
-  document.body.style.overflow = "hidden";
-
-  const cleanup = () => {
-    try { window.removeEventListener("message", onMsg); } catch(e) {}
-    try { document.removeEventListener("keydown", onKey); } catch(e) {}
-    try { overlay.remove(); } catch(e) {}
-    document.body.style.overflow = "";
-  };
-  const onKey = ev => { if (ev.key === "Escape") cleanup(); };
-  const onMsg = ev => { if (ev?.data?.type === "CLOSE_WORK_GUIDE") cleanup(); };
-
-  overlay.addEventListener("click", ev => { if (ev.target === overlay) cleanup(); });
-  document.addEventListener("keydown", onKey);
-  window.addEventListener("message", onMsg);
 }
 
 export function initHeader(activeKey = "") {

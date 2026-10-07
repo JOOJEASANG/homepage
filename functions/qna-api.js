@@ -71,19 +71,21 @@ function publicQnaData(data, id) {
     id,
     name: clean(data.name, 80),
     title: clean(data.title, 220),
-    body: clean(data.body, 4000),
+    body: String(data.body || '').trim().slice(0, 4000),
     status: clean(data.status, 40),
-    answer: clean(data.answer, 4000),
+    answer: String(data.answer || '').trim().slice(0, 4000),
     isSecret: data.isSecret === true,
     createdAt: data.createdAt?.toMillis ? data.createdAt.toMillis() : null,
     answeredAt: data.answeredAt?.toMillis ? data.answeredAt.toMillis() : null,
+    answerReadByCustomer: data.answerReadByCustomer === true,
+    answerReadAt: data.answerReadAt?.toMillis ? data.answerReadAt.toMillis() : null,
   };
 }
 
 async function submitQna(decoded, body) {
   const name = clean(body.name, 80);
   const title = clean(body.title, 220);
-  const content = clean(body.body, 4000);
+  const content = String(body.body || '').trim().slice(0, 4000);
   const isSecret = body.isSecret === true;
   const password = String(body.password || '').trim();
 
@@ -154,19 +156,21 @@ async function lookupQna(decoded, body) {
     if (!ok && data.pwHash) ok = await migrateLegacySecret(docSnap, password, decoded.uid);
     if (!ok) continue;
 
-    if (data.ownerUid !== decoded.uid) {
-      await docSnap.ref.set({ ownerUid: decoded.uid, schemaVersion: 2 }, { merge: true });
-    }
-
-    // 고객이 비밀번호 검증을 통과해 실제 답변 내용을 조회한 시점에 수신확인 처리합니다.
-    if (clean(data.answer, 4000) && data.answerReadByCustomer !== true) {
-      await docSnap.ref.set({
-        answerReadByCustomer: true,
-        answerReadAt: FieldValue.serverTimestamp(),
-      }, { merge: true });
-    }
-
-    matched.push(publicQnaData(data, docSnap.id));
+    // Return and mark the same answer version, even when an admin replies during lookup.
+    const view = await db.runTransaction(async transaction => {
+      const current = await transaction.get(docSnap.ref);
+      if (!current.exists) return null;
+      const data = current.data() || {};
+      const patch = {};
+      if (data.ownerUid !== decoded.uid) Object.assign(patch, { ownerUid: decoded.uid, schemaVersion: 2 });
+      if (String(data.answer || '').trim() && data.answerReadByCustomer !== true) {
+        patch.answerReadByCustomer = true;
+        patch.answerReadAt = FieldValue.serverTimestamp();
+      }
+      if (Object.keys(patch).length) transaction.set(docSnap.ref, patch, { merge: true });
+      return publicQnaData({ ...data, ...patch }, docSnap.id);
+    });
+    if (view) matched.push(view);
   }
 
   matched.sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));

@@ -2,7 +2,7 @@ import { before, after, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteField } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, query, where, setDoc, updateDoc, deleteField } from 'firebase/firestore';
 import { ref, uploadBytes, getBytes } from 'firebase/storage';
 
 // Never run these write tests against production services.
@@ -96,6 +96,8 @@ test('Q&A receipts require the verified owner; public submissions cannot forge a
   await seed({ 'qna/secret': { ...submission, isSecret: true, ownerUid: 'customer', answer: '답변' } });
   const receipt = { answerReadByCustomer: true, answerReadAt: 200 };
   await assertFails(getDoc(doc(db('stranger'), 'qna/secret')));
+  await assertSucceeds(getDoc(doc(db('customer'), 'qna/secret')));
+  await assertSucceeds(getDocs(query(collection(db('customer'), 'qna'), where('ownerUid', '==', 'customer'))));
   await assertFails(updateDoc(doc(db('stranger'), 'qna/secret'), receipt));
   await assertSucceeds(updateDoc(doc(db('customer'), 'qna/secret'), receipt));
   await assertFails(updateDoc(doc(db('customer'), 'qna/secret'), { ...receipt, injected: true }));

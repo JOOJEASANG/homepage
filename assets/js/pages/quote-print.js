@@ -1009,7 +1009,9 @@ loadEditPayloadIfAny();
         if (!saved) return;
         
         // 수정 모드인 경우 복구 로직 스킵
-        if (new URLSearchParams(location.search).get('edit') === '1') return;
+        const params = new URLSearchParams(location.search);
+        if (params.get('edit') === '1' || params.get('adminPricing') === '1'
+            || params.get('adminEdit') === '1' || params.get('admin_edit') === '1') return;
 
         // ★ [핵심 추가] 관리자 체크 및 리다이렉트
         // 로그인된 상태라면 권한을 확인합니다.
@@ -1020,8 +1022,7 @@ loadEditPayloadIfAny();
                 const userSnap = await getDoc(userRef);
                 
                 if (userSnap.exists() && userSnap.data().role === 'admin') {
-                    // 관리자라면 복구 알림을 띄우지 않고, 즉시 관리자 페이지로 이동
-                    location.replace('admin.html');
+                    // 관리자는 고객 임시 견적을 복구하지 않고 계산 화면을 유지합니다.
                     return; 
                 }
              } catch(e) {

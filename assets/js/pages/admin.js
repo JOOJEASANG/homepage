@@ -2321,10 +2321,25 @@ async function handleNoticeSave(e) {
         document.getElementById('inquiry-reply-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('inquiry-modal-id').value;
-            const answer = document.getElementById('inquiry-modal-answer').value;
-            await updateDoc(doc(db, "qna", id), { answer, status: 'answered', answeredAt: serverTimestamp() });
-            DOMElements.inquiryDetailsModal.classList.add('hidden');
-            showToast('답변이 등록되었습니다.', 'success');
+            const answer = document.getElementById('inquiry-modal-answer').value.trim();
+            const button = e.target.querySelector('button[type="submit"]');
+            if (!id || !answer) return showToast('답변 내용을 입력해주세요.', 'error');
+            if (button?.disabled) return;
+            if (button) button.disabled = true;
+            try {
+                // Save the answer and reset its receipt atomically; no delayed reset may follow a customer read.
+                await updateDoc(doc(db, "qna", id), {
+                    answer, status: 'answered', answeredAt: serverTimestamp(),
+                    answerReadByCustomer: false, answerReadAt: null,
+                });
+                DOMElements.inquiryDetailsModal.classList.add('hidden');
+                showToast('답변이 등록되었습니다.', 'success');
+            } catch (error) {
+                logger.error('Inquiry answer save failed', error);
+                showToast('답변을 저장하지 못했습니다. 다시 시도해주세요.', 'error');
+            } finally {
+                if (button) button.disabled = false;
+            }
         });
 
         // FAQ 등록

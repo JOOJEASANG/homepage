@@ -18,7 +18,7 @@ const DIGITAL_OUTPUT_LABELS = [
 ];
 
 function currentFile() {
-  try { return (location.pathname || '').split('/').pop() || 'index.html'; }
+  try { const file = (location.pathname || '').split('/').pop() || 'index.html'; return file === 'admin' ? 'admin.html' : file; }
   catch (_) { return 'index.html'; }
 }
 

@@ -134,6 +134,13 @@
   }
 
   function loadPageRecoveryModules() {
+    if (!document.querySelector('script[data-work-guide-layer]')) {
+      const guide = document.createElement('script');
+      guide.type = 'module';
+      guide.src = 'assets/js/work-guide-layer.js';
+      guide.dataset.workGuideLayer = '1';
+      document.head.appendChild(guide);
+    }
     if (currentFile() !== 'quote-print.html') return;
     if (document.querySelector('script[data-print-guide-recovery]')) return;
     const script = document.createElement('script');

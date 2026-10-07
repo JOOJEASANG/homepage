@@ -10,7 +10,7 @@
     <meta property="og:locale" content="ko_KR">
     <title>그린오피스 | 디지털출력·제본 전문</title>
     <link rel="icon" href="favicon.ico" />
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20261006-remove-work-section">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20261007-support">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -440,10 +440,6 @@
     (function(){ try { const hasFirebaseUser = !!(window.__currentFirebaseUser && !window.__currentFirebaseUser.isAnonymous); const guestKey = localStorage.getItem('guestLookupKey') || localStorage.getItem('guestLookupKeyLegacy'); const guestName = localStorage.getItem('guestName') || '비회원'; const isGuestSession = !!guestKey; const userMenuStatus = document.getElementById('userMenuStatus'); const btnMyPage = document.getElementById('userMenuGoMyPageBtn'); const btnLogin = document.getElementById('userMenuGoLoginBtn'); const btnLogout = document.getElementById('userMenuLogoutBtn'); const btnGuestLookup = document.getElementById('guest-lookup-open'); const welcomeMsg = document.getElementById('welcome-message'); function safeShow(el){ if(el) el.style.display = 'block'; } function safeHide(el){ if(el) el.style.display = 'none'; } if (isGuestSession && !hasFirebaseUser) { if (userMenuStatus) { userMenuStatus.innerHTML = '<span class="font-bold text-slate-800">' + escapeHtml(guestName) + '</span>님<br><span class="text-xs text-slate-400">비회원 조회 세션이 유지 중입니다.</span>'; } safeHide(btnLogin); safeHide(btnGuestLookup); safeShow(btnMyPage); safeShow(btnLogout); if (btnMyPage) btnMyPage.onclick = () => location.href = 'mypage.html?guest=1'; if (btnLogout) { btnLogout.onclick = async () => { if (typeof window.hardLogout === 'function') { await window.hardLogout(location.pathname.split('/').pop() || 'index.html'); } else { try{ localStorage.removeItem('guestLookupKey'); localStorage.removeItem('guestLookupKeyLegacy'); localStorage.removeItem('guestName'); localStorage.removeItem('guestContact'); localStorage.removeItem('guestPwLast4'); }catch(e){} location.replace('index.html'); } }; } if (welcomeMsg) welcomeMsg.innerHTML = '<span class="font-semibold">' + escapeHtml(guestName) + '</span>님, 환영합니다!'; if (typeof window.updateAuthLabels === 'function') window.updateAuthLabels(); } } catch(e) {} function escapeHtml(str){ return String(str || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;"); } })();
     </script>
 
-    <div id="workGuideContainer"></div>
-    <script>
-        (function() { fetch('work-guide.html').then(response => { if (!response.ok) throw new Error('404'); return response.text(); }).then(html => { const parser = new DOMParser(); const doc = parser.parseFromString(html, 'text/html'); const modal = doc.getElementById('workGuideModal'); if (modal) { document.body.appendChild(modal); const oldScript = doc.querySelector('script[type="module"]'); if (oldScript) { const newScript = document.createElement('script'); newScript.type = "module"; newScript.textContent = oldScript.textContent; document.body.appendChild(newScript); } } }).catch(()=>{}); })();
-    </script>
     <script type="module" src="assets/js/maintenance-check.js"></script>
     <script type="module" src="assets/js/pages/index.js"></script>
 </body>

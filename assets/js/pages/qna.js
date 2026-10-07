@@ -2,6 +2,8 @@ import { app, auth, db, storage, signInAnonymously, onAuthStateChanged, onSnapsh
 import { initHeader } from "../header.js";
 import "../overlays.js";
 import "../session.js";
+import { showQnaSubmission } from "../qna-customer-ui.js";
+import { featureEnabled, handleSecureQnaSubmit, ensureUser } from "../qna-secure-v2.js";
 
 // --- XSS 방지용 문자열 이스케이프 ---
 function sanitizeHTML(str) {
@@ -10,7 +12,8 @@ function sanitizeHTML(str) {
   return String(str).replace(/[&<>"']/g, (m) => map[m]);
 }
 
-document.addEventListener("DOMContentLoaded", ()=>initHeader("cs"));
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => initHeader("cs"), { once: true });
+else initHeader("cs");
 
 // ─────────────────────────────────────────────────────────────
 // 공개/비공개 토글: 공개 선택 시 비밀번호 입력 숨김
@@ -60,14 +63,8 @@ document.addEventListener('DOMContentLoaded', () => { try { syncQnaVisibilityUI(
 
         await setPersistence(auth, browserLocalPersistence);
 
-        // SAFE_GUEST_INIT: wait for Firebase Auth to restore session first.
-        // If still no user, then (and only then) sign in anonymously for guest features.
-        const __initialUser = await new Promise((resolve) => {
-            const unsub = onAuthStateChanged(auth, (u) => { unsub(); resolve(u || null); });
-        });
-        if (!__initialUser) {
-            await signInAnonymously(auth).catch(() => { /* ignore */ });
-        }
+        // Restore or create one shared customer session before any inquiry operation.
+        await ensureUser().catch(error => console.warn('Customer session initialization failed:', error));
 
         
 })();
@@ -323,26 +320,6 @@ document.addEventListener('DOMContentLoaded', () => { try { syncQnaVisibilityUI(
         });
 
 
-        // --- Tab Logic ---
-        window.switchTab = function(tabName) {
-            const tabInquiry = document.getElementById('tab-inquiry');
-            const tabFaq = document.getElementById('tab-faq');
-            const contentInquiry = document.getElementById('content-inquiry');
-            const contentFaq = document.getElementById('content-faq');
-
-            if (tabName === 'inquiry') {
-                tabInquiry.classList.add('active');
-                tabFaq.classList.remove('active');
-                contentInquiry.classList.remove('hidden');
-                contentFaq.classList.add('hidden');
-            } else {
-                tabInquiry.classList.remove('active');
-                tabFaq.classList.add('active');
-                contentInquiry.classList.add('hidden');
-                contentFaq.classList.remove('hidden');
-            }
-        };
-
         // --- Utils ---
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
@@ -524,7 +501,7 @@ document.addEventListener('DOMContentLoaded', () => { try { syncQnaVisibilityUI(
         }
 
 // 2. 문의 등록
-        document.getElementById('submitBtn')?.addEventListener('click', async () => {
+        async function submitLegacyQna() {
             const nameEl = document.getElementById('qnaName');
             const pwEl = document.getElementById('qnaPw');
             const titleEl = document.getElementById('qnaTitle');
@@ -550,16 +527,19 @@ document.addEventListener('DOMContentLoaded', () => { try { syncQnaVisibilityUI(
 
             try {
                 const pwHash = isSecret && pw ? await sha256(pw) : null;
+                if (!auth.currentUser) await signInAnonymously(auth);
                 await addDoc(collection(db, "qna"), {
                     name, pwHash, title, body,
                     isSecret: !!isSecret,
                     createdAt: serverTimestamp(),
                     status: "open",
                     answer: "",
-                    answeredAt: null
+                    answeredAt: null,
+                    ownerUid: auth.currentUser.uid
                 });
 
-                showToast('문의가 등록되었습니다. [내 문의 답변 확인]에서 조회하세요.', 'success');
+                showToast('문의가 등록되었습니다.', 'success');
+                showQnaSubmission({ name, password: pw, isSecret });
                 nameEl.value = ''; pwEl.value = ''; titleEl.value = ''; bodyEl.value = '';
                 document.getElementById('charCount').textContent = '0';
                 
@@ -570,100 +550,19 @@ document.addEventListener('DOMContentLoaded', () => { try { syncQnaVisibilityUI(
                 btn.disabled = false;
                 btn.innerHTML = '문의 등록하기';
             }
-        });
+        }
 
-        // 3. 내 문의 조회
-        document.getElementById('searchBtn')?.addEventListener('click', async () => {
-            const searchName = document.getElementById('searchName').value.trim();
-            const searchPw = document.getElementById('searchPw').value.trim();
-            const resultArea = document.getElementById('search-result-area');
-            const listContainer = document.getElementById('my-qna-list');
-
-            if (!searchName || !searchPw) {
-                showToast('이름과 비밀번호를 모두 입력해주세요.', 'error');
-                return;
-            }
-
-            const btn = document.getElementById('searchBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
+        let submissionPending = false;
+        document.getElementById('submitBtn')?.addEventListener('click', async () => {
+            if (submissionPending) return;
+            submissionPending = true;
             try {
-                const q = query(collection(db, "qna"), where("name", "==", searchName));
-                const querySnapshot = await getDocs(q);
-                
-                const inputPwHash = await sha256(searchPw);
-                let myDocs = [];
-
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    if (data.pwHash === inputPwHash) {
-                        myDocs.push(data);
-                    }
-                });
-
-                resultArea.classList.remove('hidden');
-                listContainer.innerHTML = '';
-
-                myDocs.sort((a, b) => {
-                    const aMs = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
-                    const bMs = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
-                    return bMs - aMs;
-                });
-
-                if (myDocs.length === 0) {
-                    listContainer.innerHTML = `
-                        <div class="p-6 bg-slate-50 rounded-lg text-center text-slate-500 border border-slate-100">
-                            일치하는 문의 내역이 없습니다.<br>
-                            <span class="text-xs text-slate-400">이름이나 비밀번호를 확인해주세요.</span>
-                        </div>`;
-                } else {
-                    myDocs.forEach(data => {
-                        const isAnswered = data.status === 'answered' || data.status === '답변완료';
-                        
-                        const item = document.createElement('div');
-                        item.className = "border border-slate-200 rounded-xl overflow-hidden shadow-sm";
-                        item.innerHTML = `
-                            <div class="bg-white p-5">
-                                <div class="flex items-center justify-between mb-3">
-                                    <span class="text-xs font-bold px-2 py-1 rounded ${isAnswered ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-600'}">
-                                        ${isAnswered ? '<i class="fas fa-check mr-1"></i>답변완료' : '<i class="fas fa-hourglass-half mr-1"></i>답변대기'}
-                                    </span>
-                                    <span class="text-xs text-slate-400">${formatDate(data.createdAt)}</span>
-                                </div>
-                                <h4 class="font-bold text-sm text-slate-800 mb-3">${sanitizeHTML(data.title)}</h4>
-                                <div class="bg-slate-50 p-4 rounded-lg text-slate-600 whitespace-pre-wrap text-sm border border-slate-100 mb-4">${sanitizeHTML(data.body)}</div>
-                                
-                                ${isAnswered && data.answer ? `
-                                <div class="mt-4 pt-4 border-t border-slate-100">
-                                    <div class="flex items-start">
-                                        <div class="bg-brand-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1 flex-shrink-0 text-xs shadow-sm">
-                                            <i class="fas fa-comment-dots"></i>
-                                        </div>
-                                        <div class="w-full">
-                                            <p class="font-bold text-brand-700 mb-1 text-sm">관리자 답변</p>
-                                            <div class="text-slate-800 whitespace-pre-wrap leading-relaxed bg-brand-50 p-4 rounded-lg border border-brand-100 text-sm">
-                                                ${sanitizeHTML(data.answer)}
-                                            </div>
-                                            ${data.answeredAt ? `<p class="text-right text-xs text-slate-400 mt-2">${formatDate(data.answeredAt)} 답변됨</p>` : ''}
-                                        </div>
-                                    </div>
-                                </div>
-                                ` : '<p class="text-xs text-slate-400 text-center py-2 bg-slate-50 rounded">아직 관리자의 답변이 등록되지 않았습니다.</p>'}
-                            </div>
-                        `;
-                        listContainer.appendChild(item);
-                    });
-                }
-
-            } catch (error) {
-                console.error("Search Error:", error);
-                showToast('조회 중 오류가 발생했습니다. (색인 생성 필요 가능성)', 'error');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = '조회하기';
-            }
+                if (await featureEnabled()) await handleSecureQnaSubmit(document.getElementById('submitBtn'));
+                else await submitLegacyQna();
+            } finally { submissionPending = false; }
         });
+
+        // Verified lookup, live answers and receipts are owned by qna-conversation-thread.js.
 
         // 글자수 카운트
         document.getElementById('qnaBody')?.addEventListener('input', (e) => {
@@ -714,10 +613,13 @@ document.addEventListener('DOMContentLoaded', () => { try { syncQnaVisibilityUI(
         mobileNavModal?.addEventListener('click', closeMobileNav);
 
         // 초기 실행
-        window.addEventListener('DOMContentLoaded', () => {
+        function initializeCustomerCenter() {
+            syncQnaVisibilityUI();
             loadFAQ();
-        loadPublicQna();
-        });
+            loadPublicQna();
+        }
+        if (document.readyState === 'loading') window.addEventListener('DOMContentLoaded', initializeCustomerCenter, { once: true });
+        else initializeCustomerCenter();
     
 // ✅ 사용자 메뉴(모달) 내 로그아웃 버튼 바인딩 (누락 방지)
 (() => {

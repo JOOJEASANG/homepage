@@ -15,11 +15,8 @@ function initializeWorkGuidePage() {
     return;
   }
   if (!__WG_EMBED__) initHeader("guide");
-  // In embed mode, open the modal immediately (page has only modal markup)
-  if (__WG_EMBED__) {
-    // slight delay so DOM nodes exist
-    setTimeout(()=>{ try { window.openWorkGuideModal?.(); } catch(e) {} }, 0);
-  }
+  // Direct navigation and embedded navigation both display the guide.
+  setTimeout(() => window.openWorkGuideModal?.(), 0);
 }
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initializeWorkGuidePage, { once: true });
@@ -210,7 +207,7 @@ if (document.readyState === "loading") {
 
         // If this page is embedded in the header layer, also ask parent to close the layer.
         if (new URLSearchParams(location.search).get('embed') === '1') {
-            try { window.parent?.postMessage({ type: 'CLOSE_WORK_GUIDE' }, '*'); } catch(e) {}
+            try { window.parent?.postMessage({ type: 'CLOSE_WORK_GUIDE' }, location.origin); } catch(e) {}
         }
     };
 

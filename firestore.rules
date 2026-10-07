@@ -290,7 +290,8 @@ service cloud.firestore {
     }
 
     match /qna/{id} {
-      allow read: if isAdmin() || isPublicQna(resource);
+      allow read: if isAdmin() || isPublicQna(resource)
+        || (signedIn() && ('ownerUid' in resource.data) && resource.data.ownerUid == request.auth.uid);
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly(['name', 'pwHash', 'title', 'body', 'isSecret', 'createdAt', 'status', 'answer', 'answeredAt', 'ownerUid'])
         && request.resource.data.name is string

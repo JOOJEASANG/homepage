@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex">
     <title>마이페이지 | 그린오피스</title>
     <link rel="icon" href="favicon.ico" />
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20261006">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20261007-support">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script>
@@ -1398,32 +1398,7 @@ function buildItemDetailsHtml(it, productType, showDetailsFlag){
 })();
 </script>
 
-<div id="workGuideContainer"></div>
-<script>
-    // work-guide.html의 내용을 가져와서 현재 페이지에 삽입하는 스크립트
-    fetch('work-guide.html')
-        .then(response => response.text())
-        .then(html => {
-            // HTML 파싱하여 모달 부분만 추출
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const modal = doc.getElementById('workGuideModal');
-            const script = doc.querySelector('script[type="module"]'); // 모듈 스크립트 추출
-            
-            if (modal) {
-                document.body.appendChild(modal); // body에 모달 추가
-                
-                // 스크립트가 실행되도록 재생성하여 추가
-                if(script) {
-                    const newScript = document.createElement('script');
-                    newScript.type = "module";
-                    newScript.textContent = script.textContent;
-                    document.body.appendChild(newScript);
-                }
-            }
-        })
-        .catch(err => console.error('작업 가이드 로드 실패:', err));
-</script>
+
 
     <audio id="message-sound" src="./mp3/message.mp3" preload="none"></audio>
     <audio id="file-sound" src="./mp3/file.mp3" preload="none"></audio>

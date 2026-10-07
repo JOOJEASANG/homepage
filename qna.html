@@ -6,7 +6,7 @@
     <meta name="description" content="그린오피스 고객센터 — 1:1 문의, 자주 묻는 질문(FAQ), 공개 문의 게시판.">
     <title>고객센터 | 그린오피스</title>
     <link rel="icon" href="favicon.ico" />
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20261006">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20261007-support">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -29,6 +29,11 @@
         .btn-secondary { background: #fff; color: #475569; border-color: #cbd5e1; }
         .btn-secondary:hover:not(:disabled) { background: #f8fafc; border-color: #94a3b8; }
         .panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+        [id^="qna-"], #content-faq { scroll-margin-top: 90px; }
+        .qna-shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 24px; }
+        .qna-shortcuts button { padding: 14px 10px; border: 1px solid #dce8e0; border-radius: 12px; background: #f7faf8; color: #166534; font-weight: 800; font-size: 14px; }
+        .qna-shortcuts button:hover { background: #ecfdf5; }
+        #qna-submitted-lookup[hidden], #qna-submit-result[hidden], .btn.hidden { display: none !important; }
         .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; }
         @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -57,19 +62,24 @@
                         <p class="text-sm text-slate-500 mt-1">문의 등록, 내 문의 답변 확인, 자주 묻는 질문을 한 번에 확인하세요.</p>
                     </div>
                 </div>
+                <nav class="qna-shortcuts" aria-label="고객센터 바로가기">
+                    <button type="button" data-qna-section="compose">문의 작성</button>
+                    <button type="button" data-qna-section="answers">내 답변 확인</button>
+                    <button type="button" data-qna-section="faq">자주 묻는 질문</button>
+                </nav>
             </div>
         </section>
 
         <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
             <div class="panel overflow-hidden">
-                <div class="flex border-b border-slate-100 bg-white">
-                    <button id="tab-inquiry" type="button" class="tab-btn active" onclick="switchTab('inquiry')">1:1 문의</button>
-                    <button id="tab-faq" type="button" class="tab-btn" onclick="switchTab('faq')">FAQ</button>
+                <div class="flex border-b border-slate-100 bg-white" role="tablist" aria-label="고객센터 메뉴">
+                    <button id="tab-inquiry" type="button" role="tab" aria-selected="true" aria-controls="content-inquiry" class="tab-btn active" onclick="switchTab('inquiry')">1:1 문의</button>
+                    <button id="tab-faq" type="button" role="tab" aria-selected="false" aria-controls="content-faq" class="tab-btn" onclick="switchTab('faq')">FAQ</button>
                 </div>
 
                 <div id="content-inquiry" class="p-5 sm:p-7 space-y-8">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <section class="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 sm:p-6">
+                        <section id="qna-compose" class="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 sm:p-6">
                             <div class="flex items-center justify-between gap-3 mb-5">
                                 <div>
                                     <h2 class="text-lg font-black text-slate-900">문의 등록</h2>
@@ -97,12 +107,15 @@
                                     <textarea id="qnaBody" rows="8" class="form-textarea resize-none" placeholder="문의 내용을 입력해주세요."></textarea>
                                 </div>
                                 <button id="submitBtn" type="button" class="btn btn-primary w-full">문의 등록하기</button>
+                                <p id="qna-submit-result" hidden role="status" class="text-sm text-brand-700"></p>
+                                <button id="qna-submitted-lookup" hidden type="button" class="btn btn-secondary w-full">접수한 문의 답변 확인</button>
                             </div>
                         </section>
 
-                        <section class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+                        <section id="qna-answers" class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
                             <div class="flex items-center justify-between gap-3 mb-5"><div><h2 class="text-lg font-black text-slate-900">내 문의 답변 확인</h2><p class="text-xs text-slate-500 mt-1">문의 등록 시 입력한 이름과 비밀번호를 입력하세요.</p></div><i class="fas fa-magnifying-glass text-emerald-600"></i></div>
-                            <div class="space-y-3"><div><label for="searchName" class="block text-xs font-bold text-slate-500 mb-1.5">이름</label><input id="searchName" type="text" class="form-input" placeholder="문의 등록 시 입력한 이름"></div><div><label for="searchPw" class="block text-xs font-bold text-slate-500 mb-1.5">비밀번호</label><input id="searchPw" type="password" class="form-input" placeholder="문의 등록 시 입력한 비밀번호"></div><button id="searchBtn" type="button" class="btn btn-secondary w-full">조회하기</button></div>
+                            <form id="qna-lookup-form" class="space-y-3"><div><label for="searchName" class="block text-xs font-bold text-slate-500 mb-1.5">이름</label><input id="searchName" type="text" class="form-input" required placeholder="문의 등록 시 입력한 이름"></div><div><label for="searchPw" class="block text-xs font-bold text-slate-500 mb-1.5">비밀번호</label><input id="searchPw" type="password" class="form-input" required placeholder="문의 등록 시 입력한 비밀번호"></div><button id="searchBtn" type="submit" class="btn btn-secondary w-full">답변 확인하기</button></form>
+                            <p class="text-xs text-slate-500 mt-3">조회 후 화면을 열어두면 새 답변과 확인 상태가 자동으로 갱신됩니다.</p>
                             <div id="search-result-area" class="hidden mt-6"><h3 class="text-sm font-black text-slate-800 mb-3">조회 결과</h3><div id="my-qna-list" class="space-y-3"></div></div>
                         </section>
                     </div>
@@ -136,6 +149,7 @@
     </main>
 
     <script src="assets/js/header-shell.js"></script>
+    <script type="module" src="assets/js/qna-customer-ui.js"></script>
 <script type="module" src="assets/js/maintenance-check.js"></script>
     <script type="module" src="assets/js/pages/qna.js"></script>
     <script type="module" src="assets/js/pages/faq-search.js"></script>

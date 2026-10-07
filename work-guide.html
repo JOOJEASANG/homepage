@@ -7,12 +7,12 @@
     <title>작업 가이드 | 그린오피스</title>
   <link rel="icon" href="favicon.ico" />
 
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20261006">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20261007-support">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         /* 모바일 터치감 개선 */
-        html, body { -webkit-tap-highlight-color: transparent; }
+        html, body { height: 100%; -webkit-tap-highlight-color: transparent; }
         
         /* 커스텀 스크롤바 */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -52,7 +52,7 @@
 </head>
 <body data-page="work-guide" class="bg-gray-100/60 font-sans text-slate-600">
 
-    <div id="workGuideModal" class="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center md:p-4 transition-all duration-200">
+    <div id="workGuideModal" class="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center md:p-4 transition-all duration-200">
         <div class="bg-white w-full h-full md:max-w-6xl md:h-[85vh] md:rounded-2xl shadow-soft overflow-hidden flex flex-col md:flex-row animate-fade-in relative">
             
             <div class="md:hidden h-14 bg-white border-b border-slate-100 flex items-center justify-between px-4 shrink-0 z-50">
@@ -228,15 +228,15 @@
         const handleClose = (e) => {
             e.preventDefault();
             if (isEmbedded) {
-                window.parent.postMessage({ type: 'CLOSE_WORK_GUIDE' }, '*');
+                window.parent.postMessage({ type: 'CLOSE_WORK_GUIDE' }, location.origin);
             } else {
-                const goBack = () => window.history.length > 1 ? window.history.back() : window.close();
-                goBack();
+                location.href = 'index.html';
             }
         };
 
         if(closeMobile) closeMobile.addEventListener('click', handleClose);
         if(closeDesktop) closeDesktop.addEventListener('click', handleClose);
+        document.addEventListener('keydown', event => { if (event.key === 'Escape') handleClose(event); });
     });
 </script>
 

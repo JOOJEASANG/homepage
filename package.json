@@ -17,7 +17,7 @@
     "test:book-request": "node scripts/test-book-request-data.mjs",
     "test:page-runtime": "node scripts/test-page-runtime-modules.mjs",
     "test:firestore-security": "node scripts/test-firestore-rules-contract.mjs",
-    "test:qna-security": "node scripts/test-qna-security-contract.mjs",
+    "test:qna-security": "node scripts/test-qna-security-contract.mjs && node --test tests/functions/qna-receipts.spec.cjs",
     "test:storage-security": "node scripts/test-storage-rules-contract.mjs",
     "test:public-feed": "node scripts/test-public-feed-contract.mjs",
     "test:ai-security": "node scripts/test-ai-security-contract.mjs",

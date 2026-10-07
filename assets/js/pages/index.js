@@ -459,7 +459,9 @@ document.getElementById('userMenuEditInfoBtn')?.addEventListener('click', () => 
 })();
 
 // ── 페이지 초기화 ────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+function initializeHomepage() {
   initHeader('index');
   loadNotices().catch(e => console.error('[index] loadNotices:', e));
-});
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initializeHomepage, { once: true });
+else initializeHomepage();
