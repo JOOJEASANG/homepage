@@ -1,5 +1,12 @@
 # 운영 보안 및 백업 기준
 
+## 2026-10-08 서버 배포 진행 상태
+
+- Firestore·Storage 규칙은 권한 설정 후 운영 프로젝트에 배포했습니다. 배포 작업: https://github.com/JOOJEASANG/homepage/actions/runs/37606260731
+- Functions의 실행 계정 사용 권한 오류도 해결됐습니다. 이후 전체 함수 진입점이 AI 모듈의 `GEMINI_API_KEY` 메타데이터 조회를 요구해 배포가 중단됐습니다.
+- 문의·비회원 조회 배포는 `customer-access.js` 진입점을 사용하여 두 HTTP 함수만 내보냅니다. 배포 작업 안에서만 `package.json`의 진입점을 선택하며, 기존 전체 함수 진입점은 유지합니다. 배포 대상 필터도 두 함수로 제한합니다.
+- API 배포 성공과 실제 조회 검증 전에는 `qnaApiV2`·`guestLookupApiV2`를 활성화하지 않습니다.
+
 ## 2026-10-07 작업가이드·문의 수신확인·관리자 견적 이동 수정
 
 - 수정 전 코드는 `270518c`와 `backup/main-2026-10-07-before-customer-center-fixes`에 보존했습니다.

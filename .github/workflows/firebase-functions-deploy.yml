@@ -45,6 +45,22 @@ jobs:
         working-directory: functions
         run: node -e "const m=require('./main.js'); if(!m.qnaSecure||!m.guestQuoteAccess||!m.aiChat||!m.aiChatConfig) process.exit(1); console.log('functions module load passed')"
 
+      - name: Validate customer deployment entrypoint
+        working-directory: functions
+        run: |
+          node --check customer-access.js
+          node - <<'NODE'
+          const assert = require('node:assert/strict');
+          const endpoints = require('./customer-access.js');
+          assert.deepEqual(Object.keys(endpoints).sort(), ['guestQuoteAccess', 'qnaSecure']);
+          for (const endpoint of Object.values(endpoints)) {
+            assert.equal((endpoint.__endpoint.secretEnvironmentVariables || []).length, 0);
+          }
+          assert.equal(require.cache[require.resolve('./ai-api.js')], undefined);
+          assert.equal(require.cache[require.resolve('./index.js')], undefined);
+          console.log('Customer endpoints load without AI modules or secrets');
+          NODE
+
   deploy_functions:
     if: github.ref == 'refs/heads/main'
     needs: validate_functions
@@ -77,6 +93,16 @@ jobs:
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$CREDENTIALS_FILE"
           chmod 600 "$CREDENTIALS_FILE"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$CREDENTIALS_FILE" >> "$GITHUB_ENV"
+
+      - name: Select customer-only deployment entrypoint
+        working-directory: functions
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          pkg.main = 'customer-access.js';
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          NODE
 
       - name: Deploy guest lookup and secure Q&A endpoints
         run: npx --yes firebase-tools@latest deploy --only functions:guestQuoteAccess,functions:qnaSecure --project worklist-1e83a --non-interactive
