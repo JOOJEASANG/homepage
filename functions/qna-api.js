@@ -182,7 +182,7 @@ exports.qnaSecure = onRequest({
   region: 'asia-northeast3',
   cors: true,
   timeoutSeconds: 15,
-  memory: '128MiB',
+  memory: '512MiB',
   maxInstances: 3,
 }, async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(204).send('');
