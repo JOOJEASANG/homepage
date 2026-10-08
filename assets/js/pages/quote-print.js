@@ -532,6 +532,7 @@ const el = {
       totalPrice: document.getElementById('totalPrice'),
       minQtyHint: document.getElementById('minQtyHint'),
       refreshBtn: document.getElementById('refreshBtn'),
+      resetFormBtn: document.getElementById('resetFormBtn'),
       submitBtn: document.getElementById('submitBtn'),
       logoutBtn: document.getElementById('logoutBtn'),
       loginBadge: document.getElementById('loginBadge'),
@@ -1653,6 +1654,19 @@ openSignupModal();
     el.fullBackgroundEnabled?.addEventListener('change', compute);
     document.querySelectorAll('input[name="oshiLines"]').forEach(r=> r.addEventListener('change', compute));
     el.refreshBtn.addEventListener('click', compute);
+    el.resetFormBtn?.addEventListener('click', () => {
+      if (!window.confirm('정말 모든 내용을 지우고 새로 작성하시겠습니까?')) return;
+      el.form.reset();
+      localStorage.removeItem('temp_quote_print');
+      existingAttachments = [];
+      if (el.attachments) el.attachments.value = '';
+      fillWeightOptions();
+      toggleCustom();
+      toggleOshi();
+      compute();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      showToast('모든 내용이 초기화되었습니다.', 'success');
+    });
     el.form.addEventListener('submit', submitQuote);
 
     el.logoutBtn?.addEventListener('click', async ()=>{
