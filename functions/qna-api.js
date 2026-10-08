@@ -178,6 +178,7 @@ async function lookupQna(decoded, body) {
 }
 
 exports.qnaSecure = onRequest({
+  serviceAccount: 'worklist-1e83a@appspot.gserviceaccount.com',
   region: 'asia-northeast3',
   cors: true,
   timeoutSeconds: 15,
