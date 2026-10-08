@@ -29,14 +29,15 @@
         .btn-secondary { background: #fff; color: #475569; border-color: #cbd5e1; }
         .btn-secondary:hover:not(:disabled) { background: #f8fafc; border-color: #94a3b8; }
         .panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
-        [id^="qna-"], #content-faq { scroll-margin-top: 90px; }
-        .qna-shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 24px; }
+        [id^="qna-"], #content-faq { scroll-margin-top: 142px; }
+        .qna-shortcut-dock { position: sticky; top: 64px; z-index: 40; border-bottom: 1px solid #e2e8f0; background: rgba(255,255,255,.96); backdrop-filter: blur(10px); box-shadow: 0 5px 16px rgba(15,23,42,.05); }
+        .qna-shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 12px 0; }
         .qna-shortcuts button { padding: 14px 10px; border: 1px solid #dce8e0; border-radius: 12px; background: #f7faf8; color: #166534; font-weight: 800; font-size: 14px; text-align: center; }
         .qna-shortcuts button:hover { background: #ecfdf5; }
         .qna-email-guide { margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 17px 19px; border: 1px solid #b7ddc6; border-radius: 15px; background: #f0fdf4; }
         .qna-email-guide p { color: #64748b; font-size: 13px; margin-top: 4px; }
         .qna-email-address { flex-shrink: 0; color: #166534; font-size: 16px; font-weight: 900; padding: 10px 14px; border: 1px solid #86c99f; border-radius: 11px; background: #fff; }
-        @media (max-width: 640px) { .qna-shortcuts { grid-template-columns: 1fr; } .qna-email-guide { align-items: flex-start; flex-direction: column; } }
+        @media (max-width: 640px) { [id^="qna-"], #content-faq { scroll-margin-top: 130px; } .qna-shortcuts { gap: 6px; padding: 9px 0; } .qna-shortcuts button { padding: 10px 4px; font-size: 12px; } .qna-email-guide { align-items: flex-start; flex-direction: column; } }
         #qna-submitted-lookup[hidden], #qna-submit-result[hidden], .btn.hidden { display: none !important; }
         .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; }
         @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -66,17 +67,20 @@
                         <p class="text-sm text-slate-500 mt-1">문의 등록, 내 문의 답변 확인, 자주 묻는 질문을 한 번에 확인하세요.</p>
                     </div>
                 </div>
-                <nav class="qna-shortcuts" aria-label="고객센터 바로가기">
-                    <button type="button" data-qna-section="compose">문의 작성</button>
-                    <button type="button" data-qna-section="answers">내 답변 확인</button>
-                    <button type="button" data-qna-section="faq">자주 묻는 질문</button>
-                </nav>
                 <div class="qna-email-guide">
                     <div><strong class="text-sm text-slate-800"><i class="fas fa-envelope text-emerald-600 mr-2" aria-hidden="true"></i>파일과 작업 내용을 이메일로 보내주세요.</strong><p>성함, 연락처, 수량, 희망 납기와 인쇄 파일을 함께 보내면 확인이 빠릅니다.</p></div>
                     <span class="qna-email-address">winwork@hanmail.net</span>
                 </div>
             </div>
         </section>
+
+        <div class="qna-shortcut-dock">
+            <nav class="qna-shortcuts max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="고객센터 바로가기">
+                <button type="button" data-qna-section="compose">문의 작성</button>
+                <button type="button" data-qna-section="answers">내 답변 확인</button>
+                <button type="button" data-qna-section="faq">자주 묻는 질문</button>
+            </nav>
+        </div>
 
         <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
             <div class="panel overflow-hidden">
