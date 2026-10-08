@@ -56,6 +56,9 @@ jobs:
           for (const endpoint of Object.values(endpoints)) {
             assert.equal((endpoint.__endpoint.secretEnvironmentVariables || []).length, 0);
             assert.equal(endpoint.__endpoint.serviceAccountEmail, 'worklist-1e83a@appspot.gserviceaccount.com');
+            assert.equal(endpoint.__endpoint.minInstances, 0);
+            assert.equal(endpoint.__endpoint.maxInstances, 1);
+            assert.equal(endpoint.__endpoint.cpu, 'gcf_gen1');
           }
           assert.equal(require.cache[require.resolve('./ai-api.js')], undefined);
           assert.equal(require.cache[require.resolve('./index.js')], undefined);

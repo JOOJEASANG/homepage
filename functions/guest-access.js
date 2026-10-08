@@ -93,7 +93,9 @@ exports.guestQuoteAccess = onRequest({
   cors: true,
   timeoutSeconds: 15,
   memory: '512MiB',
-  maxInstances: 3,
+  cpu: 'gcf_gen1',
+  minInstances: 0,
+  maxInstances: 1,
 }, async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(204).send('');
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });

@@ -30,9 +30,13 @@
         .btn-secondary:hover:not(:disabled) { background: #f8fafc; border-color: #94a3b8; }
         .panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
         [id^="qna-"], #content-faq { scroll-margin-top: 90px; }
-        .qna-shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 24px; }
-        .qna-shortcuts button { padding: 14px 10px; border: 1px solid #dce8e0; border-radius: 12px; background: #f7faf8; color: #166534; font-weight: 800; font-size: 14px; }
-        .qna-shortcuts button:hover { background: #ecfdf5; }
+        .qna-shortcuts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 24px; }
+        .qna-shortcuts button, .qna-shortcuts a { padding: 14px 10px; border: 1px solid #dce8e0; border-radius: 12px; background: #f7faf8; color: #166534; font-weight: 800; font-size: 14px; text-align: center; }
+        .qna-shortcuts button:hover, .qna-shortcuts a:hover { background: #ecfdf5; }
+        .qna-email-guide { margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 17px; border: 1px solid #dce8e0; border-radius: 14px; background: #fff; }
+        .qna-email-guide p { color: #64748b; font-size: 12px; margin-top: 3px; }
+        .qna-email-guide a { flex-shrink: 0; padding: 10px 14px; border-radius: 10px; background: #15803d; color: white; font-size: 13px; font-weight: 800; }
+        @media (max-width: 640px) { .qna-shortcuts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .qna-email-guide { align-items: flex-start; flex-direction: column; } .qna-email-guide a { width: 100%; text-align: center; } }
         #qna-submitted-lookup[hidden], #qna-submit-result[hidden], .btn.hidden { display: none !important; }
         .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; }
         @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -66,7 +70,12 @@
                     <button type="button" data-qna-section="compose">문의 작성</button>
                     <button type="button" data-qna-section="answers">내 답변 확인</button>
                     <button type="button" data-qna-section="faq">자주 묻는 질문</button>
+                    <a href="mailto:winwork@hanmail.net?subject=%EA%B7%B8%EB%A6%B0%EC%98%A4%ED%94%BC%EC%8A%A4%20%EC%9D%B8%EC%87%84%20%EC%A0%91%EC%88%98%20%EB%AC%B8%EC%9D%98">이메일 접수</a>
                 </nav>
+                <div class="qna-email-guide">
+                    <div><strong class="text-sm text-slate-800"><i class="fas fa-envelope text-emerald-600 mr-2" aria-hidden="true"></i>파일과 작업 내용을 이메일로 보내주세요.</strong><p>성함, 연락처, 수량, 희망 납기와 인쇄 파일을 함께 보내면 확인이 빠릅니다.</p></div>
+                    <a href="mailto:winwork@hanmail.net?subject=%EA%B7%B8%EB%A6%B0%EC%98%A4%ED%94%BC%EC%8A%A4%20%EC%9D%B8%EC%87%84%20%EC%A0%91%EC%88%98%20%EB%AC%B8%EC%9D%98">winwork@hanmail.net</a>
+                </div>
             </div>
         </section>
 
