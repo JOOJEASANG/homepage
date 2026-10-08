@@ -166,6 +166,21 @@ main().catch(error => {
   console.error('Customer release check failed:', error.message);
   process.exitCode = 1;
 }).finally(async () => {
+  if (process.exitCode) {
+    try {
+      const { GoogleAuth } = sdk('google-auth-library');
+      const client = await new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/cloud-platform'] }).getClient();
+      const result = await client.request({
+        url: 'https://logging.googleapis.com/v2/entries:list', method: 'POST',
+        data: { resourceNames: [`projects/${projectId}`], pageSize: 25, orderBy: 'timestamp desc', filter: `resource.type="cloud_run_revision" AND (resource.labels.service_name="qnasecure" OR resource.labels.service_name="guestquoteaccess") AND severity>=ERROR AND timestamp>="${new Date(Date.now() - 3600000).toISOString()}"` },
+      });
+      for (const entry of result.data.entries || []) {
+        // Include runtime errors only; never request payloads, auth tokens or customer documents.
+        const message = entry.textPayload || entry.jsonPayload?.message || '';
+        if (/memory|limit|permission|exceeded|startup|Error|timeout/i.test(message)) console.error('Runtime diagnostic:', message.slice(0, 1500));
+      }
+    } catch (error) { console.error('Runtime diagnostics unavailable:', error.code || 'unknown'); }
+  }
   try { await cleanup(); }
   catch (error) { console.error('Synthetic cleanup failed:', error.message); process.exitCode = 1; }
 });
