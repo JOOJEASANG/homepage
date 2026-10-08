@@ -26,8 +26,8 @@ export function showQnaSubmission({ name, password, isSecret }) {
       : '문의가 접수되었습니다. 공개 문의 목록에서 답변을 확인하세요.';
   }
   if (isSecret) {
-    document.getElementById('searchName')?.removeAttribute('readonly');
-    document.getElementById('searchPw')?.removeAttribute('readonly');
+    document.getElementById('searchName').dataset.keepValue = '1';
+    document.getElementById('searchPw').dataset.keepValue = '1';
     document.getElementById('searchName').value = name;
     document.getElementById('searchPw').value = password;
     // Credentials stay only in the current form, never browser storage or a URL.
@@ -38,13 +38,16 @@ export function showQnaSubmission({ name, password, isSecret }) {
 function boot() {
   const credentialFields = ['qnaName', 'qnaPw', 'searchName', 'searchPw']
     .map(id => document.getElementById(id)).filter(Boolean);
-  for (const field of credentialFields) {
-    field.value = '';
-    const unlock = () => field.removeAttribute('readonly');
-    field.addEventListener('focus', unlock, { once: true });
-    field.addEventListener('pointerdown', unlock, { once: true });
-    field.addEventListener('keydown', unlock, { once: true });
-  }
+  for (const field of credentialFields) field.value = '';
+  // Password managers sometimes mistake these inquiry fields for the admin login form.
+  // Clear only values tagged by the browser as autofill; preserve anything the customer typed.
+  const clearBrowserAutofill = () => {
+    for (const field of credentialFields) {
+      if (field.dataset.keepValue === '1') continue;
+      try { if (field.matches(':-webkit-autofill')) field.value = ''; } catch (_) {}
+    }
+  };
+  [50, 250, 800].forEach(delay => setTimeout(clearBrowserAutofill, delay));
   window.switchTab = selectTab;
   document.querySelectorAll('[data-qna-section]').forEach(button => button.addEventListener('click', () => {
     const section = button.dataset.qnaSection;
