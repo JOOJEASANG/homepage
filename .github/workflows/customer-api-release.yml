@@ -1,0 +1,41 @@
+name: Verify and activate customer APIs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/verify-customer-release.cjs'
+      - '.github/workflows/customer-api-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: customer-api-release
+  cancel-in-progress: false
+
+jobs:
+  verify_and_activate:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: npm ci --prefix functions
+      - run: npm install --no-save --package-lock=false @playwright/test@1.55.0
+      - run: npx playwright install --with-deps chromium
+      - name: Configure existing deployment credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+          CREDENTIALS_FILE="$RUNNER_TEMP/customer-release-credentials.json"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$CREDENTIALS_FILE"
+          chmod 600 "$CREDENTIALS_FILE"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$CREDENTIALS_FILE" >> "$GITHUB_ENV"
+      - name: Verify synthetic records, activate flags, verify fresh browser
+        run: node scripts/verify-customer-release.cjs
