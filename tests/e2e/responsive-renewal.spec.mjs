@@ -57,8 +57,10 @@ test.describe('responsive renewal', () => {
           await expect(page.locator('.mobile-contact-action-call')).toHaveAttribute('href', 'tel:01012345678');
           await expect(page.locator('.mobile-contact-action-message')).toBeVisible();
           await expect(page.locator('.mobile-contact-action-message')).toHaveAttribute('href', 'sms:01012345678');
-          await expect(page.locator('.customer-name')).toHaveCSS('font-size', '16px');
-          await expect(page.locator('.customer-contact')).toHaveCSS('font-size', '15px');
+          await expect(page.locator('#quote-list-body td').first()).toHaveCSS('font-size', '15px');
+          await expect(page.locator('.customer-name')).toHaveCSS('font-size', '17px');
+          await expect(page.locator('.customer-contact')).toHaveCSS('font-size', '16px');
+          await expect(page.locator('.mobile-contact-action-call')).toHaveCSS('font-size', '13px');
           const contactLayout = await page.locator('.customer-contact-group').evaluate(group => {
             const contact = group.querySelector('.customer-contact').getBoundingClientRect();
             const call = group.querySelector('.mobile-contact-action-call').getBoundingClientRect();
