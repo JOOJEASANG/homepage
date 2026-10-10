@@ -25,7 +25,7 @@ async function exposeFixture(page, kind) {
       document.getElementById('priceBreakdown').dataset.quoteTotal = '32500';
     }
     if (kind === 'admin') {
-      document.getElementById('quote-list-body').innerHTML = '<tr><td>2026.10.02</td><td>Q20261002-123456789</td><td><div><span>책자</span><b>모바일 자료집 주문 테스트</b></div></td><td><div>테스트 고객 | 010-1234-5678<span class="mobile-contact-actions"><a class="mobile-contact-action mobile-contact-action-call" href="tel:01012345678">통화</a><a class="mobile-contact-action mobile-contact-action-message" href="sms:01012345678">문자</a></span></div></td><td>32,500원</td><td><select class="status-select"><option>접수완료</option><option>작업중</option></select></td><td><div><button class="view-details-btn" title="상세보기">보기</button><button title="견적수정">수정</button></div></td></tr>';
+      document.getElementById('quote-list-body').innerHTML = '<tr><td>2026.10.02</td><td>Q20261002-123456789</td><td><div><span>책자</span><b>모바일 자료집 주문 테스트</b></div></td><td><div class="customer-info-row"><span class="customer-name">테스트 고객</span><span class="customer-contact-group"><span class="customer-contact-separator">|</span><span class="customer-contact">010-1234-5678</span><span class="mobile-contact-actions"><a class="mobile-contact-action mobile-contact-action-call" href="tel:01012345678">통화</a><a class="mobile-contact-action mobile-contact-action-message" href="sms:01012345678">문자</a></span></span></div></td><td>32,500원</td><td><select class="status-select"><option>접수완료</option><option>작업중</option></select></td><td><div><button class="view-details-btn" title="상세보기">보기</button><button title="견적수정">수정</button></div></td></tr>';
       const attachment = document.createElement('div');
       attachment.className = 'quote-attachment-item flex items-center justify-between';
       attachment.innerHTML = '<div class="quote-attachment-info">모바일첨부파일.pdf</div><div class="quote-attachment-actions"><a class="quote-attachment-download" href="https://example.com/file.pdf" data-force-download="1" download="모바일첨부파일.pdf" target="_blank" rel="noopener">다운로드</a><button class="quote-attachment-delete">삭제</button></div>';
@@ -57,6 +57,17 @@ test.describe('responsive renewal', () => {
           await expect(page.locator('.mobile-contact-action-call')).toHaveAttribute('href', 'tel:01012345678');
           await expect(page.locator('.mobile-contact-action-message')).toBeVisible();
           await expect(page.locator('.mobile-contact-action-message')).toHaveAttribute('href', 'sms:01012345678');
+          await expect(page.locator('.customer-name')).toHaveCSS('font-size', '16px');
+          await expect(page.locator('.customer-contact')).toHaveCSS('font-size', '15px');
+          const contactLayout = await page.locator('.customer-contact-group').evaluate(group => {
+            const contact = group.querySelector('.customer-contact').getBoundingClientRect();
+            const call = group.querySelector('.mobile-contact-action-call').getBoundingClientRect();
+            const message = group.querySelector('.mobile-contact-action-message').getBoundingClientRect();
+            return { contactRight: contact.right, callLeft: call.left, contactTop: contact.top, callTop: call.top, callRight: call.right, messageLeft: message.left };
+          });
+          expect(contactLayout.callLeft).toBeGreaterThanOrEqual(contactLayout.contactRight);
+          expect(Math.abs(contactLayout.callTop - contactLayout.contactTop)).toBeLessThan(8);
+          expect(contactLayout.messageLeft).toBeGreaterThanOrEqual(contactLayout.callRight);
           await expect(page.locator('.quote-attachment-download')).toBeVisible();
           await expect(page.locator('.quote-attachment-download')).toHaveCSS('min-height', '46px');
           await expect(page.locator('.quote-attachment-download')).toHaveAttribute('target', '_blank');

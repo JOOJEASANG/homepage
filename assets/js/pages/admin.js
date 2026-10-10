@@ -1098,18 +1098,23 @@ async function listenToQuotes() {
                         </div>
                     </td>
                     <td class="px-6 py-4">
-                        <div class="flex items-center whitespace-nowrap">
+                        <div class="customer-info-row flex items-center whitespace-nowrap">
                             ${userBadge}
-                            <span class="font-bold text-slate-700 text-sm">${sanitizeHTML(name)}</span>
-                            ${contact ? `<span class="mx-2 text-slate-300">|</span><span class="text-xs text-slate-500">${sanitizeHTML(contact)}</span>` : ''}
-                            ${phoneLink ? `
-                                <span class="mobile-contact-actions" aria-label="${sanitizeHTML(name)} 연락처 바로가기">
-                                    <a class="mobile-contact-action mobile-contact-action-call" href="tel:${sanitizeHTML(phoneLink)}" aria-label="${sanitizeHTML(name)}에게 전화 걸기">
-                                        <i class="fas fa-phone" aria-hidden="true"></i><span>통화</span>
-                                    </a>
-                                    <a class="mobile-contact-action mobile-contact-action-message" href="sms:${sanitizeHTML(phoneLink)}" aria-label="${sanitizeHTML(name)}에게 문자 보내기">
-                                        <i class="fas fa-comment-dots" aria-hidden="true"></i><span>문자</span>
-                                    </a>
+                            <span class="customer-name font-bold text-slate-700">${sanitizeHTML(name)}</span>
+                            ${contact ? `
+                                <span class="customer-contact-group">
+                                    <span class="customer-contact-separator mx-2 text-slate-300">|</span>
+                                    <span class="customer-contact text-slate-500">${sanitizeHTML(contact)}</span>
+                                    ${phoneLink ? `
+                                        <span class="mobile-contact-actions" aria-label="${sanitizeHTML(name)} 연락처 바로가기">
+                                            <a class="mobile-contact-action mobile-contact-action-call" href="tel:${sanitizeHTML(phoneLink)}" aria-label="${sanitizeHTML(name)}에게 전화 걸기">
+                                                <i class="fas fa-phone" aria-hidden="true"></i><span>통화</span>
+                                            </a>
+                                            <a class="mobile-contact-action mobile-contact-action-message" href="sms:${sanitizeHTML(phoneLink)}" aria-label="${sanitizeHTML(name)}에게 문자 보내기">
+                                                <i class="fas fa-comment-dots" aria-hidden="true"></i><span>문자</span>
+                                            </a>
+                                        </span>
+                                    ` : ''}
                                 </span>
                             ` : ''}
                         </div>
