@@ -578,6 +578,13 @@ document.addEventListener('click', async (e) => {
             return phone;
         }
 
+        function normalizePhoneLink(phone) {
+            const raw = String(phone || '').trim();
+            const digits = raw.replace(/\D/g, '');
+            if (digits.length < 7) return '';
+            return `${raw.startsWith('+') ? '+' : ''}${digits}`;
+        }
+
         // 비회원 비밀번호가 '휴대폰 뒤 4자리'인 경우, 목록(실시간 접수)에서는 마지막 4자리를 가립니다.
         // (상세보기에서는 기본 마스킹 + '번호보기' 토글로 전체 표시 가능)
         function maskPhoneLast4(phone) {
@@ -973,8 +980,9 @@ async function listenToQuotes() {
             const normalizeStatus = (s) => (s === 'submitted' || s === '접수대기' || !s) ? '접수완료' : s;
             const isGuestQuote = (q) => q?.isGuest === true || q?.guestLookupKey || q?.userId === 'GUEST';
             const getCustomerName = (q) => q?.guestName || q?.ordererName || q?.userName || usersCache[q.userId]?.name || '알수없음';
+            const getCustomerContactRaw = (q) => q?.guestContactRaw || q?.guestContact || q?.ordererContact || q?.userContact || usersCache[q.userId]?.contact || usersCache[q.userId]?.phone || '';
             const getCustomerContact = (q) => {
-                const raw = q?.guestContact || q?.ordererContact || q?.userContact || usersCache[q.userId]?.contact || '';
+                const raw = getCustomerContactRaw(q);
                 return isGuestQuote(q) ? maskPhoneLast4(raw) : formatPhoneNumber(raw);
             };
             const getDisplayPrice = (q) => {
@@ -1036,6 +1044,7 @@ async function listenToQuotes() {
                 const date = q.createdAt ? q.createdAt.toDate().toLocaleDateString('ko-KR') : '-';
                 const name = getCustomerName(q);
                 const contact = getCustomerContact(q);
+                const phoneLink = normalizePhoneLink(getCustomerContactRaw(q));
                 const price = getDisplayPrice(q).toLocaleString();
 
                 const isCancelRequest = (q.status === '취소요청') || (q.cancelRequestState === 'requested');
@@ -1065,6 +1074,16 @@ async function listenToQuotes() {
                             ${userBadge}
                             <span class="font-bold text-slate-700 text-sm">${sanitizeHTML(name)}</span>
                             ${contact ? `<span class="mx-2 text-slate-300">|</span><span class="text-xs text-slate-500">${sanitizeHTML(contact)}</span>` : ''}
+                            ${phoneLink ? `
+                                <span class="mobile-contact-actions" aria-label="${sanitizeHTML(name)} 연락처 바로가기">
+                                    <a class="mobile-contact-action mobile-contact-action-call" href="tel:${sanitizeHTML(phoneLink)}" aria-label="${sanitizeHTML(name)}에게 전화 걸기">
+                                        <i class="fas fa-phone" aria-hidden="true"></i><span>통화</span>
+                                    </a>
+                                    <a class="mobile-contact-action mobile-contact-action-message" href="sms:${sanitizeHTML(phoneLink)}" aria-label="${sanitizeHTML(name)}에게 문자 보내기">
+                                        <i class="fas fa-comment-dots" aria-hidden="true"></i><span>문자</span>
+                                    </a>
+                                </span>
+                            ` : ''}
                         </div>
                     </td>
                     <td class="px-6 py-4 text-right font-bold text-slate-600 whitespace-nowrap">${price}원</td>

@@ -25,7 +25,7 @@ async function exposeFixture(page, kind) {
       document.getElementById('priceBreakdown').dataset.quoteTotal = '32500';
     }
     if (kind === 'admin') {
-      document.getElementById('quote-list-body').innerHTML = '<tr><td>2026.10.02</td><td>Q20261002-123456789</td><td><div><span>책자</span><b>모바일 자료집 주문 테스트</b></div></td><td><div>테스트 고객 | 010-0000-0000</div></td><td>32,500원</td><td><select class="status-select"><option>접수완료</option><option>작업중</option></select></td><td><div><button class="view-details-btn" title="상세보기">보기</button><button title="견적수정">수정</button></div></td></tr>';
+      document.getElementById('quote-list-body').innerHTML = '<tr><td>2026.10.02</td><td>Q20261002-123456789</td><td><div><span>책자</span><b>모바일 자료집 주문 테스트</b></div></td><td><div>테스트 고객 | 010-1234-5678<span class="mobile-contact-actions"><a class="mobile-contact-action mobile-contact-action-call" href="tel:01012345678">통화</a><a class="mobile-contact-action mobile-contact-action-message" href="sms:01012345678">문자</a></span></div></td><td>32,500원</td><td><select class="status-select"><option>접수완료</option><option>작업중</option></select></td><td><div><button class="view-details-btn" title="상세보기">보기</button><button title="견적수정">수정</button></div></td></tr>';
     }
   }, kind);
 }
@@ -49,6 +49,13 @@ test.describe('responsive renewal', () => {
           await page.locator('.status-select').selectOption({ label: '작업중' });
           await expect(page.locator('.status-select')).toHaveValue('작업중');
           await expect(page.locator('.view-details-btn')).toBeVisible();
+          await expect(page.locator('.mobile-contact-action-call')).toBeVisible();
+          await expect(page.locator('.mobile-contact-action-call')).toHaveAttribute('href', 'tel:01012345678');
+          await expect(page.locator('.mobile-contact-action-message')).toBeVisible();
+          await expect(page.locator('.mobile-contact-action-message')).toHaveAttribute('href', 'sms:01012345678');
+        }
+        if (url === 'admin.html' && width >= 768) {
+          await expect(page.locator('.mobile-contact-actions')).toBeHidden();
         }
         if (url.startsWith('quote-')) {
           if (width < 1024) await expect(page.locator('.mobile-order-bar')).toBeVisible();

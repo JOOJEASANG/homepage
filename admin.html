@@ -168,6 +168,44 @@
     }
     .order-table tbody tr:last-child td { border-bottom: none; }
 
+    /* 연락처 바로가기: 실제 전화/문자 앱이 있는 모바일 화면에서만 표시 */
+    .mobile-contact-actions { display: none; }
+    @media (max-width: 767px) {
+        .mobile-contact-actions {
+            display: inline-flex;
+            width: 100%;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .mobile-contact-action {
+            display: inline-flex;
+            flex: 1 1 0;
+            min-height: 44px;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            border: 1px solid #dbe4de;
+            border-radius: 10px;
+            background: #fff;
+            color: #334155;
+            font-size: 0.78rem;
+            font-weight: 800;
+            text-decoration: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .mobile-contact-action:active { transform: translateY(1px); }
+        .mobile-contact-action-call {
+            border-color: #bbf7d0;
+            background: #f0fdf4;
+            color: #15803d;
+        }
+        .mobile-contact-action-message {
+            border-color: #bfdbfe;
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+    }
+
     /* ── 상태 배지 ── */
     .status-badge {
         display: inline-flex; align-items: center; gap: 3px;
