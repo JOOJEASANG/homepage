@@ -478,6 +478,34 @@ document.addEventListener('click', async (e) => {
         url = url.replace('http://', 'https://');
     }
 
+    // 모바일 Safari/Chrome은 비동기 fetch 이후의 새 창을 팝업으로 차단할 수 있습니다.
+    // 사용자 터치 이벤트 안에서 다운로드 주소를 즉시 열어 브라우저의 저장 기능으로 연결합니다.
+    const isMobileDownload = window.matchMedia('(max-width: 767px)').matches
+        || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobileDownload) {
+        try {
+            if (url.includes('firebasestorage.googleapis.com')) {
+                const urlObj = new URL(url);
+                urlObj.searchParams.set('response-content-disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+                url = urlObj.toString();
+            }
+
+            const mobileLink = document.createElement('a');
+            mobileLink.href = url;
+            mobileLink.download = filename;
+            mobileLink.target = '_blank';
+            mobileLink.rel = 'noopener';
+            document.body.appendChild(mobileLink);
+            mobileLink.click();
+            mobileLink.remove();
+            showToast('파일 다운로드를 시작합니다.', 'success');
+        } catch (err) {
+            logger.warn('모바일 다운로드 실행 실패:', err);
+            window.location.assign(url);
+        }
+        return;
+    }
+
     try {
         // 3. [핵심] 브라우저가 파일을 직접 가져오게 시킴 (fetch)
         // 이렇게 하면 브라우저는 파일 내용을 메모리에 담습니다.
@@ -1453,19 +1481,19 @@ try {
                                 const size = formatBytes(a?.size || 0);
                                 if (!url) return '';
                                 return `
-                                  <div class="flex items-center justify-between gap-3 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
-                                    <div class="min-w-0">
+                                  <div class="quote-attachment-item flex items-center justify-between gap-3 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                                    <div class="quote-attachment-info min-w-0">
                                       <p class="text-sm font-medium text-slate-700 truncate">${name}</p>
                                       <p class="text-[11px] text-slate-400">${size}</p>
                                     </div>
-                                    <div class="shrink-0 flex gap-2">
-                                      <a href="${url}" data-force-download="1" download="${name}" class="px-3 py-1.5 rounded-md text-xs font-bold border border-slate-300 bg-white hover:bg-slate-50 text-slate-700">저장</a>
-                                      <button type="button" class="delete-attachment-btn px-3 py-1.5 rounded-md text-xs font-bold bg-red-500 hover:bg-red-600 text-white" data-path="${s(a?.path || '')}" data-url="${url}">삭제</button>
+                                    <div class="quote-attachment-actions shrink-0 flex gap-2">
+                                      <a href="${url}" data-force-download="1" download="${name}" target="_blank" rel="noopener" class="quote-attachment-download px-3 py-1.5 rounded-md text-xs font-bold border border-slate-300 bg-white hover:bg-slate-50 text-slate-700"><i class="fas fa-download" aria-hidden="true"></i><span>다운로드</span></a>
+                                      <button type="button" class="quote-attachment-delete delete-attachment-btn px-3 py-1.5 rounded-md text-xs font-bold bg-red-500 hover:bg-red-600 text-white" data-path="${s(a?.path || '')}" data-url="${url}">삭제</button>
                                     </div>
                                   </div>`;
                             }).join('')}
                         </div>
-                        <p class="mt-3 text-[11px] text-slate-400">※ ‘저장’을 누르면 브라우저 다운로드로 컴퓨터에 저장됩니다.</p>
+                        <p class="mt-3 text-[11px] text-slate-400">※ ‘다운로드’를 누르면 PC 또는 휴대폰의 다운로드 폴더에 저장됩니다.</p>
                     </div>`;
                 }
             } catch(e) { logger.warn('attachments render failed', e); }

@@ -26,6 +26,10 @@ async function exposeFixture(page, kind) {
     }
     if (kind === 'admin') {
       document.getElementById('quote-list-body').innerHTML = '<tr><td>2026.10.02</td><td>Q20261002-123456789</td><td><div><span>책자</span><b>모바일 자료집 주문 테스트</b></div></td><td><div>테스트 고객 | 010-1234-5678<span class="mobile-contact-actions"><a class="mobile-contact-action mobile-contact-action-call" href="tel:01012345678">통화</a><a class="mobile-contact-action mobile-contact-action-message" href="sms:01012345678">문자</a></span></div></td><td>32,500원</td><td><select class="status-select"><option>접수완료</option><option>작업중</option></select></td><td><div><button class="view-details-btn" title="상세보기">보기</button><button title="견적수정">수정</button></div></td></tr>';
+      const attachment = document.createElement('div');
+      attachment.className = 'quote-attachment-item flex items-center justify-between';
+      attachment.innerHTML = '<div class="quote-attachment-info">모바일첨부파일.pdf</div><div class="quote-attachment-actions"><a class="quote-attachment-download" href="https://example.com/file.pdf" data-force-download="1" download="모바일첨부파일.pdf" target="_blank" rel="noopener">다운로드</a><button class="quote-attachment-delete">삭제</button></div>';
+      document.getElementById('reception-management-content')?.append(attachment);
     }
   }, kind);
 }
@@ -53,6 +57,9 @@ test.describe('responsive renewal', () => {
           await expect(page.locator('.mobile-contact-action-call')).toHaveAttribute('href', 'tel:01012345678');
           await expect(page.locator('.mobile-contact-action-message')).toBeVisible();
           await expect(page.locator('.mobile-contact-action-message')).toHaveAttribute('href', 'sms:01012345678');
+          await expect(page.locator('.quote-attachment-download')).toBeVisible();
+          await expect(page.locator('.quote-attachment-download')).toHaveCSS('min-height', '46px');
+          await expect(page.locator('.quote-attachment-download')).toHaveAttribute('target', '_blank');
         }
         if (url === 'admin.html' && width >= 768) {
           await expect(page.locator('.mobile-contact-actions')).toBeHidden();
