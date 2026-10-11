@@ -18,9 +18,7 @@ for (const text of [
 ]) assert.ok(data.includes(text), `public feed data builder missing: ${text}`);
 
 for (const text of [
-  'syncRecentQuotePublicFeed',
-  'syncRecentQnaPublicFeed',
-  'refreshRecentQuotePublicFeed',
+  'refreshPublicFeed',
 ]) {
   assert.ok(fn.includes(text), `public feed Function missing: ${text}`);
   assert.ok(deploy.includes(`functions:${text}`), `public feed Function is not deployed: ${text}`);
@@ -30,5 +28,6 @@ assert.ok(!client.includes("collection(db, 'quotes')"), 'homepage public feed mu
 assert.ok(!client.includes("collection(db, 'qna')"), 'homepage public feed must not query raw inquiries');
 assert.ok(client.includes("doc(db, 'settings', 'site')"), 'homepage must read sanitized quote feed from site settings');
 assert.ok(client.includes('recentQnaPublic'), 'homepage must read sanitized inquiry feed from site settings');
+assert.ok(client.includes('REFRESH_ENDPOINT'), 'homepage must request a throttled public feed refresh');
 
 console.log('Public feed privacy contract checks passed');

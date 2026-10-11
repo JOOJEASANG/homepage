@@ -51,10 +51,22 @@ async function rebuildPublicFeed() {
   await db.doc('settings/site').set({
     recentQuotesPublic,
     recentQnaPublic,
+    recentPublicFeedUpdatedAt: FieldValue.serverTimestamp(),
     recentQuotesPublicUpdatedAt: FieldValue.serverTimestamp(),
     recentQnaPublicUpdatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });
   return { quotes: recentQuotesPublic.length, qna: recentQnaPublic.length };
 }
 
-module.exports = { rebuildPublicFeed };
+async function refreshPublicFeedIfStale(maxAgeMs = 60_000) {
+  const site = await getFirestore().doc('settings/site').get();
+  const data = site.exists ? site.data() || {} : {};
+  const updatedMs = data.recentPublicFeedUpdatedAt?.toMillis?.() || 0;
+  const hasFeeds = Array.isArray(data.recentQuotesPublic) && Array.isArray(data.recentQnaPublic);
+  if (hasFeeds && Date.now() - updatedMs < maxAgeMs) {
+    return { quotes: data.recentQuotesPublic.length, qna: data.recentQnaPublic.length, cached: true };
+  }
+  return { ...(await rebuildPublicFeed()), cached: false };
+}
+
+module.exports = { rebuildPublicFeed, refreshPublicFeedIfStale };

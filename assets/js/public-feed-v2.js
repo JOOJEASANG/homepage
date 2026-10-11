@@ -2,6 +2,9 @@ import {
   db, doc, onSnapshot,
 } from './firebase.js';
 
+const REFRESH_ENDPOINT = 'https://asia-northeast3-worklist-1e83a.cloudfunctions.net/refreshPublicFeed';
+const REFRESH_INTERVAL_MS = 60_000;
+
 function escapeHtml(value) {
   return String(value || '').replace(/[&<>"']/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
@@ -74,6 +77,12 @@ function renderLoadError() {
   if (qna) qna.innerHTML = message;
 }
 
+async function requestRefresh() {
+  try {
+    await fetch(REFRESH_ENDPOINT, { method: 'GET', cache: 'no-store' });
+  } catch (_) {}
+}
+
 function init() {
   if (!/(^|\/)index\.html$/i.test(location.pathname) && location.pathname !== '/') return;
   try {
@@ -83,6 +92,8 @@ function init() {
       renderQnaItems(data?.recentQnaPublic || []);
     }, renderLoadError);
   } catch (_) { renderLoadError(); }
+  requestRefresh();
+  setInterval(requestRefresh, REFRESH_INTERVAL_MS);
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });

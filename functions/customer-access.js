@@ -7,6 +7,4 @@ if (!getApps().length) initializeApp();
 exports.guestQuoteAccess = require('./guest-access.js').guestQuoteAccess;
 exports.qnaSecure = require('./qna-api.js').qnaSecure;
 const publicFeed = require('./public-feed.js');
-exports.syncRecentQuotePublicFeed = publicFeed.syncRecentQuotePublicFeed;
-exports.syncRecentQnaPublicFeed = publicFeed.syncRecentQnaPublicFeed;
-exports.refreshRecentQuotePublicFeed = publicFeed.refreshRecentQuotePublicFeed;
+exports.refreshPublicFeed = publicFeed.refreshPublicFeed;

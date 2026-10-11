@@ -1,34 +1,24 @@
-const { onDocumentWritten } = require('firebase-functions/v2/firestore');
-const { onSchedule } = require('firebase-functions/v2/scheduler');
-const { rebuildPublicFeed } = require('./public-feed-data.js');
+const { onRequest } = require('firebase-functions/v2/https');
+const { refreshPublicFeedIfStale } = require('./public-feed-data.js');
 
-exports.syncRecentQuotePublicFeed = onDocumentWritten({
+exports.refreshPublicFeed = onRequest({
+  serviceAccount: 'worklist-1e83a@appspot.gserviceaccount.com',
   region: 'asia-northeast3',
-  document: 'quotes/{quoteId}',
-  memory: '128MiB',
-  timeoutSeconds: 20,
+  cors: true,
+  timeoutSeconds: 15,
+  memory: '256MiB',
+  cpu: 'gcf_gen1',
+  minInstances: 0,
   maxInstances: 1,
-}, async () => {
-  await rebuildPublicFeed();
-});
-
-exports.syncRecentQnaPublicFeed = onDocumentWritten({
-  region: 'asia-northeast3',
-  document: 'qna/{qnaId}',
-  memory: '128MiB',
-  timeoutSeconds: 20,
-  maxInstances: 1,
-}, async () => {
-  await rebuildPublicFeed();
-});
-
-// 기존 데이터도 새 공개 projection에 채워지도록 정기 재생성합니다.
-exports.refreshRecentQuotePublicFeed = onSchedule({
-  region: 'asia-northeast3',
-  schedule: 'every 24 hours',
-  timeZone: 'Asia/Seoul',
-  memory: '128MiB',
-  timeoutSeconds: 60,
-}, async () => {
-  await rebuildPublicFeed();
+}, async (req, res) => {
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (!['GET', 'POST'].includes(req.method)) return res.status(405).json({ ok: false, error: 'GET or POST only' });
+  try {
+    const result = await refreshPublicFeedIfStale();
+    res.set('Cache-Control', 'no-store');
+    return res.json({ ok: true, ...result });
+  } catch (error) {
+    console.error('[refreshPublicFeed]', error);
+    return res.status(500).json({ ok: false, error: '공개 현황 갱신에 실패했습니다.' });
+  }
 });

@@ -79,16 +79,17 @@ includesAll(publicFeedData, 'server-built anonymized feed', [
   'recentQnaPublic',
 ]);
 
-includesAll(publicFeed, 'public feed refresh triggers', [
-  'syncRecentQuotePublicFeed',
-  'syncRecentQnaPublicFeed',
-  'refreshRecentQuotePublicFeed',
+includesAll(publicFeed, 'public feed refresh endpoint', [
+  'onRequest',
+  'refreshPublicFeed',
+  'refreshPublicFeedIfStale',
 ]);
 
 includesAll(publicFeedClient, 'homepage consumes public projection only', [
   "onSnapshot(doc(db, 'settings', 'site')",
   'recentQuotesPublic',
   'recentQnaPublic',
+  'REFRESH_ENDPOINT',
 ]);
 assert.ok(!publicFeedClient.includes("collection(db, 'quotes')"), 'homepage public feed must not read quotes directly');
 assert.ok(!publicFeedClient.includes("collection(db, 'qna')"), 'homepage public feed must not read qna directly');
