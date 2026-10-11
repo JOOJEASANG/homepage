@@ -164,7 +164,7 @@ function initFooterLegalLinks() {
         <a href="guide.html" class="text-slate-400 hover:text-white transition">이용안내</a>
         <a href="personal-info.html" class="text-slate-400 hover:text-white transition">개인정보처리방침</a>
         <a href="terms.html" class="text-slate-400 hover:text-white transition">이용약관</a>`;
-      const rightCol = footer.querySelector('.flex.flex-col.items-center.md\:items-end') || footer.querySelector('.flex.flex-col.items-center') || footer;
+      const rightCol = footer.querySelector('.flex.flex-col.items-center.md\\:items-end') || footer.querySelector('.flex.flex-col.items-center') || footer;
       rightCol.insertBefore(links, rightCol.firstChild);
     } catch (e) { console.warn('[footer] legal links inject failed:', e); }
   };

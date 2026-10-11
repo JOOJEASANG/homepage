@@ -160,10 +160,6 @@ window.addEventListener('scroll', () => {
   document.getElementById('main-header')?.classList.toggle('glass-header', window.scrollY > 10);
 }, { passive: true });
 
-// ── onSnapshot 핸들 (메모리 누수 방지) ──────────────────────
-let _quotesUnsub = null;
-let _inquiriesUnsub = null;
-
 // ── 인증 상태 처리 (단일 리스너) ─────────────────────────────
 onAuthStateChanged(auth, async user => {
   window.__currentFirebaseUser = user;
@@ -223,95 +219,9 @@ onAuthStateChanged(auth, async user => {
     if (btnMyPage) { btnMyPage.style.display = 'block'; btnMyPage.onclick = () => { location.href = 'mypage.html'; }; }
     if (btnLogout) btnLogout.style.display = 'block';
   }
-
-  // 이전 리스너 해제 후 재구독
-  _quotesUnsub?.();
-  _inquiriesUnsub?.();
-  _quotesUnsub     = loadRecentQuotes();
-  _inquiriesUnsub  = loadRecentInquiries();
 });
 
 btnLogout?.addEventListener('click', () => window.hardLogout?.('index.html'));
-
-// ── 실시간 데이터 로더 ────────────────────────────────────────
-function loadRecentQuotes() {
-  const container = document.getElementById('recent-quotes-container');
-  if (!container) return null;
-  const q = query(collection(db, 'quotes'), where('isGuest','==',true), where('userId','==','guest'), orderBy('createdAt','desc'), limit(10));
-  return onSnapshot(q, snap => {
-    if (snap.empty) {
-      container.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400 text-sm gap-2 mt-10"><p>최근 접수 내역이 없습니다.</p></div>';
-      return;
-    }
-    container.innerHTML = '';
-    snap.docs.forEach(docSnap => {
-      const data = docSnap.data();
-      const name = data.ordererName || data.userName || data.name || '무명';
-      const maskedName = name.length > 2 ? (name[0] + '*' + name.at(-1)) : (name[0] + '*');
-      const title = data.orderName || '제목 없음';
-      const pType = (data.productType || data.category || '').toLowerCase();
-      let typeLabel = '', typeClass = 'bg-slate-100 text-slate-500 border border-slate-200';
-      if (pType === 'book')       { typeLabel = '책자'; typeClass = 'bg-slate-800 text-white border border-slate-800'; }
-      else if (pType === 'print') { typeLabel = '인쇄'; typeClass = 'bg-white text-slate-700 border border-slate-300'; }
-      else if (pType)             { typeLabel = pType; }
-      const status = data.status || '접수대기';
-      let statusColor = 'text-slate-500';
-      if (status.includes('제작') || status.includes('진행'))     statusColor = 'text-blue-600 font-bold';
-      else if (status.includes('완료') || status.includes('발송')) statusColor = 'text-brand-600 font-bold';
-      const div = document.createElement('div');
-      div.className = 'grid grid-cols-12 gap-2 px-6 py-3 border-b border-slate-100 items-center hover:bg-slate-50 transition-colors text-sm';
-      div.innerHTML = `
-        <div class="col-span-3 md:col-span-2 text-slate-700 font-medium truncate">${maskedName}</div>
-        <div class="col-span-6 md:col-span-7 flex items-center gap-2 min-w-0">
-          ${typeLabel ? `<span class="inline-flex items-center justify-center h-5 px-1.5 text-[10px] rounded font-bold ${typeClass} flex-shrink-0">${typeLabel}</span>` : ''}
-          <span class="text-slate-700 truncate cursor-default" title="${sanitizeHTML(title)}">${sanitizeHTML(title)}</span>
-        </div>
-        <div class="col-span-3 text-right"><span class="text-xs ${statusColor}">${status}</span></div>
-      `;
-      container.appendChild(div);
-    });
-  }, () => {});
-}
-
-function loadRecentInquiries() {
-  const container = document.getElementById('recent-qna-container');
-  if (!container) return null;
-  const q = query(collection(db, 'qna'), orderBy('createdAt','desc'), limit(8));
-  return onSnapshot(q, snap => {
-    if (snap.empty) {
-      container.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400 text-sm gap-2 mt-10"><p>등록된 문의가 없습니다.</p></div>';
-      return;
-    }
-    container.innerHTML = '';
-    snap.forEach(d => {
-      const data = d.data();
-      const isSecret  = data.isSecret;
-      const isAnswered = !!data.answer;
-      const title = isSecret ? '비밀글입니다.' : (data.title || '제목 없음');
-      let dateStr = '-';
-      if (data.createdAt?.toDate) {
-        const dt = data.createdAt.toDate();
-        dateStr = `${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')}`;
-      }
-      const div = document.createElement('div');
-      div.className = 'grid grid-cols-12 gap-2 px-6 py-3 border-b border-slate-100 items-center hover:bg-slate-50 transition-colors cursor-pointer group text-sm';
-      div.innerHTML = `
-        <div class="col-span-2 text-center">
-          <span class="inline-block w-14 py-0.5 rounded text-[10px] font-bold border ${isAnswered ? 'bg-white text-blue-600 border-blue-200' : 'bg-slate-100 text-slate-500 border-slate-200'}">${isAnswered ? '답변완료' : '대기중'}</span>
-        </div>
-        <div class="col-span-7 md:col-span-8 min-w-0">
-          <div class="truncate text-slate-700 group-hover:text-brand-700 group-hover:underline decoration-brand-200 underline-offset-2 transition-all">
-            ${isSecret ? '<i class="fas fa-lock text-[10px] text-slate-400 mr-1.5"></i>' : ''}${sanitizeHTML(title)}
-          </div>
-          ${(!isSecret && isAnswered && data.answer) ? `<div class="text-xs text-slate-400 truncate mt-0.5">↳ ${sanitizeHTML(String(data.answer).replace(/\s+/g,' ').trim())}</div>` : ''}
-        </div>
-        <div class="col-span-3 md:col-span-2 text-right text-xs text-slate-400 font-mono">${dateStr}</div>
-      `;
-      div.onclick = () => { location.href = 'qna.html'; };
-      container.appendChild(div);
-    });
-  }, () => {});
-}
 
 // ── 공지사항 (병렬 쿼리) ─────────────────────────────────────
 async function loadNotices() {

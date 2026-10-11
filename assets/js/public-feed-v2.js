@@ -1,5 +1,5 @@
 import {
-  db, doc, collection, query, where, orderBy, limit, onSnapshot,
+  db, doc, onSnapshot,
 } from './firebase.js';
 
 function escapeHtml(value) {
@@ -10,7 +10,7 @@ function escapeHtml(value) {
 
 function dateText(value) {
   try {
-    const d = value?.toDate ? value.toDate() : null;
+    const d = typeof value === 'number' ? new Date(value) : (value?.toDate ? value.toDate() : null);
     if (!d) return '-';
     return `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
   } catch (_) { return '-'; }
@@ -40,43 +40,49 @@ function renderQuoteItems(items) {
   });
 }
 
-function renderQna(snapshot) {
+function renderQnaItems(items) {
   const container = document.getElementById('recent-qna-container');
   if (!container) return;
-  if (snapshot.empty) {
-    container.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400 text-sm gap-2 mt-10"><p>등록된 공개 문의가 없습니다.</p></div>';
+  const list = Array.isArray(items) ? items : [];
+  if (!list.length) {
+    container.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400 text-sm gap-2 mt-10"><p>등록된 문의가 없습니다.</p></div>';
     return;
   }
   container.innerHTML = '';
-  snapshot.docs.forEach(docSnap => {
-    const data = docSnap.data() || {};
-    if (data.isSecret === true) return;
-    const answered = !!data.answer;
+  list.slice(0, 8).forEach(data => {
+    const answered = data.answered === true;
+    const isSecret = data.isSecret === true;
     const row = document.createElement('div');
     row.className = 'grid grid-cols-12 gap-2 px-6 py-3 border-b border-slate-100 items-center cursor-pointer group text-sm';
     row.innerHTML = `
       <div class="col-span-2 text-center"><span class="inline-block w-14 py-0.5 rounded text-[10px] font-bold border ${answered ? 'text-blue-600 border-blue-200' : 'text-slate-500 border-slate-200'}">${answered ? '답변완료' : '대기중'}</span></div>
       <div class="col-span-7 md:col-span-8 min-w-0">
-        <div class="truncate text-slate-700">${escapeHtml(data.title || '제목 없음')}</div>
-        ${answered ? `<div class="text-xs text-slate-400 truncate mt-0.5">↳ ${escapeHtml(String(data.answer || '').replace(/\s+/g, ' ').trim())}</div>` : ''}
+        <div class="truncate text-slate-700">${isSecret ? '<i class="fas fa-lock text-[10px] text-slate-400 mr-1.5"></i>' : ''}${escapeHtml(data.title || '제목 없음')}</div>
+        ${answered && !isSecret && data.answerPreview ? `<div class="text-xs text-slate-400 truncate mt-0.5">↳ ${escapeHtml(data.answerPreview)}</div>` : ''}
       </div>
-      <div class="col-span-3 md:col-span-2 text-right text-xs text-slate-400 font-mono">${dateText(data.createdAt)}</div>`;
+      <div class="col-span-3 md:col-span-2 text-right text-xs text-slate-400 font-mono">${dateText(data.createdMs)}</div>`;
     row.addEventListener('click', () => { location.href = 'qna.html'; });
     container.appendChild(row);
   });
+}
+
+function renderLoadError() {
+  const message = '<div class="flex flex-col items-center justify-center h-full text-slate-400 text-sm gap-2 mt-10"><p>현황을 불러오지 못했습니다.</p><p class="text-xs">잠시 후 새로고침해주세요.</p></div>';
+  const quotes = document.getElementById('recent-quotes-container');
+  const qna = document.getElementById('recent-qna-container');
+  if (quotes) quotes.innerHTML = message;
+  if (qna) qna.innerHTML = message;
 }
 
 function init() {
   if (!/(^|\/)index\.html$/i.test(location.pathname) && location.pathname !== '/') return;
   try {
     onSnapshot(doc(db, 'settings', 'site'), snap => {
-      renderQuoteItems(snap.exists() ? snap.data()?.recentQuotesPublic : []);
-    }, () => renderQuoteItems([]));
-  } catch (_) {}
-  try {
-    const publicQna = query(collection(db, 'qna'), where('isSecret', '==', false), orderBy('createdAt', 'desc'), limit(8));
-    onSnapshot(publicQna, renderQna, () => renderQna({ empty: true, docs: [] }));
-  } catch (_) {}
+      const data = snap.exists() ? snap.data() : {};
+      renderQuoteItems(data?.recentQuotesPublic || []);
+      renderQnaItems(data?.recentQnaPublic || []);
+    }, renderLoadError);
+  } catch (_) { renderLoadError(); }
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });

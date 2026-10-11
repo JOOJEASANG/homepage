@@ -7,10 +7,12 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const rulesPath = path.resolve(here, '..', 'firestore.rules');
 const guestAccessPath = path.resolve(here, '..', 'functions', 'guest-access.js');
 const publicFeedPath = path.resolve(here, '..', 'functions', 'public-feed.js');
+const publicFeedDataPath = path.resolve(here, '..', 'functions', 'public-feed-data.js');
 const publicFeedClientPath = path.resolve(here, '..', 'assets', 'js', 'public-feed-v2.js');
 const rules = fs.readFileSync(rulesPath, 'utf8');
 const guestAccess = fs.readFileSync(guestAccessPath, 'utf8');
 const publicFeed = fs.readFileSync(publicFeedPath, 'utf8');
+const publicFeedData = fs.readFileSync(publicFeedDataPath, 'utf8');
 const publicFeedClient = fs.readFileSync(publicFeedClientPath, 'utf8');
 
 function includesAll(source, label, values) {
@@ -68,18 +70,28 @@ includesAll(rules, 'legacy public feed write protection', [
   'allow create, update, delete: if isAdmin();',
 ]);
 
-includesAll(publicFeed, 'server-built anonymized feed', [
+includesAll(publicFeedData, 'server-built anonymized feed', [
   'function maskName(value)',
   "db.collection('quotes').orderBy('createdAt', 'desc').limit(10)",
+  "db.collection('qna').orderBy('createdAt', 'desc').limit(8)",
   "db.doc('settings/site').set",
   'recentQuotesPublic',
+  'recentQnaPublic',
+]);
+
+includesAll(publicFeed, 'public feed refresh triggers', [
+  'syncRecentQuotePublicFeed',
+  'syncRecentQnaPublicFeed',
+  'refreshRecentQuotePublicFeed',
 ]);
 
 includesAll(publicFeedClient, 'homepage consumes public projection only', [
   "onSnapshot(doc(db, 'settings', 'site')",
   'recentQuotesPublic',
+  'recentQnaPublic',
 ]);
 assert.ok(!publicFeedClient.includes("collection(db, 'quotes')"), 'homepage public feed must not read quotes directly');
+assert.ok(!publicFeedClient.includes("collection(db, 'qna')"), 'homepage public feed must not read qna directly');
 
 assert.ok(
   !rules.includes('match /{document=**} { allow read, write: if true;'),

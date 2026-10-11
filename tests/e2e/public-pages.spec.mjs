@@ -205,6 +205,16 @@ test('critical page controls expose accessible names', async ({ page }) => {
   await expect(page.locator('#mobileNavModal a[href="qna.html"]')).toContainText('고객');
 });
 
+test('homepage contact details are shown once above the footer', async ({ page }) => {
+  await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
+  const contact = page.locator('.contact-strip');
+  const footer = page.locator('.site-footer');
+  await expect(contact).toContainText('041-571-4370');
+  await expect(contact).toContainText('winwork@hanmail.net');
+  await expect(footer).not.toContainText('041-571-4370');
+  await expect(footer).not.toContainText('winwork@hanmail.net');
+});
+
 test.describe('mobile responsiveness', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
