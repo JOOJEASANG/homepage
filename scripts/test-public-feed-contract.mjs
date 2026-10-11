@@ -29,5 +29,7 @@ assert.ok(!client.includes("collection(db, 'qna')"), 'homepage public feed must 
 assert.ok(client.includes("doc(db, 'settings', 'site')"), 'homepage must read sanitized quote feed from site settings');
 assert.ok(client.includes('recentQnaPublic'), 'homepage must read sanitized inquiry feed from site settings');
 assert.ok(client.includes('REFRESH_ENDPOINT'), 'homepage must request a throttled public feed refresh');
+assert.ok(client.includes('shrink-0 whitespace-nowrap min-w-8'), 'quote type badge must stay horizontal on narrow mobile screens');
+assert.ok(client.includes('flex-1 min-w-0 text-slate-700 truncate'), 'long quote titles must truncate instead of compressing the type badge');
 
 console.log('Public feed privacy contract checks passed');
