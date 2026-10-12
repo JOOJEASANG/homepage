@@ -22,6 +22,7 @@ async function exposeFixture(page, kind) {
       item.innerHTML = template.renderQuoteItemTemplate({ quoteItemCounter: 1, designPrice: 10000, oshiPrice: 500 });
       item.querySelector('.inner-sections-container').innerHTML = template.renderInnerSectionTemplate({ sectionCount: 0 });
       document.getElementById('quote-items-container').append(item);
+      await import('/assets/js/wire-cover-patch.js');
       document.getElementById('priceBreakdown').dataset.quoteTotal = '32500';
     }
     if (kind === 'admin') {
@@ -80,6 +81,12 @@ test.describe('responsive renewal', () => {
         if (url.startsWith('quote-')) {
           if (width < 1024) await expect(page.locator('.mobile-order-bar')).toBeVisible();
           else await expect(page.locator('.mobile-order-bar')).toBeHidden();
+        }
+        if (url === 'quote-book.html') {
+          await expect(page.locator('.order-step-nav button').first()).toHaveText('01 제본·수량');
+          await expect(page.locator('.order-step-nav button').first()).toHaveAttribute('aria-current', 'step');
+          await expect(page.locator('.quote-item > .order-stage').first()).toHaveAttribute('data-order-stage', 'binding');
+          await expect(page.locator('.quote-item > .order-stage').first().locator('.step-number')).toHaveText('01');
         }
       }
     });

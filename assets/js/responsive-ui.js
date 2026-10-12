@@ -49,7 +49,7 @@
     const submit = document.getElementById(book ? 'submitQuoteBtn' : 'submitBtn');
     if (!source || !submit) return;
     const stages = book
-      ? [['basics','기본 정보'],['cover','표지'],['inner','내지·규격'],['binding','제본·수량'],['remarks','요청사항']]
+      ? [['binding','제본·수량'],['basics','기본 정보'],['cover','표지'],['inner','내지·규격'],['remarks','요청사항']]
       : [['basics','품명·수량'],['paper','규격·용지'],['finishing','후가공']];
     const nav = document.createElement('nav');
     nav.className = 'order-step-nav';
@@ -87,7 +87,7 @@
         else button.removeAttribute('aria-current');
       });
     }
-    markStep('basics');
+    markStep(book ? 'binding' : 'basics');
     const bar = document.createElement('div');
     bar.className = 'mobile-order-bar';
     bar.innerHTML = '<button type="button" class="mobile-price" aria-haspopup="dialog"><small>예상금액 · 부가세 포함</small><strong>계산 대기</strong><span class="price-details">상세 ⌃</span></button><button type="button" class="mobile-order-submit">주문 접수</button>';
