@@ -131,11 +131,11 @@ body[data-page="admin"] .order-table { width: 100%; }
 body[data-page="admin"] .reception-order-table { table-layout: fixed; min-width: 1120px; }
 body[data-page="admin"] .reception-order-table .reception-col-date { width: 8%; }
 body[data-page="admin"] .reception-order-table .reception-col-number { width: 12%; }
-body[data-page="admin"] .reception-order-table .reception-col-order { width: 37%; }
+body[data-page="admin"] .reception-order-table .reception-col-order { width: 39%; }
 body[data-page="admin"] .reception-order-table .reception-col-customer { width: 14%; }
 body[data-page="admin"] .reception-order-table .reception-col-price { width: 9%; }
 body[data-page="admin"] .reception-order-table .reception-col-status { width: 8%; }
-body[data-page="admin"] .reception-order-table .reception-col-actions { width: 12%; }
+body[data-page="admin"] .reception-order-table .reception-col-actions { width: 10%; }
 body[data-page="admin"] .reception-order-table :is(th,td) { padding-left: 10px; padding-right: 10px; }
 body[data-page="admin"] .reception-order-table tbody td:nth-child(3) > div { min-width: 0; }
 body[data-page="admin"] .reception-order-table tbody td:nth-child(3) > div > span.font-bold[title] {
@@ -153,6 +153,13 @@ body[data-page="admin"] .reception-order-table :is(
   tbody td button,
   tbody td a
 ) { font-size: 0.95rem !important; }
+body[data-page="admin"] .reception-order-table .quote-row-clickable { cursor: pointer; }
+body[data-page="admin"] .reception-order-table .quote-row-clickable:focus-visible {
+  outline: 2px solid var(--ux-brand);
+  outline-offset: -2px;
+  background: var(--ux-brand-soft);
+}
+body[data-page="admin"] .reception-order-table .quote-row-clickable :is(button,a,select,input) { cursor: pointer; }
 body[data-page="admin"] :is(#quote-list-body,#inquiry-list-body) button { min-height: 40px; min-width: 40px; border-radius: 8px; background: #f5f8f5; }
 body[data-page="admin"] #notif-controls { right: 20px !important; bottom: 18px !important; z-index: 45 !important; }
 body[data-page="admin"] #enable-notifs-btn { background: #fff !important; border-color: #dce5df !important; color: var(--ux-ink) !important; box-shadow: none !important; }

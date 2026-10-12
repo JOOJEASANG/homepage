@@ -623,7 +623,11 @@ test('administrator design files reach the real quote upload handler', async ({ 
   await fixture(page);
   await page.addInitScript(() => { window.__fixtureQuotes = [{ id: 'fixture-order', userId: 'customer', isGuest: false, status: '접수완료', productType: 'print', orderName: '파일 검증 접수', totalPrice: 10000, createdAt: { toDate: () => new Date() } }]; });
   await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
-  await page.locator('.view-details-btn[data-id="fixture-order"]:visible').first().click();
+  await expect(page.locator('.view-details-btn')).toHaveCount(0);
+  await page.locator('#quote-list-body .status-select').click();
+  await expect(page.locator('#detailsModal')).toHaveClass(/hidden/);
+  await page.locator('#quote-list-body tr[data-quote-id="fixture-order"] td').first().click();
+  await expect(page.locator('#detailsModal')).not.toHaveClass(/hidden/);
   const input = page.locator('#file-input');
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   for (const [name, mimeType] of [['design.ai','application/illustrator'], ['design.psd','application/vnd.adobe.photoshop'], ['book.hwpx','application/vnd.hancom.hwpx']]) {
