@@ -86,11 +86,17 @@ test.describe('responsive renewal', () => {
         if (url === 'quote-book.html') {
           await expect(page.locator('.order-step-nav button').first()).toHaveText('01 기본 정보');
           await expect(page.locator('.order-step-nav button').first()).toHaveAttribute('aria-current', 'step');
-          await expect(page.locator('.order-step-nav button').nth(1)).toHaveText('02 제본·수량');
+          await expect(page.locator('.order-step-nav button').nth(1)).toHaveText('02 제본');
           await expect(page.locator('.quote-item > .order-stage').first()).toHaveAttribute('data-order-stage', 'basics');
           await expect(page.locator('.quote-item > .order-stage').nth(1)).toHaveAttribute('data-order-stage', 'binding');
           await expect(page.locator('.quote-item > .order-stage').first().locator('.step-number')).toHaveText('01');
           await expect(page.locator('.quote-item > .order-stage').nth(1).locator('.step-number')).toHaveText('02');
+          const basics = page.locator('.quote-item > [data-order-stage="basics"]').first();
+          await expect(basics.getByText('품명', { exact: true })).toBeVisible();
+          await expect(basics.getByText('주문 수량 (부)', { exact: true })).toBeVisible();
+          await expect(basics.locator('.orderName')).toBeVisible();
+          await expect(basics.locator('.quantity')).toBeVisible();
+          await expect(page.locator('.quote-item > [data-order-stage="binding"] .quantity')).toHaveCount(0);
         }
       }
     });
