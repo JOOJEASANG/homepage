@@ -138,11 +138,13 @@ body[data-page="admin"] .reception-order-table .reception-col-status { width: 8%
 body[data-page="admin"] .reception-order-table .reception-col-actions { width: 12%; }
 body[data-page="admin"] .reception-order-table :is(th,td) { padding-left: 10px; padding-right: 10px; }
 body[data-page="admin"] .reception-order-table tbody td:nth-child(3) > div { min-width: 0; }
-body[data-page="admin"] .reception-order-table tbody td:nth-child(3) > div > span.font-bold {
+body[data-page="admin"] .reception-order-table tbody td:nth-child(3) > div > span.font-bold[title] {
   flex: 1 1 auto;
   min-width: 0;
   max-width: none !important;
 }
+body[data-page="admin"] .reception-order-table .customer-info-row { gap: 0.75rem; }
+body[data-page="admin"] .reception-order-table .customer-contact-group { margin-left: 0; }
 body[data-page="admin"] :is(#quote-list-body,#inquiry-list-body) button { min-height: 40px; min-width: 40px; border-radius: 8px; background: #f5f8f5; }
 body[data-page="admin"] #notif-controls { right: 20px !important; bottom: 18px !important; z-index: 45 !important; }
 body[data-page="admin"] #enable-notifs-btn { background: #fff !important; border-color: #dce5df !important; color: var(--ux-ink) !important; box-shadow: none !important; }
