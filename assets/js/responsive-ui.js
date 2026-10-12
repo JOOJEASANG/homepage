@@ -49,7 +49,7 @@
     const submit = document.getElementById(book ? 'submitQuoteBtn' : 'submitBtn');
     if (!source || !submit) return;
     const stages = book
-      ? [['basics','기본 정보'],['binding','제본'],['cover','표지'],['inner','내지·규격'],['remarks','요청사항']]
+      ? [['basics','기본 정보'],['binding','제본방식'],['cover','표지'],['inner','내지·규격'],['remarks','요청사항']]
       : [['basics','품명·수량'],['paper','규격·용지'],['finishing','후가공']];
     const nav = document.createElement('nav');
     nav.className = 'order-step-nav';

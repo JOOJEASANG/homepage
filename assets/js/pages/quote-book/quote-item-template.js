@@ -15,7 +15,7 @@ export function renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPri
                 <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
                     <i class="fas fa-pen-nib"></i> <span class="step-number">01</span> 기본 정보
                 </h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                <div class="grid grid-cols-1 md:grid-cols-[minmax(0,4fr)_minmax(0,1fr)] gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
                     <div>
                         <label class="block text-xs font-bold text-slate-500 mb-1">품명</label>
                         <input type="text" name="orderName" class="form-input w-full orderName font-medium" placeholder="예: 2025년 상반기 자료집" required>
@@ -99,11 +99,10 @@ export function renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPri
 
             <div class="order-stage" data-order-stage="binding">
                 <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
-                    <i class="fas fa-cogs"></i> <span class="step-number">04</span> 제본
+                    <i class="fas fa-cogs"></i> <span class="step-number">04</span> 제본방식
                 </h2>
                 <div class="space-y-4">
                      <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-2">제본 방식</label>
                         <input type="hidden" name="bindingType" class="bindingType" value="none">
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 binding-options">
                             <button type="button" class="option-card" data-value="perfect">

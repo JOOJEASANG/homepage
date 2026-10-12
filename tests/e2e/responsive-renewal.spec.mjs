@@ -86,7 +86,7 @@ test.describe('responsive renewal', () => {
         if (url === 'quote-book.html') {
           await expect(page.locator('.order-step-nav button').first()).toHaveText('01 기본 정보');
           await expect(page.locator('.order-step-nav button').first()).toHaveAttribute('aria-current', 'step');
-          await expect(page.locator('.order-step-nav button').nth(1)).toHaveText('02 제본');
+          await expect(page.locator('.order-step-nav button').nth(1)).toHaveText('02 제본방식');
           await expect(page.locator('.quote-item > .order-stage').first()).toHaveAttribute('data-order-stage', 'basics');
           await expect(page.locator('.quote-item > .order-stage').nth(1)).toHaveAttribute('data-order-stage', 'binding');
           await expect(page.locator('.quote-item > .order-stage').first().locator('.step-number')).toHaveText('01');
@@ -96,7 +96,13 @@ test.describe('responsive renewal', () => {
           await expect(basics.getByText('주문 수량 (부)', { exact: true })).toBeVisible();
           await expect(basics.locator('.orderName')).toBeVisible();
           await expect(basics.locator('.quantity')).toBeVisible();
+          if (width >= 768) {
+            const fieldWidths = await basics.locator('.bg-slate-50 > div').evaluateAll(fields => fields.map(field => field.getBoundingClientRect().width));
+            expect(fieldWidths[0] / fieldWidths[1]).toBeGreaterThan(3.9);
+            expect(fieldWidths[0] / fieldWidths[1]).toBeLessThan(4.1);
+          }
           await expect(page.locator('.quote-item > [data-order-stage="binding"] .quantity')).toHaveCount(0);
+          await expect(page.locator('.quote-item > [data-order-stage="binding"] label', { hasText: '제본 방식' })).toHaveCount(0);
         }
       }
     });
