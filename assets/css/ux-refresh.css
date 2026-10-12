@@ -93,6 +93,10 @@ body[data-page="quote-book"] .order-stage > h2, .stage-title { font-size: 15px; 
 .step-number { display: inline-flex; align-items: center; justify-content: center; width: 27px; height: 27px; background: var(--ux-brand-soft); color: var(--ux-brand); border-radius: 8px; font-size: 11px; font-weight: 800; flex-shrink: 0; margin-right: 6px; }
 body[data-page="quote-book"] .option-card { border-radius: 12px; min-height: 128px; box-shadow: none; }
 body[data-page="quote-book"] .option-card.selected { background: var(--ux-brand-soft); border-color: var(--ux-brand); }
+body[data-page="quote-book"] .book-basic-fields { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 768px) {
+  body[data-page="quote-book"] .book-basic-fields { grid-template-columns: minmax(0, 4fr) minmax(0, 1fr); }
+}
 .order-step-nav { display: flex; gap: 8px; margin: 0 0 22px; overflow-x: auto; padding: 4px 0; scrollbar-width: none; }
 .order-step-nav button { background: #fff; border: 1px solid var(--ux-line); border-radius: 9px; color: #6e7c74; min-height: 43px; padding: 10px 14px; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .order-step-nav button[aria-current="step"] { color: var(--ux-brand); border-color: #b8d6c5; background: var(--ux-brand-soft); }

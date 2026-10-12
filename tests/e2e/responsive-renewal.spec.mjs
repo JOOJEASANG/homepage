@@ -100,6 +100,9 @@ test.describe('responsive renewal', () => {
             const fieldWidths = await basics.locator('.bg-slate-50 > div').evaluateAll(fields => fields.map(field => field.getBoundingClientRect().width));
             expect(fieldWidths[0] / fieldWidths[1]).toBeGreaterThan(3.9);
             expect(fieldWidths[0] / fieldWidths[1]).toBeLessThan(4.1);
+          } else {
+            const fieldPositions = await basics.locator('.bg-slate-50 > div').evaluateAll(fields => fields.map(field => field.getBoundingClientRect().top));
+            expect(fieldPositions[1]).toBeGreaterThan(fieldPositions[0]);
           }
           await expect(page.locator('.quote-item > [data-order-stage="binding"] .quantity')).toHaveCount(0);
           await expect(page.locator('.quote-item > [data-order-stage="binding"] label', { hasText: '제본 방식' })).toHaveCount(0);
