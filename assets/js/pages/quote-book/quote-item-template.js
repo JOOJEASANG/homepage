@@ -22,7 +22,7 @@ export function renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPri
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-500 mb-1">주문 수량 (부)</label>
-                        <input type="number" name="quantity" value="1" min="1" class="form-input w-full quantity text-lg font-bold text-brand-700">
+                        <input type="number" name="quantity" value="1" min="1" class="form-input w-full quantity font-bold text-brand-700">
                     </div>
                 </div>
             </div>

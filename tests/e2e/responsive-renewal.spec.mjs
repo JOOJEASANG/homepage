@@ -96,6 +96,8 @@ test.describe('responsive renewal', () => {
           await expect(basics.getByText('주문 수량 (부)', { exact: true })).toBeVisible();
           await expect(basics.locator('.orderName')).toBeVisible();
           await expect(basics.locator('.quantity')).toBeVisible();
+          const inputHeights = await basics.locator('input').evaluateAll(inputs => inputs.map(input => input.getBoundingClientRect().height));
+          expect(Math.abs(inputHeights[0] - inputHeights[1])).toBeLessThan(0.5);
           if (width >= 768) {
             const fieldWidths = await basics.locator('.bg-slate-50 > div').evaluateAll(fields => fields.map(field => field.getBoundingClientRect().width));
             expect(fieldWidths[0] / fieldWidths[1]).toBeGreaterThan(3.9);
