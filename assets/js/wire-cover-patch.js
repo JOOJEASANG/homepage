@@ -3,7 +3,7 @@
 //
 // 역할:
 //   - 책자/제본 페이지에서 견적 항목 순서를
-//     제본·수량 → 기본 정보 → 표지 → 내지 → 요청사항으로 보정합니다.
+//     기본 정보 → 제본·수량 → 표지 → 내지 → 요청사항으로 보정합니다.
 //   - 와이어 제본 선택 시 표지 인쇄를 A4 기준 앞면 출력 / 뒷면 출력 체크 방식으로 표시합니다.
 //   - 고급 내지 스노우 120g/150g이 일정 페이지 이상이면 무선제본을 비활성화하고 안내문을 표시합니다.
 //   - 기존 계산식과 호환되도록 coverPrintType 값을 자동 변환합니다.
@@ -50,7 +50,7 @@ function schedulePatchQuoteItems() {
 function reorderQuoteItemSections(itemEl) {
   if (!itemEl || itemEl.dataset.bookSectionOrderPatched === '1') return;
 
-  const orderedStageKeys = ['binding', 'basics', 'cover', 'inner', 'remarks'];
+  const orderedStageKeys = ['basics', 'binding', 'cover', 'inner', 'remarks'];
   const stages = orderedStageKeys.map(key => itemEl.querySelector(`[data-order-stage="${key}"]`));
   const header = itemEl.querySelector('.quote-item-header');
   if (!header || stages.some(stage => !stage)) return;
