@@ -128,6 +128,21 @@ body[data-page="admin"] :is(.stat-card,.card) { box-shadow: none !important; bor
 body[data-page="admin"] .order-table th { background: #f7f9f6; font-size: 11px; color: #7c8b80; }
 body[data-page="admin"] .order-table td { padding: 17px 16px; }
 body[data-page="admin"] .order-table { width: 100%; }
+body[data-page="admin"] .reception-order-table { table-layout: fixed; min-width: 1120px; }
+body[data-page="admin"] .reception-order-table .reception-col-date { width: 8%; }
+body[data-page="admin"] .reception-order-table .reception-col-number { width: 12%; }
+body[data-page="admin"] .reception-order-table .reception-col-order { width: 31%; }
+body[data-page="admin"] .reception-order-table .reception-col-customer { width: 20%; }
+body[data-page="admin"] .reception-order-table .reception-col-price { width: 9%; }
+body[data-page="admin"] .reception-order-table .reception-col-status { width: 8%; }
+body[data-page="admin"] .reception-order-table .reception-col-actions { width: 12%; }
+body[data-page="admin"] .reception-order-table :is(th,td) { padding-left: 10px; padding-right: 10px; }
+body[data-page="admin"] .reception-order-table tbody td:nth-child(3) > div { min-width: 0; }
+body[data-page="admin"] .reception-order-table tbody td:nth-child(3) > div > span.font-bold {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: none !important;
+}
 body[data-page="admin"] :is(#quote-list-body,#inquiry-list-body) button { min-height: 40px; min-width: 40px; border-radius: 8px; background: #f5f8f5; }
 body[data-page="admin"] #notif-controls { right: 20px !important; bottom: 18px !important; z-index: 45 !important; }
 body[data-page="admin"] #enable-notifs-btn { background: #fff !important; border-color: #dce5df !important; color: var(--ux-ink) !important; box-shadow: none !important; }
@@ -231,6 +246,7 @@ body[data-page="admin"] .nav-btn.active { color: var(--ux-brand); background: va
   body[data-page="admin"] #modalContent { padding: 18px; }
   /* Reuse real table cells and actions rather than maintaining a second order list. */
   body[data-page="admin"] .responsive-orders { display: block; min-width: 0 !important; padding: 10px; }
+  body[data-page="admin"] .responsive-orders colgroup { display: none; }
   body[data-page="admin"] .responsive-orders thead { display: none; }
   body[data-page="admin"] .responsive-orders tbody { display: grid; gap: 12px; }
   body[data-page="admin"] .responsive-orders tbody > tr { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); border: 1px solid var(--ux-line); border-radius: 13px; padding: 15px; background: #fff; gap: 8px 12px; }
@@ -240,7 +256,7 @@ body[data-page="admin"] .nav-btn.active { color: var(--ux-brand); background: va
   body[data-page="admin"] .responsive-orders td:nth-child(3) > div { flex-wrap: wrap; gap: 5px; }
   body[data-page="admin"] .responsive-orders td:nth-child(3) .text-xs { font-size: 0.8125rem; }
   body[data-page="admin"] .responsive-orders td:nth-child(4) { grid-column: 1/-1; }
-  body[data-page="admin"] .responsive-orders td:nth-child(4) > div { flex-wrap: wrap; white-space: normal; gap: 2px; }
+  body[data-page="admin"] .responsive-orders td:nth-child(4) > div { flex-wrap: wrap; white-space: normal; gap: 8px; }
   body[data-page="admin"] .responsive-orders td:last-child { grid-column: 1/-1; border-top: 1px solid #edf1ec; padding-top: 10px; }
   body[data-page="admin"] .responsive-orders td:last-child > div { justify-content: flex-end; flex-wrap: wrap; }
   body[data-page="admin"] .responsive-orders td[colspan] { grid-column: 1/-1; }
