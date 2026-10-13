@@ -1017,6 +1017,8 @@ async function listenToQuotes() {
                 const v = q?.finalPrice ?? q?.totalPrice ?? 0;
                 return Number.isFinite(Number(v)) ? Number(v) : 0;
             };
+            const isEstimateRequest = (q) => q?.requestType === 'estimate';
+            const getEstimateDisplayStatus = (q) => q?.estimateStatus === 'completed' ? '견적완료' : '견적요청';
 
             // 1. 필터링 및 정렬 (기존 로직 유지)
             const filteredQuotes = quotesCache
@@ -1029,7 +1031,9 @@ async function listenToQuotes() {
                     const searchHaystack = `${receiptNo} ${title} ${name} ${contact}`.toLowerCase();
                     return (searchTerm === '' || searchHaystack.includes(searchTerm)) && 
                            (statusFilter === 'all'
-                            || q.status === statusFilter
+                            || (statusFilter === '견적요청' && isEstimateRequest(q) && getEstimateDisplayStatus(q) === '견적요청')
+                            || (statusFilter === '견적완료' && isEstimateRequest(q) && getEstimateDisplayStatus(q) === '견적완료')
+                            || (q.status === statusFilter && !(statusFilter === '접수완료' && isEstimateRequest(q)))
                             || (statusFilter === '취소요청' && (q.status === '취소요청' || q.cancelRequestState === 'requested'))
                             || (statusFilter === '취소거절' && (q.status === '취소거절' || q.cancelRequestState === 'rejected'))
                            );
@@ -1081,10 +1085,14 @@ async function listenToQuotes() {
                 const isCancelRequest = (q.status === '취소요청') || (q.cancelRequestState === 'requested');
                 const isCanceled = q.status === '주문취소';
                 const isCancelRejected = (q.cancelRequestState === 'rejected') || (q.status === '취소거절');
+                const isEstimate = isEstimateRequest(q);
                 
                 let typeBadge = q.productType === 'book' 
                     ? `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 mr-2 flex-shrink-0">책자</span>`
                     : `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 mr-2 flex-shrink-0">인쇄</span>`;
+                if (isEstimate) {
+                    typeBadge += `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold bg-violet-50 text-violet-700 border border-violet-200 mr-2 flex-shrink-0">견적만</span>`;
+                }
                 
                 const userBadge = ``;
 
@@ -1133,6 +1141,11 @@ async function listenToQuotes() {
                             <span class="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-700">주문취소</span>
                         ` : isCancelRejected ? `
                             <span class="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-slate-200 text-slate-600">취소거절</span>
+                        ` : isEstimate ? `
+                            <select aria-label="견적 상태 변경" class="estimate-status-select text-xs font-bold px-2 py-1 rounded border bg-violet-50 text-violet-800 border-violet-200 cursor-pointer outline-none focus:border-violet-500" data-id="${q.id}">
+                                <option value="requested" ${q.estimateStatus!=='completed'?'selected':''}>견적요청</option>
+                                <option value="completed" ${q.estimateStatus==='completed'?'selected':''}>견적완료</option>
+                            </select>
                         ` : `
                             <select aria-label="주문 상태 변경" class="status-select text-xs font-bold px-2 py-1 rounded border bg-white border-slate-200 cursor-pointer outline-none focus:border-brand-500" data-id="${q.id}">
                                 <option value="접수완료" ${q.status==='접수완료'?'selected':''}>접수완료</option>
@@ -1205,7 +1218,7 @@ async function listenToQuotes() {
 
             // 2. 캐시된 견적 데이터 순회하며 집계
             quotesCache.forEach(q => {
-                if (!q.createdAt || q.status === '주문취소') return;
+                if (!q.createdAt || q.status === '주문취소' || q.requestType === 'estimate') return;
 
                 const d = q.createdAt.toDate();
                 const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -1294,6 +1307,27 @@ function updateDashboard() {
                 await updateDoc(doc(db, "quotes", quoteId), { status: newStatus });
                 showToast("상태가 변경되었습니다.", "success");
             } catch (error) { showToast("상태 변경 중 오류 발생", "error"); }
+        }
+
+        async function updateEstimateStatus(quoteId, newStatus) {
+            try {
+                const completed = newStatus === 'completed';
+                await updateDoc(doc(db, "quotes", quoteId), {
+                    estimateStatus: completed ? 'completed' : 'requested',
+                    estimateCompletedAt: completed ? serverTimestamp() : null,
+                    hasUnreadCustomerMessage: true,
+                    updatedAt: serverTimestamp(),
+                });
+                try {
+                    await addDoc(collection(db, `quotes/${quoteId}/messages`), {
+                        sender: 'admin',
+                        timestamp: serverTimestamp(),
+                        text: completed ? '견적 확인이 완료되었습니다. 견적서를 확인한 뒤 주문으로 전환할 수 있습니다.' : '견적 내용을 확인하고 있습니다.',
+                        type: 'system',
+                    });
+                } catch (messageError) { logger.warn('estimate status message failed', messageError); }
+                showToast(completed ? '견적완료로 변경되었습니다.' : '견적요청 상태로 변경되었습니다.', 'success');
+            } catch (error) { showToast('견적 상태 변경 중 오류가 발생했습니다.', 'error'); }
         }
 
         async function resolveCancelRequest(quoteId, decision) {
@@ -1414,6 +1448,7 @@ showToast('취소거절 처리되었습니다.', 'success');
                         <div>
                             <h3 class="text-xl font-bold text-slate-800 flex items-center">
                                 <span class="bg-brand-600 text-white text-xs px-2 py-1 rounded mr-2">${quote.productType === 'book' ? '책자/제본' : '디지털인쇄'}</span>
+                                ${quote.requestType === 'estimate' ? '<span class="bg-violet-100 text-violet-800 text-xs px-2 py-1 rounded mr-2">견적만 요청</span>' : ''}
                                 ${s(quote.orderName)}
                             </h3>
                             <p class="text-sm text-slate-500 mt-1">접수일시: ${dateStr}</p>
@@ -3260,6 +3295,9 @@ async function handleNoticeSave(e) {
             DOMElements.quoteListBody.addEventListener('change', (e) => {
                 if (e.target.classList.contains('status-select')) {
                     updateStatus(e.target.dataset.id, e.target.value);
+                }
+                if (e.target.classList.contains('estimate-status-select')) {
+                    updateEstimateStatus(e.target.dataset.id, e.target.value);
                 }
             });
 

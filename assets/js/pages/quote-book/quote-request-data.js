@@ -24,7 +24,9 @@ export function buildQuoteRequestData({
   createdAt = null,
   breakdownHtml = '',
   allItemsData = [],
+  requestType = 'order',
 } = {}) {
+  const normalizedRequestType = requestType === 'estimate' ? 'estimate' : 'order';
   return {
     ...calculatedQuote,
     userId: isGuest ? 'guest' : userId,
@@ -41,6 +43,9 @@ export function buildQuoteRequestData({
     ordererContact: isGuest ? normalizedContact : ordererContact,
     ordererCompany,
     status: '접수완료',
+    requestType: normalizedRequestType,
+    estimateStatus: normalizedRequestType === 'estimate' ? 'requested' : null,
+    estimateRequestedAt: normalizedRequestType === 'estimate' ? createdAt : null,
     createdAt,
     hasUnreadAdminMessage: false,
     hasUnreadCustomerMessage: false,
@@ -76,6 +81,10 @@ export function buildQuoteUpdatePayload({
 
   payload.updatedAt = updatedAt;
   payload.status = existing.status || payload.status;
+  if (existing.requestType !== undefined) payload.requestType = existing.requestType;
+  if (existing.estimateStatus !== undefined) payload.estimateStatus = existing.estimateStatus;
+  if (existing.estimateRequestedAt !== undefined) payload.estimateRequestedAt = existing.estimateRequestedAt;
+  if (existing.estimateCompletedAt !== undefined) payload.estimateCompletedAt = existing.estimateCompletedAt;
 
   if (!isAdminEditMode) {
     if (existing.userId !== undefined) payload.userId = existing.userId;

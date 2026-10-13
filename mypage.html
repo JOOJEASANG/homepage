@@ -339,8 +339,8 @@
 </style>
 
     <script src="assets/js/naver-analytics.js" defer></script>
-    <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261002">
-    <script src="assets/js/responsive-ui.js?v=20261002" defer></script>
+    <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261013-estimate">
+    <script src="assets/js/responsive-ui.js?v=20261013-estimate" defer></script>
 </head>
 <body data-page="mypage" class="antialiased selection:bg-brand-100 selection:text-brand-900">
 
@@ -443,6 +443,8 @@
                 <input type="text" id="searchInput" class="form-input text-sm w-full sm:w-56" placeholder="접수번호 또는 품명 검색...">
                 <select id="statusFilter" class="form-select text-sm w-28 shrink-0">
                     <option value="all">전체 상태</option>
+                    <option value="견적요청">견적요청</option>
+                    <option value="견적완료">견적완료</option>
                     <option value="접수완료">접수완료</option>
                     <option value="작업중">작업중</option>
                     <option value="작업완료">작업완료</option>
@@ -1406,7 +1408,7 @@ function buildItemDetailsHtml(it, productType, showDetailsFlag){
     <audio id="edit-sound-print" src="./mp3/edit.mp3" preload="none"></audio>
 
 <script type="module" src="assets/js/maintenance-check.js"></script>
-<script type="module" src="assets/js/pages/mypage.js"></script>
+<script type="module" src="assets/js/pages/mypage.js?v=20261013-estimate"></script>
 <script>
 /* ===== Mobile Bottom Sheet (상담) ===== */
 (function(){

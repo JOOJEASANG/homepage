@@ -486,7 +486,7 @@ document.getElementById('member-go-login-btn')?.addEventListener('click', () => 
     // 버튼 문구 변경 (수정 모드임을 인지)
     const submitBtn = document.getElementById('submitBtn');
     if(submitBtn) {
-        submitBtn.innerHTML = '<i class="fas fa-pen-to-square mr-2"></i>이 내용으로 견적 접수하기';
+        submitBtn.innerHTML = '<i class="fas fa-pen-to-square mr-2"></i>수정 저장';
     }
 
     // 최종 금액 재계산
@@ -511,6 +511,7 @@ document.getElementById('member-go-login-btn')?.addEventListener('click', () => 
 
     const $id = (id, fallbackSelector) => document.getElementById(id) || (fallbackSelector ? document.querySelector(fallbackSelector) : null);
     const editState = { enabled:false, quoteId:null, adminEdit:false }; // moved up to avoid TDZ on early calls
+    let pendingRequestType = localStorage.getItem('pendingRequestTypePrint') === 'estimate' ? 'estimate' : 'order';
 
 const el = {
       form: document.getElementById('quoteForm'),
@@ -534,6 +535,7 @@ const el = {
       refreshBtn: document.getElementById('refreshBtn'),
       resetFormBtn: document.getElementById('resetFormBtn'),
       submitBtn: document.getElementById('submitBtn'),
+      quoteOnlyBtn: document.getElementById('quoteOnlyBtn'),
       logoutBtn: document.getElementById('logoutBtn'),
       loginBadge: document.getElementById('loginBadge'),
       attachments: document.getElementById('attachments'),
@@ -553,6 +555,19 @@ const el = {
       memberGoLoginBtn: document.getElementById('member-go-login-btn'),
       memberSubmitBtn: document.getElementById('member-submit-btn'),
     };
+
+    function setSubmissionIntent(requestType){
+      pendingRequestType = requestType === 'estimate' ? 'estimate' : 'order';
+      try{ localStorage.setItem('pendingRequestTypePrint', pendingRequestType); }catch(e){}
+      const modalTitle = el.signupModal?.querySelector('h2');
+      const guestButtonText = el.signupForm?.querySelector('.btn-text');
+      const memberButtonText = el.memberSubmitBtn?.querySelector('.btn-text');
+      if(modalTitle) modalTitle.innerHTML = pendingRequestType === 'estimate'
+        ? '<i class="fas fa-file-invoice-dollar text-base mr-2"></i>견적 요청자 정보 입력'
+        : '<i class="fas fa-user-circle text-base mr-2"></i>주문자 정보 입력';
+      if(guestButtonText) guestButtonText.textContent = pendingRequestType === 'estimate' ? '동의하고 견적 요청' : '동의하고 접수하기';
+      if(memberButtonText) memberButtonText.textContent = pendingRequestType === 'estimate' ? '회원으로 견적 요청' : '회원으로 접수하기';
+    }
 
 loadEditPayloadIfAny();
 
@@ -1086,6 +1101,7 @@ function loadEditPayloadIfAny(){
     editState.enabled = true;
     editState.quoteId = data.quoteId || null;
     editState.adminEdit = (data.mode==='admin_edit');
+    if (el.quoteOnlyBtn) el.quoteOnlyBtn.hidden = true;
 
     // --- Prefill (NEW: supports both new spec format and legacy mypage format) ---
     // 1) order name
@@ -1349,6 +1365,9 @@ ordererName: ordererName,
           guestNameNorm: isGuest ? (ordererName || '').replace(/\s+/g,'').trim() : null,
 
           status: '접수완료',
+          requestType: (opts.requestType || pendingRequestType) === 'estimate' ? 'estimate' : 'order',
+          estimateStatus: (opts.requestType || pendingRequestType) === 'estimate' ? 'requested' : null,
+          estimateRequestedAt: (opts.requestType || pendingRequestType) === 'estimate' ? Timestamp.now() : null,
           createdAt: Timestamp.now(),
           hasUnreadAdminMessage: false,
           hasUnreadCustomerMessage: false,
@@ -1429,6 +1448,10 @@ if (editState.enabled && editState.quoteId){
 
 // 진행중/완료 상태를 덮어쓰지 않도록 기존 상태 유지 (Firestore Rules: guest status immutable)
      payload.status = existing.status || payload.status;
+     if (existing.requestType !== undefined) payload.requestType = existing.requestType;
+     if (existing.estimateStatus !== undefined) payload.estimateStatus = existing.estimateStatus;
+     if (existing.estimateRequestedAt !== undefined) payload.estimateRequestedAt = existing.estimateRequestedAt;
+     if (existing.estimateCompletedAt !== undefined) payload.estimateCompletedAt = existing.estimateCompletedAt;
     // ✅ Rules 호환: 회원/비회원 공통 불변 필드(소유/타입)는 항상 기존값 유지
     if (!editState.adminEdit) {
       if (existing.userId !== undefined) payload.userId = existing.userId;
@@ -1503,7 +1526,8 @@ payload.lastEditedBy = editState.adminEdit ? 'admin' : 'customer';
            }catch(e){}
          }
 closeSignupModal();
-        showToast('접수 완료! 마이페이지에서 진행상황을 확인할 수 있어요.', 'success');
+        try{ localStorage.removeItem('pendingRequestTypePrint'); }catch(e){}
+        showToast(quoteDoc.requestType === 'estimate' ? '견적 요청 완료! 마이페이지에서 확인할 수 있어요.' : '주문 접수 완료! 마이페이지에서 진행상황을 확인할 수 있어요.', 'success');
         setTimeout(()=> location.href = isGuest ? 'mypage.html?guest=1' : 'mypage.html', 900);
 
       } catch(err){
@@ -1517,7 +1541,7 @@ closeSignupModal();
           }
         })();
         el.submitBtn.disabled = false;
-        el.submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>견적 접수하기';
+        el.submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>주문 접수';
       }
     }
 
@@ -1526,9 +1550,10 @@ closeSignupModal();
     // 폼 제출 버튼 클릭 시 호출됩니다.
     // 우선순위: ① 기존 비회원 세션 → ② 회원 로그인 → ③ 관리자 수정 → ④ 주문자 정보 입력 모달 오픈
     let __QUOTE_SUBMIT_LOCK = false;
-    async function submitQuote(e){
+    async function submitQuote(e, requestType = 'order'){
   e.preventDefault();
   if (__QUOTE_SUBMIT_LOCK) return;
+  setSubmissionIntent(requestType);
   __QUOTE_SUBMIT_LOCK = true;
   try{const calc = compute();
   if (!calc.ok){
@@ -1667,7 +1692,8 @@ openSignupModal();
       window.scrollTo({ top: 0, behavior: 'smooth' });
       showToast('모든 내용이 초기화되었습니다.', 'success');
     });
-    el.form.addEventListener('submit', submitQuote);
+    el.form.addEventListener('submit', (event) => submitQuote(event, 'order'));
+    el.quoteOnlyBtn?.addEventListener('click', () => submitQuote({ preventDefault(){} }, 'estimate'));
 
     el.logoutBtn?.addEventListener('click', async ()=>{
       try{ await signOut(auth); } catch(e){}
@@ -1718,7 +1744,7 @@ openSignupModal();
 
     // ============================================================
     // [회원 접수 흐름 개선]
-    // 비로그인 상태에서 "견적 접수하기" → 회원 탭에서 로그인하면,
+    // 비로그인 상태에서 접수 → 회원 탭에서 로그인하면,
     // 로그인 완료 후 자동으로 동일 견적이 접수되도록 pending 데이터를 저장합니다.
     // (첨부파일(File)은 localStorage에 저장할 수 없어 자동 이관되지 않습니다.)
     // ============================================================
@@ -1738,6 +1764,7 @@ openSignupModal();
           oshiEnabled: !!el.oshiEnabled.checked,
           fullBackgroundEnabled: !!el.fullBackgroundEnabled?.checked,
           oshiLines: (document.querySelector('input[name="oshiLines"]:checked')||{}).value || '',
+          requestType: pendingRequestType,
           // NOTE: attachments are not persisted
         };
         localStorage.setItem('pending_member_submit_print', JSON.stringify(payload));
@@ -1783,6 +1810,7 @@ openSignupModal();
             const r = document.querySelector(`input[name="oshiLines"][value="${d.oshiLines}"]`);
             if(r) r.checked = true;
           }
+          setSubmissionIntent(d.requestType === 'estimate' ? 'estimate' : 'order');
         }catch(_){ }
 
         return d;

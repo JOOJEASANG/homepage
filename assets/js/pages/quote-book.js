@@ -198,6 +198,7 @@ function makeDiffSummaryBook(oldDoc, newPayload){
 // /DIFF_SUMMARY_BOOK_V6
 
 const editState = { enabled: false, quoteId: null, adminEdit: isAdminEditSearch(location.search || '') };
+    let pendingRequestType = localStorage.getItem('pendingRequestTypeBook') === 'estimate' ? 'estimate' : 'order';
     // 관리자 수정 모드에서는 버튼 문구를 '관리자 수정'으로 표시
     try { if (editState.adminEdit) { document.getElementById('submitQuoteBtn')?.querySelector('.btn-text') && (document.getElementById('submitQuoteBtn').querySelector('.btn-text').textContent = '관리자 수정'); } } catch(e) {}
 
@@ -210,6 +211,7 @@ const editState = { enabled: false, quoteId: null, adminEdit: isAdminEditSearch(
         form: document.getElementById('quoteForm'),
         priceBreakdownEl: document.getElementById('priceBreakdown'),
         submitQuoteBtn: document.getElementById('submitQuoteBtn'),
+        quoteOnlyBtn: document.getElementById('quoteOnlyBtn'),
         resetFormBtn: document.getElementById('resetFormBtn'),
         welcomeMessage: document.getElementById('welcome-message'),
         quoteItemsContainer: document.getElementById('quote-items-container'),
@@ -232,6 +234,19 @@ const editState = { enabled: false, quoteId: null, adminEdit: isAdminEditSearch(
         memberGoLoginBtn: document.getElementById('member-go-login-btn'),
         memberSubmitBtn: document.getElementById('member-submit-btn'),
     };
+
+    function setSubmissionIntent(requestType) {
+        pendingRequestType = requestType === 'estimate' ? 'estimate' : 'order';
+        try { localStorage.setItem('pendingRequestTypeBook', pendingRequestType); } catch (e) {}
+        const modalTitle = DOMElements.signupModal?.querySelector('h2');
+        const guestButtonText = DOMElements.signupForm?.querySelector('.btn-text');
+        const memberButtonText = DOMElements.memberSubmitBtn?.querySelector('.btn-text');
+        if (modalTitle) modalTitle.innerHTML = pendingRequestType === 'estimate'
+            ? '<i class="fas fa-file-invoice-dollar text-base mr-2"></i>견적 요청자 정보 입력'
+            : '<i class="fas fa-user-circle text-base mr-2"></i>주문자 정보 입력';
+        if (guestButtonText) guestButtonText.textContent = pendingRequestType === 'estimate' ? '동의하고 견적 요청' : '동의하고 접수하기';
+        if (memberButtonText) memberButtonText.textContent = pendingRequestType === 'estimate' ? '회원으로 견적 요청' : '회원으로 접수하기';
+    }
     
     function getTempStorageKey() {
         return getBookTempStorageKey(currentUser, TEMP_STORAGE_KEY_PREFIX);
@@ -1107,8 +1122,9 @@ function applyImagePreviewsToUI(root=document) {
 
     // ── 견적 접수 버튼 핸들러 ────────────────────────────────
     // 제출 버튼 클릭 → 관리자 수정 / 기존 세션 / 신규 비회원 접수 분기 처리
-    async function handleQuoteSubmit() {
+    async function handleQuoteSubmit(requestType = 'order') {
         if (__QUOTE_SUBMIT_LOCK) return;
+        setSubmissionIntent(requestType);
         __QUOTE_SUBMIT_LOCK = true;
         try {
         let isValid = true;
@@ -1280,6 +1296,7 @@ DOMElements.signupModal.classList.remove('hidden');
             createdAt: Timestamp.now(),
             breakdownHtml: DOMElements.priceBreakdownEl.innerHTML,
             allItemsData,
+            requestType: opts.requestType || pendingRequestType,
         });
 
         try {
@@ -1408,7 +1425,9 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
 
             if (DOMElements.attachmentsInput) DOMElements.attachmentsInput.value = '';
             if (DOMElements.attachmentsList) DOMElements.attachmentsList.innerHTML = '';
-            showToast(editState.enabled ? '견적이 수정되었습니다.' : '견적 신청이 성공적으로 접수되었습니다.', 'success');
+            const wasEstimateRequest = quoteRequestData.requestType === 'estimate';
+            try { localStorage.removeItem('pendingRequestTypeBook'); } catch (e) {}
+            showToast(editState.enabled ? '견적이 수정되었습니다.' : (wasEstimateRequest ? '견적 요청이 접수되었습니다.' : '주문이 접수되었습니다.'), 'success');
             setTimeout(() => {
                  window.location.href = isGuest ? 'mypage.html?guest=1' : 'mypage.html';
             }, 1500);
@@ -1430,12 +1449,12 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
                 } catch(e) {}
                 showToast('접수 권한이 없습니다.', 'error');
             } else {
-                showToast('견적 신청 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+                showToast('접수 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
             }
             DOMElements.submitQuoteBtn.disabled = false;
             DOMElements.submitQuoteBtn.innerHTML = editState.enabled
                 ? (editState.adminEdit ? '<i class="fas fa-pen-to-square mr-2"></i>관리자 수정 저장' : '<i class="fas fa-pen-to-square mr-2"></i>견적 수정')
-                : '<i class="fas fa-paper-plane mr-2"></i>견적 신청';
+                : '<i class="fas fa-paper-plane mr-2"></i>주문 접수';
         }
     }
 
@@ -1561,7 +1580,8 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
             DOMElements.attachmentsInput.addEventListener('change', renderAttachmentsList);
         }
         DOMElements.addQuoteItemBtn.addEventListener('click', () => createNewQuoteItem());
-        DOMElements.submitQuoteBtn.addEventListener('click', handleQuoteSubmit);
+        DOMElements.submitQuoteBtn.addEventListener('click', () => handleQuoteSubmit('order'));
+        DOMElements.quoteOnlyBtn?.addEventListener('click', () => handleQuoteSubmit('estimate'));
         DOMElements.resetFormBtn.addEventListener('click', async () => {
             const confirmed = await showConfirmation('새로 작성', '정말 모든 내용을 지우고 새로 작성하시겠습니까?');
             if (confirmed) { resetFormAndStorage(); }
@@ -1804,6 +1824,7 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
                     if (reloadState.editEnabled && reloadState.quoteId) {
                         editState.enabled = true;
                         editState.quoteId = reloadState.quoteId;
+                        if (DOMElements.quoteOnlyBtn) DOMElements.quoteOnlyBtn.hidden = true;
                         if (DOMElements.submitQuoteBtn) {
                             DOMElements.submitQuoteBtn.innerHTML = editState.adminEdit ? '<i class="fas fa-pen-to-square mr-2"></i>관리자 수정 저장' : '<i class="fas fa-pen-to-square mr-2"></i>견적 수정';
                         }

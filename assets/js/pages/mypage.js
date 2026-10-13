@@ -638,6 +638,13 @@ try { window.auth = auth; } catch(e) {}
             });
         }
 
+        function getCustomerDisplayStatus(quote) {
+            if (quote?.requestType === 'estimate') {
+                return quote.estimateStatus === 'completed' ? '견적완료' : '견적요청';
+            }
+            return quote?.status || '접수대기';
+        }
+
         // ── 접수 목록 렌더링 ──────────────────────────────────────
         // 필터(상태, 탭)와 검색어를 적용해 테이블 행을 생성합니다.
         function renderQuoteList() {
@@ -651,7 +658,7 @@ try { window.auth = auth; } catch(e) {}
                 const receiptNo = (q.receiptNo || '').toString().toLowerCase();
                 const orderName = (q.orderName || '').toString().toLowerCase();
                 const matchesSearch = searchTerm === '' || orderName.includes(searchTerm) || receiptNo.includes(searchTerm);
-                const matchesStatus = statusFilter === 'all' || q.status === statusFilter;
+                const matchesStatus = statusFilter === 'all' || getCustomerDisplayStatus(q) === statusFilter;
                 return matchesSearch && matchesStatus;
             });
 
@@ -676,7 +683,7 @@ try { window.auth = auth; } catch(e) {}
                 const statusRaw = (q.cancelRequestState === 'approved' || q.cancelApprovedAt) ? '취소확정'
                                 : (q.cancelRequestState === 'requested') ? '취소요청'
                                 : (q.cancelRequestState === 'rejected') ? '취소거절'
-                                : (q.status || '접수대기');
+                                : getCustomerDisplayStatus(q);
 
                 const statusStyleMap = {
                     // 기본/대기: 회색(파스텔)
@@ -690,6 +697,7 @@ try { window.auth = auth; } catch(e) {}
                     '진행중':     'bg-blue-200/70 text-blue-900 ring-1 ring-blue-300',
 
                     // 견적: 보라(파스텔)
+                    '견적요청':   'bg-violet-100 text-violet-800 ring-1 ring-violet-200',
                     '견적완료':   'bg-violet-200/70 text-violet-900 ring-1 ring-violet-300',
                     '견적발송':   'bg-violet-200/70 text-violet-900 ring-1 ring-violet-300',
 
@@ -753,7 +761,15 @@ const primaryButtons = `
 let extraButtons = '';
 
 // 상태별 취소 버튼 처리 (더보기로 이동)
-if (q.status === '주문취소' && (q.cancelRequestState === 'approved' || q.cancelApprovedAt)) {
+if (q.requestType === 'estimate') {
+     extraButtons += q.estimateStatus === 'completed' ? `
+         <button type="button" class="convert-estimate-btn menu-btn w-full flex items-center gap-2 px-3 py-2 text-sm font-bold text-violet-700 hover:bg-violet-50 rounded-md" data-id="${q.id}" title="이 견적을 주문으로 전환합니다.">
+             <i class="fas fa-cart-plus"></i><span>주문으로 전환</span>
+         </button>` : `
+         <button type="button" class="menu-btn w-full flex items-center gap-2 px-3 py-2 text-sm font-bold text-slate-400 rounded-md cursor-not-allowed" disabled>
+             <i class="fas fa-hourglass-half"></i><span>견적 확인 중</span>
+         </button>`;
+} else if (q.status === '주문취소' && (q.cancelRequestState === 'approved' || q.cancelApprovedAt)) {
      extraButtons += `
          <button type="button" class="cancel-confirmed-btn menu-btn w-full flex items-center gap-2 px-3 py-2 text-sm font-bold text-red-700 hover:bg-slate-50 rounded-md cursor-not-allowed" data-id="${q.id}" disabled>
              <i class="fas fa-circle-check"></i><span>취소확정</span>
@@ -823,6 +839,7 @@ let buttonsHtml = `
                                 : 'bg-indigo-50 text-indigo-700 border-indigo-200';
                             return `<span class="inline-flex items-center px-2 py-0.5 mr-2 rounded border text-[11px] font-extrabold ${cls}">${t}</span>`;
                         })()}
+                        ${q.requestType === 'estimate' ? '<span class="inline-flex items-center px-2 py-0.5 mr-2 rounded border text-[11px] font-extrabold bg-violet-50 text-violet-700 border-violet-200">견적만</span>' : ''}
                         ${sanitizeHTML(q.orderName)}
                         ${hasUnread ? '<span class="ml-2 text-red-500 inline-block animate-pulse" title="새 메시지"><i class="fas fa-comment-dots"></i></span>' : ''}
                     </td>
@@ -852,6 +869,7 @@ let buttonsHtml = `
                                             : 'bg-indigo-50 text-indigo-700 border-indigo-200';
                                         return `<span class=\"inline-flex items-center px-2 py-0.5 mr-2 rounded border text-[11px] font-extrabold ${cls}\">${t}</span>`;
                                     })()}
+                                    ${q.requestType === 'estimate' ? '<span class="inline-flex items-center px-2 py-0.5 mr-2 rounded border text-[11px] font-extrabold bg-violet-50 text-violet-700 border-violet-200">견적만</span>' : ''}
                                     ${sanitizeHTML(q.orderName)}
                                     ${hasUnread ? '<span class="ml-2 text-red-500 inline-block animate-pulse" title="새 메시지"><i class="fas fa-comment-dots"></i></span>' : ''}
                                 </div>
@@ -994,6 +1012,42 @@ const cancelState = quote.cancelRequestState || (quote.status === '취소요청'
                 }catch(_){
                     showToast(`취소요청 처리 중 오류가 발생했습니다. (${err?.code || 'unknown'})`, 'error');
                 }
+            }
+        }
+
+        async function convertEstimateToOrder(quote) {
+            try {
+                if (!quote?.id) return;
+                const quoteRef = doc(db, 'quotes', quote.id);
+                const latestSnap = await getDoc(quoteRef);
+                if (!latestSnap.exists()) { showToast('견적을 찾을 수 없습니다.', 'error'); return; }
+                const latest = latestSnap.data() || {};
+                if (latest.requestType !== 'estimate') { showToast('이미 주문으로 전환된 견적입니다.', 'info'); return; }
+                if (latest.estimateStatus !== 'completed') { showToast('관리자 견적 확인이 완료된 후 주문으로 전환할 수 있습니다.', 'info'); return; }
+                if (latest.status !== '접수완료') { showToast('현재 상태에서는 주문으로 전환할 수 없습니다.', 'info'); return; }
+
+                const ok = await showConfirmation('주문으로 전환', '확인한 견적 내용으로 주문을 접수할까요?');
+                if (!ok) return;
+
+                await updateDoc(quoteRef, {
+                    requestType: 'order',
+                    estimateStatus: 'converted',
+                    convertedToOrderAt: serverTimestamp(),
+                    hasUnreadAdminMessage: true,
+                    updatedAt: serverTimestamp(),
+                });
+                try {
+                    await addDoc(collection(db, `quotes/${quote.id}/messages`), {
+                        sender: 'customer',
+                        timestamp: serverTimestamp(),
+                        text: '고객이 견적을 확인하고 주문으로 전환했습니다.',
+                        type: 'system',
+                    });
+                } catch (messageError) { console.warn('estimate conversion message failed', messageError); }
+                showToast('주문으로 전환되어 접수되었습니다.', 'success');
+            } catch (error) {
+                console.error(error);
+                showToast('주문 전환 중 오류가 발생했습니다.', 'error');
             }
         }
 
@@ -1387,6 +1441,7 @@ const clickedInsideMoreMenu = !!e.target.closest('.more-actions-menu');
                 
                 // 주문 취소 요청
                 if (e.target.closest('.request-cancel-btn')) { requestCancelOrder(quote); }
+                if (e.target.closest('.convert-estimate-btn')) { convertEstimateToOrder(quote); }
                 
                 // 세금계산서 신청
                 if (e.target.closest('.request-tax-invoice-btn')) { DOMElements.taxInvoiceModal.classList.remove('hidden'); DOMElements.taxInvoiceForm.dataset.id = quoteId; }

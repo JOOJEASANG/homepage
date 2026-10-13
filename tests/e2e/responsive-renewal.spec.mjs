@@ -120,6 +120,8 @@ test.describe('responsive renewal', () => {
       await page.evaluate(button => {
         const original = document.getElementById(button);
         original.addEventListener('click',event => { event.preventDefault(); window.__fixtureSubmits = (window.__fixtureSubmits || 0) + 1; });
+        const quoteOnly = document.getElementById('quoteOnlyBtn');
+        quoteOnly.addEventListener('click',event => { event.preventDefault(); window.__fixtureEstimateSubmits = (window.__fixtureEstimateSubmits || 0) + 1; });
         const amount = document.getElementById('totalPrice');
         if (amount) amount.textContent = '32,500원';
       },button);
@@ -134,6 +136,9 @@ test.describe('responsive renewal', () => {
       await expect(page.locator('.mobile-order-submit')).toBeDisabled();
       await page.evaluate(button => { document.getElementById(button).disabled = false; },button);
       await expect(page.locator('.mobile-order-submit')).toBeEnabled();
+      await expect(page.locator('.mobile-quote-only')).toBeVisible();
+      await page.locator('.mobile-quote-only').click();
+      expect(await page.evaluate(() => window.__fixtureEstimateSubmits)).toBe(1);
       await page.locator('.order-step-nav button').nth(1).click();
       await expect(page.locator('.order-step-nav button').nth(1)).toHaveAttribute('aria-current','step');
       await page.evaluate(button => { document.getElementById(button).hidden = true; },button);

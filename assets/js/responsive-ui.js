@@ -90,10 +90,13 @@
     markStep('basics');
     const bar = document.createElement('div');
     bar.className = 'mobile-order-bar';
-    bar.innerHTML = '<button type="button" class="mobile-price" aria-haspopup="dialog"><small>예상금액 · 부가세 포함</small><strong>계산 대기</strong><span class="price-details">상세 ⌃</span></button><button type="button" class="mobile-order-submit">주문 접수</button>';
+    const quoteOnly = document.getElementById('quoteOnlyBtn');
+    bar.innerHTML = '<button type="button" class="mobile-price" aria-haspopup="dialog"><small>예상금액 · 부가세 포함</small><strong>계산 대기</strong><span class="price-details">상세 ⌃</span></button><div class="mobile-order-actions"><button type="button" class="mobile-quote-only">견적만</button><button type="button" class="mobile-order-submit">주문 접수</button></div>';
     form.after(bar);
     const mobileSubmit = bar.querySelector('.mobile-order-submit');
+    const mobileQuoteOnly = bar.querySelector('.mobile-quote-only');
     mobileSubmit.addEventListener('click', () => { if (!submit.disabled) submit.click(); });
+    mobileQuoteOnly.addEventListener('click', () => { if (quoteOnly && !quoteOnly.disabled) quoteOnly.click(); });
     const sheet = document.createElement('dialog');
     sheet.className = 'order-summary-sheet';
     sheet.setAttribute('aria-label', '예상 견적 상세');
@@ -119,12 +122,15 @@
       bar.querySelector('strong').textContent = /주문 불가/.test(amount || '') ? '사양 확인 필요' : number > 0 ? `${number.toLocaleString('ko-KR')}원` : '계산 대기';
       bar.hidden = submit.hidden || getComputedStyle(submit).display === 'none' || Boolean(document.getElementById('admin-pricing-mode-banner'));
       mobileSubmit.disabled = submit.disabled;
+      mobileQuoteOnly.hidden = !quoteOnly || quoteOnly.hidden || getComputedStyle(quoteOnly).display === 'none';
+      mobileQuoteOnly.disabled = Boolean(quoteOnly?.disabled || submit.disabled);
       mobileSubmit.textContent = submit.disabled ? '처리 중…' : /수정/.test(submit.textContent) ? '견적 수정' : '주문 접수';
       if (sheet.open) copyBreakdown();
     }
     updateBar();
     new MutationObserver(updateBar).observe(priceSource, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-quote-total'] });
     new MutationObserver(updateBar).observe(submit, { attributes: true, attributeFilter: ['disabled', 'style', 'class', 'hidden'], childList: true, subtree: true });
+    if (quoteOnly) new MutationObserver(updateBar).observe(quoteOnly, { attributes: true, attributeFilter: ['disabled', 'style', 'class', 'hidden'] });
     if (!book) new MutationObserver(() => { if (sheet.open) copyBreakdown(); }).observe(source, { childList: true, subtree: true });
     const observed = new WeakSet();
     const observer = new IntersectionObserver(entries => {

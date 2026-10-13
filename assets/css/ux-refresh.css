@@ -201,10 +201,20 @@ body[data-page="admin"] .nav-btn.active { color: var(--ux-brand); background: va
   .mobile-price small { display: block; color: #7d8a80; font-size: 10px; margin-bottom: 3px; }
   .mobile-price strong { font-size: 21px; color: var(--ux-ink); font-weight: 800; }
   .mobile-price .price-details { font-size: 10px; color: #7d8a80; margin-left: 7px; }
+  .mobile-order-actions { display: flex; align-items: stretch; gap: 7px; flex-shrink: 0; }
+  .mobile-quote-only { flex-shrink: 0; color: #6d28d9; background: #f5f3ff; border: 1px solid #ddd6fe; font-size: 12px; font-weight: 800; border-radius: 10px; min-height: 46px; padding: 11px 12px; }
   .mobile-order-submit { flex-shrink: 0; background: var(--ux-brand); color: #fff; font-size: 13px; font-weight: 800; border-radius: 10px; min-height: 46px; padding: 12px 22px; }
+  .mobile-quote-only:disabled, .mobile-order-submit:disabled { opacity: .58; cursor: wait; }
   body:is([data-page="quote-book"],[data-page="quote-print"]) #gprint-ai-button { bottom: calc(96px + env(safe-area-inset-bottom)) !important; }
   body:is([data-page="quote-book"],[data-page="quote-print"]) #gprint-ai-panel { bottom: calc(158px + env(safe-area-inset-bottom)) !important; max-height: calc(100dvh - 180px); }
   body:is([data-page="quote-book"],[data-page="quote-print"]) #ux-scroll-top { bottom: 162px; }
+}
+@media(max-width:420px) {
+  .mobile-order-bar { gap: 8px; padding-inline: 12px; }
+  .mobile-price strong { font-size: 17px; }
+  .mobile-price .price-details { display: none; }
+  .mobile-quote-only { padding-inline: 9px; }
+  .mobile-order-submit { padding-inline: 13px; }
 }
 @media(max-width:767px) {
   .renew-container { padding-inline: 20px; }

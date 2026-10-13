@@ -141,8 +141,8 @@ function __displayNameForHeader(currentUser) {
 
     </style>
     <script src="assets/js/naver-analytics.js" defer></script>
-    <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261012-book-layout">
-    <script src="assets/js/responsive-ui.js?v=20261012-book-layout" defer></script>
+    <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261013-estimate">
+    <script src="assets/js/responsive-ui.js?v=20261013-estimate" defer></script>
 </head>
 <body data-page="quote-book" class="antialiased selection:bg-brand-100 selection:text-brand-900">
 
@@ -277,10 +277,14 @@ function __displayNameForHeader(currentUser) {
                             <button type="button" id="resetFormBtn" class="btn btn-secondary w-full text-sm">
                                 <i class="fas fa-rotate-left mr-2"></i>초기화
                             </button>
-                            <button type="button" id="submitQuoteBtn" class="btn btn-primary w-full text-sm shadow-lg shadow-brand-500/20">
-                                <i class="fas fa-paper-plane mr-2"></i>견적 신청
+                            <button type="button" id="quoteOnlyBtn" class="btn btn-secondary w-full text-sm border-violet-200 text-violet-700 hover:bg-violet-50">
+                                <i class="fas fa-file-invoice-dollar mr-2"></i>견적만 요청
+                            </button>
+                            <button type="button" id="submitQuoteBtn" class="btn btn-primary w-full text-sm shadow-lg shadow-brand-500/20 col-span-2">
+                                <i class="fas fa-paper-plane mr-2"></i>주문 접수
                             </button>
                         </div>
+                        <p class="mt-2 text-[11px] text-slate-400 leading-relaxed">견적만 요청하면 주문은 확정되지 않으며, 관리자 확인 후 마이페이지에서 주문으로 전환할 수 있습니다.</p>
                     </div>
                 </div>
             </div>
@@ -900,7 +904,7 @@ function __displayNameForHeader(currentUser) {
 
 <script src="assets/js/header-shell.js"></script>
 <script type="module" src="assets/js/maintenance-check.js"></script>
-<script type="module" src="assets/js/pages/quote-book.js?v=20261012-input-heights"></script>
+<script type="module" src="assets/js/pages/quote-book.js?v=20261013-estimate"></script>
 <script>
   // bfcache(뒤로가기 캐시)로 복원되면 JS 초기화가 꼬일 수 있어 강제 새로고침
   window.addEventListener('pageshow', function (e) {

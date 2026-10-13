@@ -42,6 +42,23 @@ assert.equal(guest.createdAt, createdAt);
 assert.equal(guest.breakdownData, JSON.stringify(calculated.breakdown));
 assert.equal(guest.formData, JSON.stringify([{ orderName: '책자' }]));
 assert.equal(guest.productType, 'book');
+assert.equal(guest.requestType, 'order');
+assert.equal(guest.estimateStatus, null);
+
+const estimate = buildQuoteRequestData({
+  calculatedQuote: calculated,
+  userId: 'member-estimate',
+  isGuest: false,
+  ordererName: '견적 고객',
+  ordererContact: '010-2222-3333',
+  normalizedContact: '01022223333',
+  createdAt,
+  requestType: 'estimate',
+});
+assert.equal(estimate.status, '접수완료', 'Firestore-compatible base status stays unchanged');
+assert.equal(estimate.requestType, 'estimate');
+assert.equal(estimate.estimateStatus, 'requested');
+assert.equal(estimate.estimateRequestedAt, createdAt);
 
 const member = buildQuoteRequestData({
   calculatedQuote: calculated,
@@ -82,6 +99,9 @@ const existingMember = {
   productType: 'book',
   status: '접수완료',
   ordererName: '기존 이름',
+  requestType: 'estimate',
+  estimateStatus: 'completed',
+  estimateRequestedAt: createdAt,
 };
 const customerPayload = buildQuoteUpdatePayload({
   quoteRequestData: requestForEdit,
@@ -102,6 +122,9 @@ assert.equal(customerPayload.hasUnreadAdminMessage, true);
 assert.equal(customerPayload.hasUnreadCustomerMessage, false);
 assert.equal(customerPayload.updatedAt, updatedAt);
 assert.equal(customerPayload.lastEditedAt, lastEditedAt);
+assert.equal(customerPayload.requestType, 'estimate');
+assert.equal(customerPayload.estimateStatus, 'completed');
+assert.equal(customerPayload.estimateRequestedAt, createdAt);
 
 const adminExisting = {
   userId: 'customer-uid',
@@ -157,5 +180,16 @@ assert.match(quoteBookSource, /buildQuoteRequestData\s*\(/);
 assert.match(quoteBookSource, /buildQuoteUpdatePayload\s*\(/);
 assert.doesNotMatch(quoteBookSource, /const quoteRequestData = \{\s*\.\.\.lastCalculatedQuote/);
 assert.doesNotMatch(quoteBookSource, /const payload = \{ \.\.\.quoteRequestData \};/);
+
+const quoteBookHtml = fs.readFileSync(path.join(root, 'quote-book.html'), 'utf8');
+const quotePrintHtml = fs.readFileSync(path.join(root, 'quote-print.html'), 'utf8');
+const quotePrintSource = fs.readFileSync(path.join(root, 'assets/js/pages/quote-print.js'), 'utf8');
+const adminSource = fs.readFileSync(path.join(root, 'assets/js/pages/admin.js'), 'utf8');
+const mypageSource = fs.readFileSync(path.join(root, 'assets/js/pages/mypage.js'), 'utf8');
+assert.match(quoteBookHtml, /id="quoteOnlyBtn"[^>]*>[\s\S]*?견적만 요청/);
+assert.match(quotePrintHtml, /id="quoteOnlyBtn"[^>]*>[\s\S]*?견적만 요청/);
+assert.match(quotePrintSource, /requestType:[\s\S]*?'estimate'/);
+assert.match(adminSource, /estimate-status-select/);
+assert.match(mypageSource, /convert-estimate-btn/);
 
 console.log('book request data tests passed');
