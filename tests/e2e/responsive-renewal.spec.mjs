@@ -79,6 +79,11 @@ test.describe('responsive renewal', () => {
         if (url === 'admin.html' && width >= 768) {
           await expect(page.locator('.mobile-contact-actions')).toBeHidden();
         }
+        if (url === 'admin.html' && width >= 1280) {
+          await expect(page.locator('#top-nav-bar > .nav-btn').first()).toHaveCSS('font-size', '14px');
+          await expect(page.locator('#top-nav-bar .nav-group > .nav-btn').first()).toHaveCSS('font-size', '13px');
+          await expect(page.locator('#top-nav-bar .dropdown-item').first()).toHaveCSS('font-size', '14px');
+        }
         if (url.startsWith('quote-')) {
           if (width < 1024) await expect(page.locator('.mobile-order-bar')).toBeVisible();
           else await expect(page.locator('.mobile-order-bar')).toBeHidden();
