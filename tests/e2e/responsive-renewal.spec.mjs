@@ -26,7 +26,7 @@ async function exposeFixture(page, kind) {
       document.getElementById('priceBreakdown').dataset.quoteTotal = '32500';
     }
     if (kind === 'admin') {
-      document.getElementById('quote-list-body').innerHTML = '<tr class="quote-row-clickable" data-quote-id="fixture-order" tabindex="0"><td>2026.10.02</td><td>Q20261002-123456789</td><td><div><span>책자</span><b>모바일 자료집 주문 테스트</b></div></td><td><div class="customer-info-row"><span class="customer-name">테스트 고객</span><span class="customer-contact-group"><span class="customer-contact-separator">|</span><span class="customer-contact">010-1234-5678</span><span class="mobile-contact-actions"><a class="mobile-contact-action mobile-contact-action-call" href="tel:01012345678">통화</a><a class="mobile-contact-action mobile-contact-action-message" href="sms:01012345678">문자</a></span></span></div></td><td>32,500원</td><td><select class="status-select"><option>접수완료</option><option>작업중</option></select></td><td><div><button title="견적수정">수정</button></div></td></tr>';
+      document.getElementById('quote-list-body').innerHTML = '<tr class="quote-row-clickable" data-quote-id="fixture-order" tabindex="0"><td>2026.10.02</td><td>Q20261002-123456789</td><td><div><span>책자</span><b>모바일 자료집 주문 테스트</b></div></td><td><div class="customer-info-row"><span class="customer-name">테스트 고객</span><span class="customer-contact-group"><span class="customer-contact-separator">|</span><span class="customer-contact">010-1234-5678</span><span class="mobile-contact-actions"><a class="mobile-contact-action mobile-contact-action-call" href="tel:01012345678" data-contact-action="call" title="전화 걸기">통화</a><a class="mobile-contact-action mobile-contact-action-message" href="sms:01012345678" data-contact-action="message" title="문자 보내기">문자</a></span></span></div></td><td>32,500원</td><td><select class="status-select"><option>접수완료</option><option>작업중</option></select></td><td><div><button title="견적수정">수정</button></div></td></tr>';
       const attachment = document.createElement('div');
       attachment.className = 'quote-attachment-item flex items-center justify-between';
       attachment.innerHTML = '<div class="quote-attachment-info">모바일첨부파일.pdf</div><div class="quote-attachment-actions"><a class="quote-attachment-download" href="https://example.com/file.pdf" data-force-download="1" download="모바일첨부파일.pdf" target="_blank" rel="noopener">다운로드</a><button class="quote-attachment-delete">삭제</button></div>';
@@ -57,8 +57,10 @@ test.describe('responsive renewal', () => {
           await expect(page.locator('.quote-row-clickable')).toHaveCSS('cursor', 'pointer');
           await expect(page.locator('.mobile-contact-action-call')).toBeVisible();
           await expect(page.locator('.mobile-contact-action-call')).toHaveAttribute('href', 'tel:01012345678');
+          await expect(page.locator('.mobile-contact-action-call')).toHaveAttribute('data-contact-action', 'call');
           await expect(page.locator('.mobile-contact-action-message')).toBeVisible();
           await expect(page.locator('.mobile-contact-action-message')).toHaveAttribute('href', 'sms:01012345678');
+          await expect(page.locator('.mobile-contact-action-message')).toHaveAttribute('data-contact-action', 'message');
           await expect(page.locator('#quote-list-body td').first()).toHaveCSS('font-size', '17px');
           await expect(page.locator('.customer-name')).toHaveCSS('font-size', '17px');
           await expect(page.locator('.customer-contact')).toHaveCSS('font-size', '17px');

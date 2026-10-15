@@ -1118,10 +1118,10 @@ async function listenToQuotes() {
                                     <span class="customer-contact text-slate-500">${sanitizeHTML(contact)}</span>
                                     ${phoneLink ? `
                                         <span class="mobile-contact-actions" aria-label="${sanitizeHTML(name)} 연락처 바로가기">
-                                            <a class="mobile-contact-action mobile-contact-action-call" href="tel:${sanitizeHTML(phoneLink)}" aria-label="${sanitizeHTML(name)}에게 전화 걸기">
+                                            <a class="mobile-contact-action mobile-contact-action-call" href="tel:${sanitizeHTML(phoneLink)}" data-contact-action="call" aria-label="${sanitizeHTML(name)}에게 전화 걸기" title="전화 걸기">
                                                 <i class="fas fa-phone" aria-hidden="true"></i><span>통화</span>
                                             </a>
-                                            <a class="mobile-contact-action mobile-contact-action-message" href="sms:${sanitizeHTML(phoneLink)}" aria-label="${sanitizeHTML(name)}에게 문자 보내기">
+                                            <a class="mobile-contact-action mobile-contact-action-message" href="sms:${sanitizeHTML(phoneLink)}" data-contact-action="message" aria-label="${sanitizeHTML(name)}에게 문자 보내기" title="문자 보내기">
                                                 <i class="fas fa-comment-dots" aria-hidden="true"></i><span>문자</span>
                                             </a>
                                         </span>
@@ -3344,11 +3344,14 @@ async function handleNoticeSave(e) {
     
 
 DOMElements.quoteListBody.addEventListener('click', (e) => {
+                const contactAction = e.target.closest('.mobile-contact-action');
                 const editBtn = e.target.closest('.admin-edit-quote-btn');
                 const approveCancelBtn = e.target.closest('.approve-cancel-btn');
                 const rejectCancelBtn = e.target.closest('.reject-cancel-btn');
                 const deleteBtn = e.target.closest('.delete-quote-btn');
                 
+                // 전화/문자 링크의 기본 동작은 유지하고 목록 행 상세보기만 차단합니다.
+                if (contactAction) { e.stopPropagation(); return; }
                 if (approveCancelBtn) { resolveCancelRequest(approveCancelBtn.dataset.id, 'approve'); return; }
                 if (rejectCancelBtn) { resolveCancelRequest(rejectCancelBtn.dataset.id, 'reject'); return; }
                 if (editBtn) { startAdminEdit(editBtn.dataset.id); return; }
