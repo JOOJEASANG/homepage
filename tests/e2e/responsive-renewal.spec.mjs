@@ -63,10 +63,10 @@ test.describe('responsive renewal', () => {
             const contact = group.querySelector('.customer-contact').getBoundingClientRect();
             const call = group.querySelector('.mobile-contact-action-call').getBoundingClientRect();
             const message = group.querySelector('.mobile-contact-action-message').getBoundingClientRect();
-            return { contactRight: contact.right, callLeft: call.left, contactTop: contact.top, callTop: call.top, callRight: call.right, messageLeft: message.left };
+            return { contactRight: contact.right, callLeft: call.left, contactCenter: (contact.top + contact.bottom) / 2, callCenter: (call.top + call.bottom) / 2, callRight: call.right, messageLeft: message.left };
           });
           expect(contactLayout.callLeft).toBeGreaterThanOrEqual(contactLayout.contactRight);
-          expect(Math.abs(contactLayout.callTop - contactLayout.contactTop)).toBeLessThan(8);
+          expect(Math.abs(contactLayout.callCenter - contactLayout.contactCenter)).toBeLessThan(8);
           expect(contactLayout.messageLeft).toBeGreaterThanOrEqual(contactLayout.callRight);
           await expect(page.locator('.quote-attachment-download')).toBeVisible();
           await expect(page.locator('.quote-attachment-download')).toHaveCSS('min-height', '46px');
@@ -121,6 +121,25 @@ test.describe('responsive renewal', () => {
       }
     });
   }
+  test('admin customer call and SMS buttons are restored when actual row has only phone text', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+    await page.evaluate(() => {
+      document.getElementById('main-content')?.classList.remove('hidden');
+      document.getElementById('auth-check-overlay')?.remove();
+      document.getElementById('quote-list-body').innerHTML =
+        '<tr class="quote-row-clickable" data-quote-id="phone-only"><td>2026.10.19</td><td>Q20261019</td><td>인쇄 주문</td><td><div class="customer-info-row"><span class="customer-name">테스트 고객</span><span class="customer-contact-group"><span class="customer-contact">010-5652-0393</span></span></div></td><td>7,000원</td><td>접수완료</td><td></td></tr>';
+    });
+    const call = page.locator('#quote-list-body .mobile-contact-action-call');
+    const message = page.locator('#quote-list-body .mobile-contact-action-message');
+    await expect(call).toBeVisible();
+    await expect(message).toBeVisible();
+    await expect(call).toHaveAttribute('href', 'tel:01056520393');
+    await expect(message).toHaveAttribute('href', 'sms:01056520393');
+    await expect(call).toHaveCSS('min-height', '44px');
+    await expect(message).toHaveCSS('min-height', '44px');
+  });
+
   test('mobile quote summary uses existing amount and original submit handler', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     for (const [url,kind,button] of [['quote-book.html','book','submitQuoteBtn'],['quote-print.html',null,'submitBtn']]) {
