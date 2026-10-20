@@ -14,6 +14,7 @@ import { app, auth, db, storage, doc, getDoc, collection, addDoc, updateDoc,
          signInAnonymously, setPersistence, browserLocalPersistence, browserSessionPersistence,
          ref as storageRef, uploadBytes, getDownloadURL } from "../firebase.js";
 import { initHeader } from "../header.js";
+import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
 import "../overlays.js";
 import "../session.js";
 import { loadPrintGuide } from "../print-guide-recovery.js";
@@ -1564,8 +1565,16 @@ payload.lastEditedBy = editState.adminEdit ? 'admin' : 'customer';
          }
 closeSignupModal();
         try{ localStorage.removeItem('pendingRequestTypePrint'); }catch(e){}
-        showToast(quoteDoc.requestType === 'estimate' ? '견적 요청 완료! 마이페이지에서 확인할 수 있어요.' : '주문 접수 완료! 마이페이지에서 진행상황을 확인할 수 있어요.', 'success');
-        setTimeout(()=> location.href = isGuest ? 'mypage.html?guest=1' : 'mypage.html', 900);
+        const returnToAdmin = editState.enabled && !!editState.quoteId && editState.adminEdit;
+        showToast(returnToAdmin ? '관리자 견적 수정이 저장되었습니다.' :
+          (editState.enabled ? '견적이 수정되었습니다.' :
+            (quoteDoc.requestType === 'estimate' ? '견적 요청 완료! 마이페이지에서 확인할 수 있어요.' : '주문 접수 완료! 마이페이지에서 진행상황을 확인할 수 있어요.')), 'success');
+        const destination = resolveQuoteSaveDestination({
+          adminEdit: editState.adminEdit,
+          editingExisting: editState.enabled && !!editState.quoteId,
+          isGuest
+        });
+        setTimeout(() => { location.href = destination; }, 900);
 
       } catch(err){
         console.error(err);
