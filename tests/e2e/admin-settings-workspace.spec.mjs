@@ -199,6 +199,25 @@ test('admin digital-output navigation keeps the calculator open with a saved cus
   expect(await page.evaluate(() => !!localStorage.getItem('temp_quote_print'))).toBe(true);
 });
 
+for (const [label, path] of [
+  ['book quote', 'quote-book.html'],
+  ['digital-output quote', 'quote-print.html'],
+]) {
+  test(`${label} shows an admin return button in admin context`, async ({ page }) => {
+    await fixture(page);
+    await page.goto(`/${path}?adminEdit=1&adminPricing=1`, { waitUntil: 'domcontentloaded' });
+
+    const adminReturn = page.locator('[data-admin-return-control="1"]').first();
+    await expect(adminReturn).toBeVisible();
+    await expect(adminReturn).toContainText('관리자');
+    await expect(adminReturn).toHaveAttribute('aria-label', '관리자페이지로 이동');
+
+    await adminReturn.click();
+    await expect(page).toHaveURL(/\/admin\.html$/);
+    await expect(page.locator('#main-content')).toBeVisible();
+  });
+}
+
 test('customer reads and replacement answers update receipts in real time', async ({ page }) => {
   await prepareInquiry(page);
   await page.locator('#searchPw').press('Enter');

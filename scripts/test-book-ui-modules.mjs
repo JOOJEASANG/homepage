@@ -75,6 +75,9 @@ const adminNavPath = path.join(root, 'assets/js/admin-quote-navigation.js');
 const adminNavSource = fs.readFileSync(adminNavPath, 'utf8');
 assert.match(adminNavSource, /adminEdit/);
 assert.match(adminNavSource, /adminPricing/);
+assert.match(adminNavSource, /data-admin-return-control/);
+assert.match(adminNavSource, /관리자페이지로 이동/);
+assert.match(adminNavSource, /location\.href = 'admin\.html'/);
 assert.match(adminNavSource, /book-admin-subcontract-calculator\.js/);
 
 const sessionSource = fs.readFileSync(path.join(root, 'assets/js/session.js'), 'utf8');

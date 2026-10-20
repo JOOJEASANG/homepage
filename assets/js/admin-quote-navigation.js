@@ -193,6 +193,49 @@ function isAdminPricingMode() {
   }
 }
 
+function isAdminQuoteContext() {
+  try {
+    if (!isCachedAdmin() || !QUOTE_FILES.has(currentFile())) return false;
+    const params = new URLSearchParams(location.search || '');
+    return params.get('adminPricing') === '1'
+      || params.get('adminEdit') === '1'
+      || params.get('admin_edit') === '1';
+  } catch (_) {
+    return false;
+  }
+}
+
+function applyAdminReturnControl(root = document) {
+  if (!isAdminQuoteContext()) return;
+
+  root.querySelectorAll?.('[data-order-lookup-control="1"], #btn-order-lookup').forEach(control => {
+    if (control.getAttribute('data-admin-return-control') === '1'
+        && (control.textContent || '').trim() === '관리자') return;
+    control.setAttribute('data-admin-return-control', '1');
+    control.setAttribute('aria-label', '관리자페이지로 이동');
+    control.setAttribute('title', '관리자페이지로 이동');
+    if (control.tagName === 'A') control.setAttribute('href', 'admin.html');
+    control.innerHTML = `
+      <i class="fas fa-user-shield text-[13px]" aria-hidden="true"></i>
+      <span class="text-[13px] sm:text-[15px]">관리자</span>
+    `;
+  });
+}
+
+function bindAdminReturnNavigation() {
+  if (document.documentElement.dataset.adminReturnBound === '1') return;
+  document.documentElement.dataset.adminReturnBound = '1';
+
+  document.addEventListener('click', event => {
+    const control = event.target.closest?.('[data-admin-return-control="1"]');
+    if (!control || !isAdminQuoteContext()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    location.href = 'admin.html';
+  }, true);
+}
+
 function applyAdminPricingModeUi() {
   if (!isAdminPricingMode()) return;
   if (document.getElementById('admin-pricing-mode-banner')) return;
@@ -225,6 +268,7 @@ function applyAdminPricingModeUi() {
 function applyAdminNavigationUi() {
   patchAdminQuoteLinks();
   ensureAdminShortcutLinks();
+  applyAdminReturnControl();
   applyAdminPricingModeUi();
   normalizeDigitalOutputLabels(document.body);
 }
@@ -248,6 +292,7 @@ function watchAdminNavigation() {
       scheduled = false;
       patchAdminQuoteLinks();
       ensureAdminShortcutLinks();
+      applyAdminReturnControl();
       applyAdminPricingModeUi();
     });
   }).observe(document.body || document.documentElement, { childList: true, subtree: true });
@@ -255,6 +300,7 @@ function watchAdminNavigation() {
 
 function boot() {
   allowCurrentAdminQuotePage();
+  bindAdminReturnNavigation();
   watchAdminNavigation();
 
   if (QUOTE_FILES.has(currentFile())) {
