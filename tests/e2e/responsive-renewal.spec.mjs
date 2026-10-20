@@ -56,18 +56,26 @@ test.describe('responsive renewal', () => {
           await expect(page.locator('.view-details-btn')).toHaveCount(0);
           await expect(page.locator('.quote-row-clickable')).toHaveCSS('cursor', 'pointer');
           await expect(page.locator('#quote-list-body td').first()).toHaveCSS('font-size', '17px');
-          await expect(page.locator('.customer-name')).toHaveCSS('font-size', '17px');
-          await expect(page.locator('.customer-contact')).toHaveCSS('font-size', '17px');
-          await expect(page.locator('.mobile-contact-action-call')).toHaveCSS('font-size', '17px');
+          await expect(page.locator('.customer-name')).toHaveCSS('font-size', '14px');
+          await expect(page.locator('.customer-contact')).toHaveCSS('font-size', '14px');
+          await expect(page.locator('.mobile-contact-action-call')).toHaveCSS('font-size', '11px');
           const contactLayout = await page.locator('.customer-contact-group').evaluate(group => {
+            const row = group.closest('.customer-info-row').getBoundingClientRect();
+            const name = group.closest('.customer-info-row').querySelector('.customer-name').getBoundingClientRect();
             const contact = group.querySelector('.customer-contact').getBoundingClientRect();
             const call = group.querySelector('.mobile-contact-action-call').getBoundingClientRect();
             const message = group.querySelector('.mobile-contact-action-message').getBoundingClientRect();
-            return { contactRight: contact.right, callLeft: call.left, contactCenter: (contact.top + contact.bottom) / 2, callCenter: (call.top + call.bottom) / 2, callRight: call.right, messageLeft: message.left };
+            return { nameRight: name.right, contactLeft: contact.left, contactRight: contact.right,
+              nameCenter: (name.top + name.bottom) / 2, contactCenter: (contact.top + contact.bottom) / 2,
+              callCenter: (call.top + call.bottom) / 2, callLeft: call.left, callRight: call.right,
+              messageLeft: message.left, messageRight: message.right, rowRight: row.right };
           });
+          expect(contactLayout.contactLeft).toBeGreaterThanOrEqual(contactLayout.nameRight);
           expect(contactLayout.callLeft).toBeGreaterThanOrEqual(contactLayout.contactRight);
-          expect(Math.abs(contactLayout.callCenter - contactLayout.contactCenter)).toBeLessThan(8);
           expect(contactLayout.messageLeft).toBeGreaterThanOrEqual(contactLayout.callRight);
+          expect(contactLayout.messageRight).toBeLessThanOrEqual(contactLayout.rowRight + 1);
+          expect(Math.abs(contactLayout.nameCenter - contactLayout.callCenter)).toBeLessThan(8);
+          expect(Math.abs(contactLayout.contactCenter - contactLayout.callCenter)).toBeLessThan(8);
           await expect(page.locator('.quote-attachment-download')).toBeVisible();
           await expect(page.locator('.quote-attachment-download')).toHaveCSS('min-height', '46px');
           await expect(page.locator('.quote-attachment-download')).toHaveAttribute('target', '_blank');
@@ -136,8 +144,8 @@ test.describe('responsive renewal', () => {
     await expect(message).toBeVisible();
     await expect(call).toHaveAttribute('href', 'tel:01056520393');
     await expect(message).toHaveAttribute('href', 'sms:01056520393');
-    await expect(call).toHaveCSS('min-height', '44px');
-    await expect(message).toHaveCSS('min-height', '44px');
+    await expect(call).toHaveCSS('min-height', '36px');
+    await expect(message).toHaveCSS('min-height', '36px');
   });
 
   test('admin contact links appear for legacy customer cells and survive list refresh', async ({ page }) => {
