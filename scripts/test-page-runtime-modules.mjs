@@ -26,6 +26,7 @@ assert.equal(
 const session = fs.readFileSync(path.join(root, 'assets', 'js', 'session.js'), 'utf8');
 const header = fs.readFileSync(path.join(root, 'assets', 'js', 'header.js'), 'utf8');
 const printRuntime = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'quote-print', 'runtime.js'), 'utf8');
+const quotePrintPage = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'quote-print.js'), 'utf8');
 const mypageRuntime = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'mypage', 'runtime.js'), 'utf8');
 const adminRuntime = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'admin', 'runtime.js'), 'utf8');
 const chatReceipts = fs.readFileSync(path.join(root, 'assets', 'js', 'chat-read-receipts.js'), 'utf8');
@@ -55,6 +56,17 @@ assert.ok(adminRuntime.includes("from '../shared/page-utils.js'"));
 assert.ok(adminRuntime.includes("import '../../admin-safety-patches.js'"));
 assert.ok(adminRuntime.includes("import '../../chat-read-receipts.js'"), 'admin runtime must load chat read receipts');
 assert.ok(adminRuntime.includes('export function getAdminQuoteStatusMeta'));
+
+// 디지털출력 단가가 Firestore에서 도착하기 전에는 "단가 없음"으로 오인하지 않습니다.
+for (const expected of [
+  'let unitPriceConfigReady = false',
+  'let unitPriceConfigError = null',
+  'if (!unitPriceConfigReady)',
+  '단가 정보를 불러오는 중입니다.',
+  "잠시 후 '재계산' 버튼을 눌러주세요.",
+]) {
+  assert.ok(quotePrintPage.includes(expected), `quote-print price loading contract missing: ${expected}`);
+}
 
 for (const expected of [
   'readByCustomer: true',

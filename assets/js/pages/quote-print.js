@@ -338,13 +338,32 @@ document.getElementById('member-go-login-btn')?.addEventListener('click', () => 
 
 
     let unitPriceConfig = {};
+    let unitPriceConfigReady = false;
+    let unitPriceConfigError = null;
+    let unitPriceConfigLoadPromise = null;
     async function loadUnitPriceConfig(){
-      try{
-        const snap = await getDoc(doc(db, "settings", "unitPriceConfig"));
-        unitPriceConfig = snap.exists() ? (snap.data()||{}) : {};
-      } catch(e){
-        unitPriceConfig = {};
-      }
+      // 여러 초기화 코드가 동시에 호출돼도 단가 요청은 한 번만 실행합니다.
+      if (unitPriceConfigLoadPromise) return unitPriceConfigLoadPromise;
+
+      unitPriceConfigReady = false;
+      unitPriceConfigError = null;
+      unitPriceConfigLoadPromise = (async () => {
+        try{
+          const snap = await getDoc(doc(db, "settings", "unitPriceConfig"));
+          unitPriceConfig = snap.exists() ? (snap.data()||{}) : {};
+          return unitPriceConfig;
+        } catch(e){
+          unitPriceConfig = {};
+          unitPriceConfigError = e;
+          console.warn('[quote-print] unit price config load failed:', e);
+          return null;
+        } finally {
+          unitPriceConfigReady = true;
+          unitPriceConfigLoadPromise = null;
+        }
+      })();
+
+      return unitPriceConfigLoadPromise;
     }
 
 
@@ -651,6 +670,24 @@ loadEditPayloadIfAny();
       const fullBackgroundEnabled = !!el.fullBackgroundEnabled?.checked;
 
       el.minQtyHint.classList.add('hidden');
+
+      // Firestore 단가를 읽기 전에 계산이 먼저 실행되면 "단가 없음"으로 오인됩니다.
+      // 로딩과 실제 미등록 상태를 분리해 안내하고, 로딩 완료 후 boot에서 다시 계산합니다.
+      if (!unitPriceConfigReady){
+        el.breakdown.innerHTML = `<div class="text-slate-500 font-bold"><i class="fas fa-spinner fa-spin mr-2"></i>단가 정보를 불러오는 중입니다.</div>`;
+        el.supplyPrice.textContent = '계산 중';
+        el.vatPrice.textContent = '-';
+        el.totalPrice.textContent = '계산 중';
+        return { ok:false, loading:true };
+      }
+
+      if (unitPriceConfigError){
+        el.breakdown.innerHTML = `<div class="text-red-600 font-bold">단가 정보를 불러오지 못했습니다. 잠시 후 '재계산' 버튼을 눌러주세요.</div>`;
+        el.supplyPrice.textContent = '확인 필요';
+        el.vatPrice.textContent = '-';
+        el.totalPrice.textContent = '확인 필요';
+        return { ok:false, configError:true };
+      }
 
       if (qty <= 0){
         el.breakdown.innerHTML = `<div class="text-slate-400">수량을 입력하세요.</div>`;
@@ -1678,7 +1715,13 @@ openSignupModal();
     el.fullBackgroundEnabled?.addEventListener('change', compute);
     el.fullBackgroundEnabled?.addEventListener('change', compute);
     document.querySelectorAll('input[name="oshiLines"]').forEach(r=> r.addEventListener('change', compute));
-    el.refreshBtn.addEventListener('click', compute);
+    el.refreshBtn.addEventListener('click', async ()=>{
+      if (!unitPriceConfigReady || unitPriceConfigError){
+        await loadUnitPriceConfig();
+        fillWeightOptions();
+      }
+      compute();
+    });
     el.resetFormBtn?.addEventListener('click', () => {
       if (!window.confirm('정말 모든 내용을 지우고 새로 작성하시겠습니까?')) return;
       el.form.reset();
