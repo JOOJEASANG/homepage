@@ -584,8 +584,8 @@
     <script src="assets/js/naver-analytics.js" defer></script>
     <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261015-sidebar-font">
     <style id="admin-mobile-customer-contact-fix">
-      /* 접수 목록의 연락처 바로가기는 모바일/태블릿에서 항상 보이게 한다.
-         좁은 화면에서는 고객 이름 다음 행으로 옮기고 버튼만 필요 시 줄바꿈한다. */
+      /* 접수관리: 연락처 액션은 모바일·태블릿에서 확실하게 노출합니다.
+         고객정보를 여러 줄로 배치해 320px 폭에서도 버튼이 잘리지 않습니다. */
       @media (max-width: 1279px) {
         body[data-page="admin"] .reception-order-table .customer-info-row {
           display: flex;
@@ -607,34 +607,42 @@
           gap: 7px 8px;
           white-space: normal;
         }
-        body[data-page="admin"] .reception-order-table .customer-contact-separator {
-          display: none;
-        }
-        body[data-page="admin"] .reception-order-table .customer-contact {
-          flex: 0 1 auto;
-          white-space: nowrap;
-        }
+        body[data-page="admin"] .reception-order-table .customer-contact-separator { display: none !important; }
+        body[data-page="admin"] .reception-order-table .customer-contact { white-space: nowrap; }
         body[data-page="admin"] .reception-order-table .mobile-contact-actions {
           display: inline-flex !important;
-          flex: 0 0 auto;
-          width: auto;
-          margin: 0;
+          visibility: visible !important;
+          opacity: 1 !important;
+          position: static !important;
           align-items: center;
+          flex: 0 0 auto;
           flex-wrap: nowrap;
           gap: 6px;
+          width: auto;
+          max-width: 100%;
+          margin: 0;
         }
-        body[data-page="admin"] .reception-order-table .mobile-contact-action {
-          display: inline-flex;
+        body[data-page="admin"] .reception-order-table .mobile-contact-actions .mobile-contact-action {
+          display: inline-flex !important;
+          visibility: visible !important;
+          opacity: 1 !important;
           flex: 0 0 auto;
           align-items: center;
           justify-content: center;
+          gap: 5px;
+          min-width: 60px;
           min-height: 44px;
-          min-width: 58px;
-          padding: 0 9px;
-          white-space: nowrap;
+          padding: 0 10px;
+          border-radius: 8px;
+          font-weight: 800;
+          line-height: 1;
           text-decoration: none;
+          white-space: nowrap;
           touch-action: manipulation;
         }
+      }
+      @media (min-width: 1280px) {
+        body[data-page="admin"] .reception-order-table .mobile-contact-actions { display: none !important; }
       }
     </style>
     <script src="assets/js/responsive-ui.js?v=20261013-estimate" defer></script>
@@ -1569,6 +1577,77 @@ async function hardLogout(redirectUrl = 'index.html') {
 
 
 <script type="module" src="assets/js/pages/admin.js?v=20261020-mobile-contact-fix"></script>
+<script>
+/* 관리자 접수 목록 연락처 링크 복구: 기존 행의 버튼이 누락됐거나
+   구형 캐시 코드가 행을 다시 만들더라도 DOM 변경 시 자동으로 복원합니다. */
+(function () {
+  'use strict';
+  const list = document.getElementById('quote-list-body');
+  if (!list) return;
+  const mobile = window.matchMedia('(max-width: 1279px)');
+  function ensureActions() {
+    for (const row of list.querySelectorAll('tr[data-quote-id]')) {
+      const contactGroup = row.querySelector('.customer-contact-group');
+      const contact = contactGroup?.querySelector('.customer-contact');
+      if (!contactGroup || !contact) continue;
+
+      let actions = contactGroup.querySelector('.mobile-contact-actions');
+      const displayed = (contact.textContent || '').trim();
+      // 마스킹된 번호를 잘못 조합해 발신하는 경우는 막습니다.
+      const masked = /[＊*•●Xx땡]/.test(displayed);
+      const digits = displayed.replace(/\D/g, '');
+      const validNumber = !masked && digits.length >= 9 && digits.length <= 15;
+      if (!actions && !validNumber) continue;
+
+      if (!actions) {
+        actions = document.createElement('span');
+        actions.className = 'mobile-contact-actions';
+        actions.setAttribute('aria-label', '고객 연락처 바로가기');
+        contactGroup.appendChild(actions);
+      }
+      const number = validNumber ? (displayed.startsWith('+') ? '+' : '') + digits : '';
+      const existingTel = actions.querySelector('a[href^="tel:"]');
+      const existingSms = actions.querySelector('a[href^="sms:"]');
+      if (number) {
+        for (const [kind, title, prefix, icon] of [
+          ['call', '통화', 'tel:', 'fa-phone'],
+          ['message', '문자', 'sms:', 'fa-comment-dots']
+        ]) {
+          if ((kind === 'call' && existingTel) || (kind === 'message' && existingSms)) continue;
+          const link = document.createElement('a');
+          link.className = 'mobile-contact-action mobile-contact-action-' + kind;
+          link.dataset.contactAction = kind;
+          link.href = prefix + number;
+          link.title = title;
+          link.setAttribute('aria-label', '고객에게 ' + (kind === 'call' ? '전화 걸기' : '문자 보내기'));
+          const symbol = document.createElement('i');
+          symbol.className = 'fas ' + icon;
+          symbol.setAttribute('aria-hidden', 'true');
+          const label = document.createElement('span');
+          label.textContent = title;
+          link.append(symbol, label);
+          actions.appendChild(link);
+        }
+      }
+      // 화면 전환 시 인라인 표시 속성도 동기화합니다.
+      // 모바일에서는 CSS 충돌이 있어도 버튼이 숨지 않게 처리합니다.
+      if (mobile.matches) {
+        actions.style.setProperty('display', 'inline-flex', 'important');
+        for (const link of actions.querySelectorAll('a')) {
+          link.style.setProperty('display', 'inline-flex', 'important');
+        }
+      } else {
+        actions.style.removeProperty('display');
+        for (const link of actions.querySelectorAll('a')) link.style.removeProperty('display');
+      }
+    }
+  }
+  new MutationObserver(ensureActions).observe(list, { childList: true, subtree: true });
+  if (mobile.addEventListener) mobile.addEventListener('change', ensureActions);
+  else mobile.addListener(ensureActions);
+  ensureActions();
+})();
+</script>
 <script>
 /* ===== Mobile Bottom Sheet (상담) ===== */
 (function(){
