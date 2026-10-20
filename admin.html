@@ -1578,6 +1578,40 @@ async function hardLogout(redirectUrl = 'index.html') {
 
 <script type="module" src="assets/js/pages/admin.js?v=20261020-mobile-contact-fix"></script>
 <script>
+/* 연락처 진단: ?contactDebug=1 일 때만 표시, 고객 개인정보는 노출하지 않습니다. */
+(function () {
+  if (!new URLSearchParams(location.search).has('contactDebug')) return;
+  const version = '20261020-verify';
+  const list = document.getElementById('quote-list-body');
+  if (!list) return;
+  const panel = document.createElement('div');
+  panel.id = 'admin-contact-debug-panel';
+  panel.setAttribute('role', 'status');
+  panel.style.cssText = 'position:fixed;bottom:70px;left:8px;right:8px;max-width:500px;z-index:10001;padding:12px;background:#0f172a;color:#fff;border-radius:10px;font:12px/1.5 sans-serif;box-shadow:0 6px 20px #0005;pointer-events:none;';
+  document.body.appendChild(panel);
+  function updatePanel() {
+    const rows = Array.from(list.querySelectorAll('tr[data-quote-id]'));
+    const groups = Array.from(list.querySelectorAll('.mobile-contact-actions'));
+    const anchors = Array.from(list.querySelectorAll('.mobile-contact-action'));
+    const visible = anchors.filter(el => {
+      const r = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      return r.width > 0 && r.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+    }).length;
+    panel.textContent =
+      '연락처 진단 ' + version +
+      ' | 화면 ' + window.innerWidth + 'px' +
+      ' | 접수 ' + rows.length +
+      ' | 버튼묶음 ' + groups.length +
+      ' | 링크 ' + anchors.length +
+      ' | 표시 ' + visible;
+  }
+  new MutationObserver(updatePanel).observe(list, { childList: true, subtree: true });
+  window.addEventListener('resize', updatePanel);
+  updatePanel();
+})();
+</script>
+<script>
 /* 관리자 접수 목록 연락처 링크 복구: 기존 행의 버튼이 누락됐거나
    구형 캐시 코드가 행을 다시 만들더라도 DOM 변경 시 자동으로 복원합니다. */
 (function () {
