@@ -168,7 +168,7 @@
     }
     .order-table tbody tr:last-child td { border-bottom: none; }
 
-    /* 연락처 바로가기: 실제 전화/문자 앱이 있는 모바일 화면에서만 표시 */
+    /* 연락처 바로가기: 관리자 모바일 UI(1280px 미만)에서만 표시 */
     .customer-name { font-size: 0.95rem; }
     .customer-contact-group {
         display: inline-flex;
@@ -266,6 +266,61 @@
             color: #15803d;
         }
         .quote-attachment-delete { min-width: 64px; }
+    }
+
+    /*
+     * 관리자 메뉴는 1280px 미만에서 모바일 모드로 전환됩니다.
+     * 연락처 버튼도 같은 기준을 사용해 큰 휴대폰·가로 모드·태블릿에서
+     * 숨겨지지 않도록 합니다.
+     */
+    @media (min-width: 768px) and (max-width: 1279px) {
+        .customer-info-row {
+            flex-wrap: wrap;
+            gap: 8px 10px;
+            white-space: normal;
+        }
+        .customer-contact-group {
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-left: 0;
+            white-space: normal;
+        }
+        .customer-contact-separator { display: none; }
+        .mobile-contact-actions {
+            display: inline-flex !important;
+            flex: 0 0 auto;
+            width: auto;
+            gap: 5px;
+        }
+        .mobile-contact-action {
+            display: inline-flex;
+            flex: 0 0 auto;
+            min-width: 52px;
+            min-height: 40px;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 0 9px;
+            border: 1px solid #dbe4de;
+            border-radius: 8px;
+            background: #fff;
+            color: #334155;
+            font-weight: 800;
+            text-decoration: none;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .mobile-contact-action:active { transform: translateY(1px); }
+        .mobile-contact-action-call {
+            border-color: #bbf7d0;
+            background: #f0fdf4;
+            color: #15803d;
+        }
+        .mobile-contact-action-message {
+            border-color: #bfdbfe;
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
     }
 
     /* ── 상태 배지 ── */

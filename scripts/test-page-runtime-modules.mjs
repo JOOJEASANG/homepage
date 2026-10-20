@@ -27,6 +27,7 @@ const session = fs.readFileSync(path.join(root, 'assets', 'js', 'session.js'), '
 const header = fs.readFileSync(path.join(root, 'assets', 'js', 'header.js'), 'utf8');
 const printRuntime = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'quote-print', 'runtime.js'), 'utf8');
 const quotePrintPage = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'quote-print.js'), 'utf8');
+const adminPage = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'admin.js'), 'utf8');
 const mypageRuntime = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'mypage', 'runtime.js'), 'utf8');
 const adminRuntime = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'admin', 'runtime.js'), 'utf8');
 const chatReceipts = fs.readFileSync(path.join(root, 'assets', 'js', 'chat-read-receipts.js'), 'utf8');
@@ -66,6 +67,17 @@ for (const expected of [
   "잠시 후 '재계산' 버튼을 눌러주세요.",
 ]) {
   assert.ok(quotePrintPage.includes(expected), `quote-print price loading contract missing: ${expected}`);
+}
+
+// 실제 관리자 접수 목록 렌더러가 연락처 바로가기 링크를 생성하는지 고정합니다.
+for (const expected of [
+  'normalizePhoneLink(getCustomerContactRaw(q))',
+  'class="mobile-contact-action mobile-contact-action-call"',
+  'href="tel:${sanitizeHTML(phoneLink)}"',
+  'class="mobile-contact-action mobile-contact-action-message"',
+  'href="sms:${sanitizeHTML(phoneLink)}"',
+]) {
+  assert.ok(adminPage.includes(expected), `admin contact action contract missing: ${expected}`);
 }
 
 for (const expected of [

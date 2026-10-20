@@ -55,12 +55,6 @@ test.describe('responsive renewal', () => {
           await expect(page.locator('.status-select')).toHaveValue('작업중');
           await expect(page.locator('.view-details-btn')).toHaveCount(0);
           await expect(page.locator('.quote-row-clickable')).toHaveCSS('cursor', 'pointer');
-          await expect(page.locator('.mobile-contact-action-call')).toBeVisible();
-          await expect(page.locator('.mobile-contact-action-call')).toHaveAttribute('href', 'tel:01012345678');
-          await expect(page.locator('.mobile-contact-action-call')).toHaveAttribute('data-contact-action', 'call');
-          await expect(page.locator('.mobile-contact-action-message')).toBeVisible();
-          await expect(page.locator('.mobile-contact-action-message')).toHaveAttribute('href', 'sms:01012345678');
-          await expect(page.locator('.mobile-contact-action-message')).toHaveAttribute('data-contact-action', 'message');
           await expect(page.locator('#quote-list-body td').first()).toHaveCSS('font-size', '17px');
           await expect(page.locator('.customer-name')).toHaveCSS('font-size', '17px');
           await expect(page.locator('.customer-contact')).toHaveCSS('font-size', '17px');
@@ -78,7 +72,15 @@ test.describe('responsive renewal', () => {
           await expect(page.locator('.quote-attachment-download')).toHaveCSS('min-height', '46px');
           await expect(page.locator('.quote-attachment-download')).toHaveAttribute('target', '_blank');
         }
-        if (url === 'admin.html' && width >= 768) {
+        if (url === 'admin.html' && width < 1280) {
+          await expect(page.locator('.mobile-contact-action-call')).toBeVisible();
+          await expect(page.locator('.mobile-contact-action-call')).toHaveAttribute('href', 'tel:01012345678');
+          await expect(page.locator('.mobile-contact-action-call')).toHaveAttribute('data-contact-action', 'call');
+          await expect(page.locator('.mobile-contact-action-message')).toBeVisible();
+          await expect(page.locator('.mobile-contact-action-message')).toHaveAttribute('href', 'sms:01012345678');
+          await expect(page.locator('.mobile-contact-action-message')).toHaveAttribute('data-contact-action', 'message');
+        }
+        if (url === 'admin.html' && width >= 1280) {
           await expect(page.locator('.mobile-contact-actions')).toBeHidden();
         }
         if (url === 'admin.html' && width >= 1280) {
