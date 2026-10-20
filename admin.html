@@ -584,62 +584,97 @@
     <script src="assets/js/naver-analytics.js" defer></script>
     <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261015-sidebar-font">
     <style id="admin-mobile-customer-contact-fix">
-      /* 접수관리: 연락처 액션은 모바일·태블릿에서 확실하게 노출합니다.
-         고객정보를 여러 줄로 배치해 320px 폭에서도 버튼이 잘리지 않습니다. */
+      /* 모바일 접수 목록: 고객명, 연락처, 통화/문자를 한 줄로 표시합니다. */
       @media (max-width: 1279px) {
         body[data-page="admin"] .reception-order-table .customer-info-row {
-          display: flex;
+          display: flex !important;
+          align-items: center;
+          flex-wrap: nowrap !important;
+          gap: 5px !important;
           width: 100%;
           min-width: 0;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 6px 10px;
-          white-space: normal;
+          white-space: nowrap !important;
         }
         body[data-page="admin"] .reception-order-table .customer-contact-group {
-          display: flex;
-          flex: 1 1 100%;
-          width: 100%;
+          display: inline-flex !important;
+          flex: 0 1 auto !important;
+          width: auto !important;
           min-width: 0;
-          margin: 0;
+          margin: 0 !important;
           align-items: center;
-          flex-wrap: wrap;
-          gap: 7px 8px;
-          white-space: normal;
+          flex-wrap: nowrap !important;
+          gap: 5px !important;
+          white-space: nowrap !important;
+        }
+        body[data-page="admin"] .reception-order-table .customer-name {
+          flex: 0 0 auto;
+          white-space: nowrap;
+        }
+        body[data-page="admin"] .reception-order-table .customer-contact {
+          flex: 0 0 auto;
+          white-space: nowrap;
         }
         body[data-page="admin"] .reception-order-table .customer-contact-separator { display: none !important; }
-        body[data-page="admin"] .reception-order-table .customer-contact { white-space: nowrap; }
         body[data-page="admin"] .reception-order-table .mobile-contact-actions {
           display: inline-flex !important;
           visibility: visible !important;
           opacity: 1 !important;
           position: static !important;
+          flex: 0 0 auto !important;
+          width: auto !important;
+          max-width: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
           align-items: center;
-          flex: 0 0 auto;
-          flex-wrap: nowrap;
-          gap: 6px;
-          width: auto;
-          max-width: 100%;
-          margin: 0;
+          flex-wrap: nowrap !important;
+          gap: 4px !important;
+          white-space: nowrap;
         }
-        body[data-page="admin"] .reception-order-table .mobile-contact-actions .mobile-contact-action {
+        body[data-page="admin"] .reception-order-table .mobile-contact-action {
           display: inline-flex !important;
           visibility: visible !important;
           opacity: 1 !important;
-          flex: 0 0 auto;
+          flex: 0 0 auto !important;
           align-items: center;
           justify-content: center;
-          gap: 5px;
-          min-width: 60px;
-          min-height: 44px;
-          padding: 0 10px;
+          gap: 3px !important;
+          min-width: 43px !important;
+          min-height: 42px !important;
+          padding: 0 5px !important;
           border-radius: 8px;
-          font-weight: 800;
           line-height: 1;
+          font-weight: 800;
           text-decoration: none;
           white-space: nowrap;
           touch-action: manipulation;
         }
+      }
+      @media (max-width: 767px) {
+        body[data-page="admin"] .reception-order-table .customer-info-row { gap: 4px !important; }
+        body[data-page="admin"] .reception-order-table .customer-contact-group { gap: 4px !important; }
+        body[data-page="admin"] .reception-order-table .customer-name,
+        body[data-page="admin"] .reception-order-table .customer-contact,
+        body[data-page="admin"] .reception-order-table .customer-info-row > :is(strong,b,div,p):not(.customer-contact-group) {
+          font-size: 13px !important;
+          letter-spacing: -0.035em;
+          line-height: 1.3;
+        }
+        body[data-page="admin"] .reception-order-table .mobile-contact-action,
+        body[data-page="admin"] .reception-order-table .mobile-contact-action :is(span,i) {
+          font-size: 12px !important;
+        }
+      }
+      @media (max-width: 359px) {
+        body[data-page="admin"] .reception-order-table .customer-name,
+        body[data-page="admin"] .reception-order-table .customer-contact,
+        body[data-page="admin"] .reception-order-table .customer-info-row > :is(strong,b,div,p):not(.customer-contact-group) {
+          font-size: 12px !important;
+        }
+        body[data-page="admin"] .reception-order-table .mobile-contact-action {
+          min-width: 38px !important;
+          padding: 0 3px !important;
+        }
+        body[data-page="admin"] .reception-order-table .mobile-contact-action i { display: none !important; }
       }
       @media (min-width: 1280px) {
         body[data-page="admin"] .reception-order-table .mobile-contact-actions { display: none !important; }
@@ -1633,6 +1668,14 @@ async function hardLogout(redirectUrl = 'index.html') {
       const cell = row.cells[3];
       if (!cell) continue;
       let actions = cell.querySelector('.mobile-contact-actions');
+      // 이전 버전의 고객정보 마크업에는 행 클래스가 없을 수 있습니다.
+      // 고객명/연락처/버튼의 공통 부모에만 레이아웃 클래스를 보완합니다.
+      if (!cell.querySelector('.customer-info-row') && phoneElement) {
+        const wrapper = phoneElement.parentElement;
+        if (wrapper && wrapper !== cell && wrapper.parentElement === cell) {
+          wrapper.classList.add('customer-info-row');
+        }
+      }
       // 최신/구형 목록 양쪽에서 번호를 찾습니다. 접수번호나 상품번호는 사용하지 않습니다.
       const leaves = Array.from(cell.querySelectorAll('.customer-contact, span, a, p, strong, b, div'))
         .filter(el => el.children.length === 0);
