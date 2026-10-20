@@ -140,6 +140,35 @@ test.describe('responsive renewal', () => {
     await expect(message).toHaveCSS('min-height', '44px');
   });
 
+  test('admin contact links appear for legacy customer cells and survive list refresh', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+    const rowMarkup = '<tr class="quote-row-clickable" data-quote-id="legacy-order">' +
+      '<td>2026.10.19</td><td>Q20261019</td><td>인쇄 주문</td>' +
+      '<td><div><strong>테스트 고객</strong><div>010-5555-1234</div></div></td>' +
+      '<td>7,000원</td><td>접수완료</td><td></td></tr>';
+    await page.evaluate(markup => {
+      document.getElementById('main-content')?.classList.remove('hidden');
+      document.getElementById('auth-check-overlay')?.remove();
+      document.getElementById('quote-list-body').innerHTML = markup;
+    }, rowMarkup);
+    const call = page.locator('#quote-list-body .mobile-contact-action-call');
+    const sms = page.locator('#quote-list-body .mobile-contact-action-message');
+    await expect(call).toBeVisible();
+    await expect(sms).toBeVisible();
+    await expect(call).toHaveAttribute('href', 'tel:01055551234');
+    await expect(sms).toHaveAttribute('href', 'sms:01055551234');
+    await page.evaluate(markup => document.getElementById('quote-list-body').innerHTML = markup, rowMarkup);
+    await expect(call).toBeVisible();
+    await expect(sms).toBeVisible();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await expect(call).toBeHidden();
+    await expect(sms).toBeHidden();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(call).toBeVisible();
+    await expect(sms).toBeVisible();
+  });
+
   test('mobile quote summary uses existing amount and original submit handler', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     for (const [url,kind,button] of [['quote-book.html','book','submitQuoteBtn'],['quote-print.html',null,'submitBtn']]) {
