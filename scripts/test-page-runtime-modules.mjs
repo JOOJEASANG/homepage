@@ -27,6 +27,7 @@ const session = fs.readFileSync(path.join(root, 'assets', 'js', 'session.js'), '
 const header = fs.readFileSync(path.join(root, 'assets', 'js', 'header.js'), 'utf8');
 const printRuntime = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'quote-print', 'runtime.js'), 'utf8');
 const quotePrintPage = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'quote-print.js'), 'utf8');
+const quoteBookPage = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'quote-book.js'), 'utf8');
 const adminPage = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'admin.js'), 'utf8');
 const mypageRuntime = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'mypage', 'runtime.js'), 'utf8');
 const adminRuntime = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'admin', 'runtime.js'), 'utf8');
@@ -57,6 +58,32 @@ assert.ok(adminRuntime.includes("from '../shared/page-utils.js'"));
 assert.ok(adminRuntime.includes("import '../../admin-safety-patches.js'"));
 assert.ok(adminRuntime.includes("import '../../chat-read-receipts.js'"), 'admin runtime must load chat read receipts');
 assert.ok(adminRuntime.includes('export function getAdminQuoteStatusMeta'));
+
+// 관리자 견적 수정 저장 뒤에는 접수관리로, 고객 수정/신규 접수는 기존 마이페이지로 이동합니다.
+const { resolveQuoteSaveDestination } = await import(
+  pathToFileURL(path.join(root, 'assets', 'js', 'pages', 'shared', 'quote-save-redirect.js')).href
+);
+for (const [options, expected] of [
+  [{ adminEdit: true, editingExisting: true, isGuest: false }, 'admin.html'],
+  [{ adminEdit: true, editingExisting: true, isGuest: true }, 'admin.html'],
+  [{ adminEdit: false, editingExisting: true, isGuest: false }, 'mypage.html'],
+  [{ adminEdit: false, editingExisting: true, isGuest: true }, 'mypage.html?guest=1'],
+  [{ adminEdit: false, editingExisting: false, isGuest: false }, 'mypage.html'],
+  [{ adminEdit: false, editingExisting: false, isGuest: true }, 'mypage.html?guest=1'],
+  [{ adminEdit: true, editingExisting: false, isGuest: true }, 'mypage.html?guest=1'],
+]) {
+  assert.equal(resolveQuoteSaveDestination(options), expected);
+}
+for (const [source, label] of [[quoteBookPage, 'book'], [quotePrintPage, 'print']]) {
+  for (const expected of [
+    'import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";',
+    'const destination = resolveQuoteSaveDestination({',
+    'adminEdit: editState.adminEdit,',
+    'editingExisting: editState.enabled && !!editState.quoteId,',
+  ]) {
+    assert.ok(source.includes(expected), 'missing ' + label + ' quote redirect flow: ' + expected);
+  }
+}
 
 // 디지털출력 단가가 Firestore에서 도착하기 전에는 "단가 없음"으로 오인하지 않습니다.
 for (const expected of [
@@ -108,4 +135,4 @@ for (const href of ['quote-book.html', 'quote-print.html', 'qna.html', 'work-gui
   assert.ok(header.includes(href), `header navigation destination missing: ${href}`);
 }
 
-console.log('Shared page utilities, runtime modules, chat receipts, and header navigation contract checks passed');
+console.log('Shared page utilities, admin quote redirects, runtime modules, chat receipts, and header navigation contract checks passed');
