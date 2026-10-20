@@ -583,6 +583,60 @@
 
     <script src="assets/js/naver-analytics.js" defer></script>
     <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261015-sidebar-font">
+    <style id="admin-mobile-customer-contact-fix">
+      /* 접수 목록의 연락처 바로가기는 모바일/태블릿에서 항상 보이게 한다.
+         좁은 화면에서는 고객 이름 다음 행으로 옮기고 버튼만 필요 시 줄바꿈한다. */
+      @media (max-width: 1279px) {
+        body[data-page="admin"] .reception-order-table .customer-info-row {
+          display: flex;
+          width: 100%;
+          min-width: 0;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 6px 10px;
+          white-space: normal;
+        }
+        body[data-page="admin"] .reception-order-table .customer-contact-group {
+          display: flex;
+          flex: 1 1 100%;
+          width: 100%;
+          min-width: 0;
+          margin: 0;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 7px 8px;
+          white-space: normal;
+        }
+        body[data-page="admin"] .reception-order-table .customer-contact-separator {
+          display: none;
+        }
+        body[data-page="admin"] .reception-order-table .customer-contact {
+          flex: 0 1 auto;
+          white-space: nowrap;
+        }
+        body[data-page="admin"] .reception-order-table .mobile-contact-actions {
+          display: inline-flex !important;
+          flex: 0 0 auto;
+          width: auto;
+          margin: 0;
+          align-items: center;
+          flex-wrap: nowrap;
+          gap: 6px;
+        }
+        body[data-page="admin"] .reception-order-table .mobile-contact-action {
+          display: inline-flex;
+          flex: 0 0 auto;
+          align-items: center;
+          justify-content: center;
+          min-height: 44px;
+          min-width: 58px;
+          padding: 0 9px;
+          white-space: nowrap;
+          text-decoration: none;
+          touch-action: manipulation;
+        }
+      }
+    </style>
     <script src="assets/js/responsive-ui.js?v=20261013-estimate" defer></script>
     <link rel="stylesheet" href="assets/css/admin-price-workspace.css?v=20261006-customer-center">
 </head>
@@ -1514,7 +1568,7 @@ async function hardLogout(redirectUrl = 'index.html') {
 
 
 
-<script type="module" src="assets/js/pages/admin.js?v=20261015-contact-actions"></script>
+<script type="module" src="assets/js/pages/admin.js?v=20261020-mobile-contact-fix"></script>
 <script>
 /* ===== Mobile Bottom Sheet (상담) ===== */
 (function(){
