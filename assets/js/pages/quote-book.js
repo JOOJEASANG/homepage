@@ -18,6 +18,7 @@ import { app, auth, db, storage,
          ref as storageRef, uploadBytes, getDownloadURL,
 } from "../firebase.js";
 import { initHeader } from "../header.js";
+import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
 import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
 import { getPerfectInnerPricingMultiplier, getPerfectBindingMetrics } from "./quote-book/perfect-calculator.js";
 import { getWireCoverCost, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js";
@@ -1427,9 +1428,15 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
             if (DOMElements.attachmentsList) DOMElements.attachmentsList.innerHTML = '';
             const wasEstimateRequest = quoteRequestData.requestType === 'estimate';
             try { localStorage.removeItem('pendingRequestTypeBook'); } catch (e) {}
-            showToast(editState.enabled ? '견적이 수정되었습니다.' : (wasEstimateRequest ? '견적 요청이 접수되었습니다.' : '주문이 접수되었습니다.'), 'success');
+            const returnToAdmin = editState.enabled && !!editState.quoteId && editState.adminEdit;
+            showToast(returnToAdmin ? '관리자 견적 수정이 저장되었습니다.' : (editState.enabled ? '견적이 수정되었습니다.' : (wasEstimateRequest ? '견적 요청이 접수되었습니다.' : '주문이 접수되었습니다.')), 'success');
+            const destination = resolveQuoteSaveDestination({
+                adminEdit: editState.adminEdit,
+                editingExisting: editState.enabled && !!editState.quoteId,
+                isGuest
+            });
             setTimeout(() => {
-                 window.location.href = isGuest ? 'mypage.html?guest=1' : 'mypage.html';
+                 window.location.href = destination;
             }, 1500);
 
         } catch (error) {
