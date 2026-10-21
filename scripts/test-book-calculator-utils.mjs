@@ -93,7 +93,7 @@ assert.match(
 );
 
 for (const expected of [
-  'totalCoverCost = floorToHundred(totalCoverCost);',
+  'totalCoverCost = floorToHundred(coverUnitPrice * quantity);',
   'const sectionCost = floorToHundred(sectionCostRaw);',
   'totalInterleafCost = floorToHundred(interleafUnitPrice * totalInterleafSheets);',
   'bindingCost = floorToHundred(bindingUnitPrice * quantity);',
