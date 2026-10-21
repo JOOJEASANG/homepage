@@ -177,6 +177,40 @@ test.describe('responsive renewal', () => {
     await expect(sms).toBeVisible();
   });
 
+  test('wire cover front and back checks recalculate 500 to 1000 without stale select prices', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/quote-book.html', { waitUntil: 'domcontentloaded' });
+    await exposeFixture(page, 'book');
+    await page.evaluate(() => {
+      const item = document.querySelector('.quote-item');
+      item.querySelector('.bindingType').value = 'wire';
+      item.querySelector('.coverPrintType').value = 'color_simplex';
+      window.__wireQuoteRecalcs = 0;
+      item.querySelector('.quantity').addEventListener('input', () => { window.__wireQuoteRecalcs++; });
+    });
+    await page.locator('.binding-options [data-value="wire"]').first().click();
+    await expect(page.locator('.wire-cover-print-box')).toBeVisible();
+    const front = page.locator('.wireCoverFront');
+    const back = page.locator('.wireCoverBack');
+    await front.check();
+    await back.uncheck();
+    const calculateVisibleWirePrice = () => page.evaluate(async () => {
+      const { getWireCoverCost, getWireCoverPrintedSides } =
+        await import('/assets/js/pages/quote-book/wire-calculator.js');
+      const item = document.querySelector('.quote-item');
+      return getWireCoverCost(1000, getWireCoverPrintedSides({
+        frontChecked: item.querySelector('.wireCoverFront').checked,
+        backChecked: item.querySelector('.wireCoverBack').checked,
+        coverPrintType: item.querySelector('.coverPrintType').value
+      }));
+    });
+    expect(await calculateVisibleWirePrice()).toBe(500);
+    await back.check();
+    await expect(page.locator('.coverPrintType')).toHaveValue('color_duplex');
+    expect(await calculateVisibleWirePrice()).toBe(1000);
+    await expect.poll(() => page.evaluate(() => window.__wireQuoteRecalcs)).toBeGreaterThan(0);
+  });
+
   test('mobile quote summary uses existing amount and original submit handler', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     for (const [url,kind,button] of [['quote-book.html','book','submitQuoteBtn'],['quote-print.html',null,'submitBtn']]) {
