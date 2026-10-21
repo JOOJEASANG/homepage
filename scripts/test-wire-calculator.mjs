@@ -15,6 +15,28 @@ assert.equal(wire.getWireCoverCost(10000, 2), 10000, '앞면과 뒷면 동시 �
 assert.equal(wire.getWireCoverCost(10000, 0), 0, '출력 없는 표지는 0원');
 assert.equal(wire.getWireCoverCost(0), 0, '표지비 0원은 그대로 0');
 
+// 실제 체크박스와 hidden select 사이에 입력 이벤트 순서 차이가 발생해도 선택한 면 수를 사용합니다.
+assert.equal(wire.getWireCoverPrintedSides({ frontChecked: true, backChecked: false, coverPrintType: 'color_simplex' }), 1);
+assert.equal(wire.getWireCoverPrintedSides({ frontChecked: false, backChecked: true, coverPrintType: 'color_simplex' }), 1);
+assert.equal(wire.getWireCoverPrintedSides({ frontChecked: true, backChecked: true, coverPrintType: 'color_simplex' }), 2,
+  '앞뒷면 클릭 직후 hidden select가 아직 단면이어도 두 면으로 계산');
+assert.equal(wire.getWireCoverPrintedSides({ frontChecked: true, backChecked: false, coverPrintType: 'color_duplex' }), 1,
+  '한 면만 체크한 상태에서는 기존 양면 select를 따르지 않음');
+assert.equal(wire.getWireCoverPrintedSides({ frontChecked: false, backChecked: false, coverPrintType: 'color_duplex' }), 0);
+assert.equal(wire.getWireCoverPrintedSides({ coverPrintType: 'color_duplex' }), 2,
+  '이전 구조에서 체크박스가 없으면 select로 계산');
+assert.equal(wire.getWireCoverPrintedSides({ coverPrintType: 'none' }), 0);
+
+const unitOneFace = wire.getWireCoverCost(1000, wire.getWireCoverPrintedSides({
+  frontChecked: true, backChecked: false, coverPrintType: 'color_simplex'
+}));
+const unitBothFaces = wire.getWireCoverCost(1000, wire.getWireCoverPrintedSides({
+  frontChecked: true, backChecked: true, coverPrintType: 'color_simplex'
+}));
+assert.equal(unitOneFace, 500, '한 면 체크 500원');
+assert.equal(unitBothFaces, 1000, '두 면 체크는 정확히 1000원이어야 함');
+
+
 // 관리자 표지 양면 단가표가 단면보다 싸더라도 와이어 2면 비용이 역전되지 않습니다.
 const { findPriceTier, floorToHundred } = await import(
   pathToFileURL(path.join(root, 'assets/js/pages/quote-book/calculator-utils.js')).href
@@ -84,7 +106,7 @@ const quoteBookSource = fs.readFileSync(quoteBookPath, 'utf8');
 
 assert.match(
   quoteBookSource,
-  /import \{ getWireCoverCost, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed \} from "\.\/quote-book\/wire-calculator\.js";/,
+  /import \{ getWireCoverCost, getWireCoverPrintedSides, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed \} from "\.\/quote-book\/wire-calculator\.js";/,
   'quote-book.js가 와이어 계산 모듈을 import해야 함'
 );
 assert.match(
@@ -94,7 +116,7 @@ assert.match(
 );
 assert.match(
   quoteBookSource,
-  /coverUnitPrice = isWireCover\s*\? getWireCoverCost\(rawCoverUnitPrice, printedSides\)/,
+  /coverUnitPrice = isWireCover\s*\? getWireCoverCost\(rawCoverUnitPrice, wirePrintedSides\)/,
   '와이어 표지비 1/2 처리는 분리 모듈을 사용해야 함'
 );
 assert.match(
@@ -104,8 +126,18 @@ assert.match(
 );
 assert.match(
   quoteBookSource,
-  /const printedSides = coverPrintType === 'color_duplex' \? 2 : 1;/,
-  '와이어 앞면 및 뒷면 개수는 각각 1면으로 계산해야 함'
+  /const wirePrintedSides = getWireCoverPrintedSides\(/,
+  '와이어 표지 인쇄면 수는 실제 체크박스에서 계산해야 함'
+);
+assert.match(
+  quoteBookSource,
+  /wireFront\?\.checked/,
+  '앞면 체크 상태는 직접 읽어야 함'
+);
+assert.match(
+  quoteBookSource,
+  /wireBack\?\.checked/,
+  '뒷면 체크 상태는 직접 읽어야 함'
 );
 assert.match(
   quoteBookSource,
@@ -142,6 +174,12 @@ assert.match(
   /const bindingTiers = priceConfig\.binding\[bindingType\] \|\| \[\];/,
   '관리자 제본 단가표 경로는 유지되어야 함'
 );
+
+const wireCoverPatchSource = fs.readFileSync(path.join(root, 'assets/js/wire-cover-patch.js'), 'utf8');
+assert.ok(wireCoverPatchSource.includes("new Event('input', { bubbles: true })"),
+  '체크박스 변경 뒤 견적 재계산에 input 이벤트를 사용해야 함');
+assert.ok(wireCoverPatchSource.includes('scheduleRecalcFrom(itemEl);'),
+  '제본방식 변경 직후에도 와이어 표지를 다시 계산해야 함');
 
 const syntaxPath = path.join(os.tmpdir(), `quote-book-wire-syntax-${process.pid}.mjs`);
 try {
