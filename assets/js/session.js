@@ -134,7 +134,7 @@ try {
   if (currentFile === 'qna.html') {
     import('./qna-secure-v2.js').catch(() => null);
   }
-  import('./security-patches.js').catch(() => null);
+  import(currentFile === 'quote-book.html' ? './security-patches.js?v=20261021-wire-duplex-cover' : './security-patches.js').catch(() => null);
   import('./customer-ui-fixes.js').catch(() => null);
 } catch (e) {}
 
