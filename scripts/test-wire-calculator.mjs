@@ -106,7 +106,7 @@ const quoteBookSource = fs.readFileSync(quoteBookPath, 'utf8');
 
 assert.match(
   quoteBookSource,
-  /import \{ getWireCoverCost, getWireCoverPrintedSides, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed \} from "\.\/quote-book\/wire-calculator\.js";/,
+  /import \{ getWireCoverCost, getWireCoverPrintedSides, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed \} from "\.\/quote-book\/wire-calculator\.js\?v=20261021-cover-checkbox-fix";/,
   'quote-book.js가 와이어 계산 모듈을 import해야 함'
 );
 assert.match(
@@ -180,6 +180,8 @@ assert.ok(wireCoverPatchSource.includes("new Event('input', { bubbles: true })")
   '체크박스 변경 뒤 견적 재계산에 input 이벤트를 사용해야 함');
 assert.ok(wireCoverPatchSource.includes('scheduleRecalcFrom(itemEl);'),
   '제본방식 변경 직후에도 와이어 표지를 다시 계산해야 함');
+assert.ok(wireCoverPatchSource.includes("target?.dispatchEvent?.(new Event('input', { bubbles: true }));"),
+  '와이어 선택 변경 후 form input으로 전체 견적이 즉시 재계산돼야 함');
 
 const syntaxPath = path.join(os.tmpdir(), `quote-book-wire-syntax-${process.pid}.mjs`);
 try {
