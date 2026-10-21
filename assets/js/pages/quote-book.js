@@ -864,7 +864,7 @@ function applyImagePreviewsToUI(root=document) {
                 coverPrintType,
             });
             const effectiveCoverPrintType = isWireCover
-                ? (wirePrintedSides === 2 ? 'color_duplex' : wirePrintedSides === 1 ? 'color_simplex' : 'none')
+                ? (wirePrintImpressions >= 2 ? 'color_duplex' : wirePrintImpressions === 1 ? 'color_simplex' : 'none')
                 : coverPrintType;
             let coverUnitPrice = 0;
             let totalCoverCost = 0;
