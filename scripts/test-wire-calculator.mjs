@@ -127,7 +127,7 @@ const quoteBookSource = fs.readFileSync(quoteBookPath, 'utf8');
 
 assert.match(
   quoteBookSource,
-  /import \{ getWireCoverCost, getWireCoverPrintedSides, getWireCoverPrintImpressions, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed \} from "\.\/quote-book\/wire-calculator\.js\?v=20261021-wire-duplex-cover";/,
+  /import \{ getWireCoverCost, getWireCoverPrintedSides, getWireCoverPrintImpressions, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed \} from "\.\/quote-book\/wire-calculator\.js\?v=20261021-wire-duplex-cover-v2";/,
   'quote-book.js가 와이어 계산 모듈을 import해야 함'
 );
 assert.match(
