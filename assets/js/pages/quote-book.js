@@ -21,7 +21,7 @@ import { initHeader } from "../header.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
 import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
 import { getPerfectInnerPricingMultiplier, getPerfectBindingMetrics } from "./quote-book/perfect-calculator.js";
-import { getWireCoverCost, getWireCoverPrintedSides, getWireCoverPrintImpressions, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js?v=20261021-wire-duplex-cover";
+import { getWireCoverCost, getWireCoverPrintedSides, getWireCoverPrintImpressions, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js?v=20261021-wire-duplex-cover-v2";
 import { findPriceTier, findBindingPriceTier, floorToHundred, getLargeSizeMultiplier, getInnerSheetsPerCopy } from "./quote-book/calculator-utils.js";
 import { generateBookReceiptNo } from "./quote-book/quote-id.js";
 import { normalizeContactDigits, formatPhoneHyphen, formatContact, pickContactFromUserData, sha256Hex } from "./quote-book/contact-utils.js";
@@ -34,7 +34,7 @@ import { isAdminEditSearch, parseQuoteReloadPayload } from "./quote-book/page-st
 import { readGuestSubmitSession, readGuestMenuSession, getGuestMyPageLookupKey, restoreGuestSessionFromReload, persistGuestSessionAfterSubmit } from "./quote-book/guest-session.js";
 import { acquireBookSubmitLock, releaseBookSubmitLock } from "./quote-book/submit-lock.js";
 import { renderQuoteItemTemplate, renderInnerSectionTemplate } from "./quote-book/quote-item-template.js?v=20261012-input-heights";
-import "../session.js?v=20261021-wire-duplex-cover";
+import "../session.js?v=20261021-wire-duplex-cover-v2";
 
 // 페이지 로드 시 공통 헤더 렌더링
 document.addEventListener("DOMContentLoaded", () => initHeader("book"));
