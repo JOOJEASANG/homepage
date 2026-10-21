@@ -36,6 +36,27 @@ const unitBothFaces = wire.getWireCoverCost(1000, wire.getWireCoverPrintedSides(
 assert.equal(unitOneFace, 500, '한 면 체크 500원');
 assert.equal(unitBothFaces, 1000, '두 면 체크는 정확히 1000원이어야 함');
 
+// 앞·뒤 표지마다 단면/양면을 독립적으로 지정합니다. (기준 한 인쇄면 500원)
+const wireFaceExamples = [
+  [{ frontChecked: true, backChecked: false, frontMode: 'simplex' }, 500],
+  [{ frontChecked: true, backChecked: false, frontMode: 'duplex' }, 1000],
+  [{ frontChecked: false, backChecked: true, backMode: 'simplex' }, 500],
+  [{ frontChecked: false, backChecked: true, backMode: 'duplex' }, 1000],
+  [{ frontChecked: true, backChecked: true, frontMode: 'simplex', backMode: 'simplex' }, 1000],
+  [{ frontChecked: true, backChecked: true, frontMode: 'duplex', backMode: 'simplex' }, 1500],
+  [{ frontChecked: true, backChecked: true, frontMode: 'simplex', backMode: 'duplex' }, 1500],
+  [{ frontChecked: true, backChecked: true, frontMode: 'duplex', backMode: 'duplex' }, 2000],
+  [{ frontChecked: false, backChecked: false, frontMode: 'duplex', backMode: 'duplex' }, 0],
+];
+for (const [options, cost] of wireFaceExamples) {
+  const impressions = wire.getWireCoverPrintImpressions(options);
+  assert.equal(wire.getWireCoverCost(1000, impressions), cost,
+    '와이어 표지 단면·양면 조합 ' + JSON.stringify(options));
+}
+assert.equal(wire.getWireCoverPrintImpressions({ coverPrintType: 'color_duplex' }), 2,
+  '기존 양면 값은 2표지 단면 인쇄로 유지');
+
+
 
 // 관리자 표지 양면 단가표가 단면보다 싸더라도 와이어 2면 비용이 역전되지 않습니다.
 const { findPriceTier, floorToHundred } = await import(
@@ -106,7 +127,7 @@ const quoteBookSource = fs.readFileSync(quoteBookPath, 'utf8');
 
 assert.match(
   quoteBookSource,
-  /import \{ getWireCoverCost, getWireCoverPrintedSides, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed \} from "\.\/quote-book\/wire-calculator\.js\?v=20261021-cover-checkbox-fix";/,
+  /import \{ getWireCoverCost, getWireCoverPrintedSides, getWireCoverPrintImpressions, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed \} from "\.\/quote-book\/wire-calculator\.js\?v=20261021-wire-duplex-cover";/,
   'quote-book.js가 와이어 계산 모듈을 import해야 함'
 );
 assert.match(
@@ -116,7 +137,7 @@ assert.match(
 );
 assert.match(
   quoteBookSource,
-  /coverUnitPrice = isWireCover\s*\? getWireCoverCost\(rawCoverUnitPrice, wirePrintedSides\)/,
+  /coverUnitPrice = isWireCover\s*\? getWireCoverCost\(rawCoverUnitPrice, wirePrintImpressions\)/,
   '와이어 표지비 1/2 처리는 분리 모듈을 사용해야 함'
 );
 assert.match(
@@ -174,6 +195,13 @@ assert.match(
   /const bindingTiers = priceConfig\.binding\[bindingType\] \|\| \[\];/,
   '관리자 제본 단가표 경로는 유지되어야 함'
 );
+
+assert.match(quoteBookSource, /getWireCoverPrintImpressions\(/,
+  '와이어 표지 단면·양면 실제 인쇄면을 계산해야 함');
+assert.match(quoteBookSource, /wireCoverFrontMode/,
+  '견적 저장/표시에서 앞표지 인쇄면을 유지해야 함');
+assert.match(quoteBookSource, /wireCoverBackMode/,
+  '견적 저장/표시에서 뒤표지 인쇄면을 유지해야 함');
 
 const wireCoverPatchSource = fs.readFileSync(path.join(root, 'assets/js/wire-cover-patch.js'), 'utf8');
 assert.ok(wireCoverPatchSource.includes("new Event('input', { bubbles: true })"),
