@@ -33,6 +33,8 @@ function scheduleRecalcFrom(itemEl) {
     recalcScheduled = false;
     try {
       const target = itemEl?.querySelector?.('.quantity') || itemEl?.querySelector?.('.coverPrintType') || itemEl;
+      // 책자 견적은 form의 input 이벤트에서 계산합니다. change만 보내면 이전 금액이 남습니다.
+      target?.dispatchEvent?.(new Event('input', { bubbles: true }));
       target?.dispatchEvent?.(new Event('change', { bubbles: true }));
     } catch (_) {}
   }, 0);
@@ -256,6 +258,12 @@ function bindBookPatchEvents() {
         const front = box?.querySelector?.('.wireCoverFront');
         const back = box?.querySelector?.('.wireCoverBack');
         if (front && back && !front.checked && !back.checked && coverPrintSelect?.value !== 'none') front.checked = true;
+        // 제본방식 변경 직후에도 체크 상태와 계산용 select를 일치시킵니다.
+        if (front && back && coverPrintSelect) {
+          const selectedSides = Number(front.checked) + Number(back.checked);
+          coverPrintSelect.value = selectedSides === 2 ? 'color_duplex' : selectedSides === 1 ? 'color_simplex' : 'none';
+        }
+        scheduleRecalcFrom(itemEl);
       }
     }, 0);
   }, true);
