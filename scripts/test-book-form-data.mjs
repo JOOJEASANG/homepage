@@ -17,7 +17,7 @@ function makeInner({ paperSize = '1', paper = 'mimoon80', print = 'bw_duplex', p
   };
   return { querySelector: (sel) => map[sel] };
 }
-function makeItem({ interleafHidden = false, interleafSheets = '0' } = {}) {
+function makeItem({ interleafHidden = false, interleafSheets = '0', wireCover = false } = {}) {
   const interleaf = {
     classList: { contains: (name) => name === 'hidden' && interleafHidden },
     querySelector(sel) {
@@ -34,7 +34,13 @@ function makeItem({ interleafHidden = false, interleafSheets = '0' } = {}) {
     '.coverPrintType': input('color_simplex'),
     '.coverDesign': input('', true),
     '.coverOshi': input('', false),
-    '.bindingType': input('perfect'),
+    '.bindingType': input(wireCover ? 'wire' : 'perfect'),
+    ...(wireCover ? {
+      '.wireCoverFront': input('', true),
+      '.wireCoverBack': input('', true),
+      '.wireCoverFrontMode': input('duplex'),
+      '.wireCoverBackMode': input('simplex'),
+    } : {}),
     '.bindingDirection': input('portrait-left'),
     '.quantity': input('20'),
     '.remarks': input('요청사항'),
@@ -72,6 +78,17 @@ assert.equal(submitFive.interleafColor, 'sky');
 assert.equal(submitFive.includeInterleaf, true);
 assert.equal(submitFive.innerSections.length, 2);
 assert.deepEqual(formData.serializeQuoteItems([visibleFive], 'submission'), [submitFive]);
+
+const wireItem = makeItem({ wireCover: true });
+const wireDraft = formData.serializeDraftQuoteItem(wireItem);
+const wireSubmit = formData.serializeSubmissionQuoteItem(wireItem);
+for (const result of [wireDraft, wireSubmit]) {
+  assert.equal(result.wireCoverFront, true);
+  assert.equal(result.wireCoverBack, true);
+  assert.equal(result.wireCoverFrontMode, 'duplex');
+  assert.equal(result.wireCoverBackMode, 'simplex');
+}
+assert.equal('wireCoverFrontMode' in draftZero, false, '다른 제본 방식은 와이어 옵션 추가 없음');
 
 function createStore() {
   const values = new Map();
