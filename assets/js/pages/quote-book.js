@@ -21,7 +21,7 @@ import { initHeader } from "../header.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
 import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
 import { getPerfectInnerPricingMultiplier, getPerfectBindingMetrics } from "./quote-book/perfect-calculator.js";
-import { getWireCoverCost, getWireCoverPrintedSides, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js?v=20261021-cover-checkbox-fix";
+import { getWireCoverCost, getWireCoverPrintedSides, getWireCoverPrintImpressions, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js?v=20261021-wire-duplex-cover";
 import { findPriceTier, findBindingPriceTier, floorToHundred, getLargeSizeMultiplier, getInnerSheetsPerCopy } from "./quote-book/calculator-utils.js";
 import { generateBookReceiptNo } from "./quote-book/quote-id.js";
 import { normalizeContactDigits, formatPhoneHyphen, formatContact, pickContactFromUserData, sha256Hex } from "./quote-book/contact-utils.js";
@@ -673,6 +673,15 @@ function applyImagePreviewsToUI(root=document) {
             newItem.querySelector('.orderName').value = data.orderName || '';
             newItem.querySelector('.coverPaperType').value = data.coverPaperType || 'none';
             newItem.querySelector('.coverPrintType').value = data.coverPrintType || 'none';
+            // 새 주문서의 앞/뒤 표지별 단면·양면 설정을 임시저장/견적수정 시 복구합니다.
+            // 옛 주문서는 별도 설정이 없으므로 기존 coverPrintType으로 추정합니다.
+            if (data.wireCoverFront !== undefined && data.wireCoverBack !== undefined) {
+                newItem.dataset.wireCoverSettings = '1';
+                newItem.dataset.wireCoverFront = (data.wireCoverFront === true || data.wireCoverFront === '1') ? '1' : '0';
+                newItem.dataset.wireCoverBack = (data.wireCoverBack === true || data.wireCoverBack === '1') ? '1' : '0';
+                newItem.dataset.wireCoverFrontMode = data.wireCoverFrontMode === 'duplex' ? 'duplex' : 'simplex';
+                newItem.dataset.wireCoverBackMode = data.wireCoverBackMode === 'duplex' ? 'duplex' : 'simplex';
+            }
             newItem.querySelector('.coverDesign').checked = data.coverDesign || false;
             newItem.querySelector('.coverOshi').checked = data.coverOshi || false;
             const bindingValue = data.bindingType || 'none';
@@ -845,6 +854,15 @@ function applyImagePreviewsToUI(root=document) {
                 backChecked: wireBack?.checked,
                 coverPrintType,
             });
+            const wireFrontMode = itemEl.querySelector('.wireCoverFrontMode')?.value || itemEl.dataset.wireCoverFrontMode || 'simplex';
+            const wireBackMode = itemEl.querySelector('.wireCoverBackMode')?.value || itemEl.dataset.wireCoverBackMode || 'simplex';
+            const wirePrintImpressions = getWireCoverPrintImpressions({
+                frontChecked: wireFront?.checked,
+                backChecked: wireBack?.checked,
+                frontMode: wireFrontMode,
+                backMode: wireBackMode,
+                coverPrintType,
+            });
             const effectiveCoverPrintType = isWireCover
                 ? (wirePrintedSides === 2 ? 'color_duplex' : wirePrintedSides === 1 ? 'color_simplex' : 'none')
                 : coverPrintType;
@@ -860,13 +878,16 @@ function applyImagePreviewsToUI(root=document) {
                     || [];
                 const rawCoverUnitPrice = findPriceTier(coverTiers, quantity) * largeSizeMultiplier;
                 coverUnitPrice = isWireCover
-                    ? getWireCoverCost(rawCoverUnitPrice, wirePrintedSides)
+                    ? getWireCoverCost(rawCoverUnitPrice, wirePrintImpressions)
                     : rawCoverUnitPrice;
                 totalCoverCost = floorToHundred(coverUnitPrice * quantity); // 100원 단위 절삭
 
                 if (totalCoverCost > 0) {
                     const coverSidesLabel = isWireCover
-                        ? (wirePrintedSides === 2 ? '앞면 + 뒷면 출력' : wireFront?.checked ? '앞면 출력' : wireBack?.checked ? '뒷면 출력' : '1면 출력')
+                        ? [
+                            wireFront?.checked ? `앞면 ${wireFrontMode === 'duplex' ? '양면' : '단면'} 출력` : '',
+                            wireBack?.checked ? `뒷면 ${wireBackMode === 'duplex' ? '양면' : '단면'} 출력` : ''
+                          ].filter(Boolean).join(' + ') || `${wirePrintImpressions}면 출력`
                         : getSpecText('coverPrintType', effectiveCoverPrintType);
                     const coverSpecText = `${getSpecText('coverPaperType', coverPaperType)} / ${coverSidesLabel}`;
                     itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 표지 (${coverSpecText})</span><span class="text-slate-500 text-xs">${Math.round(coverUnitPrice).toLocaleString()}원/부</span></div><div class="flex justify-end font-medium text-slate-800">${totalCoverCost.toLocaleString()}원</div></li>`;
@@ -1059,7 +1080,19 @@ function applyImagePreviewsToUI(root=document) {
             breakdownForLastQuote.push({
                 orderName: orderName || `견적항목 ${index + 1}`,
                 quantity,
-                cover: (coverPaperType !== 'none' && effectiveCoverPrintType !== 'none') ? { unitPrice: (typeof coverUnitPrice === 'number' ? coverUnitPrice : 0), amount: totalCoverCost, paperType: coverPaperType, printType: effectiveCoverPrintType } : null,
+                cover: (coverPaperType !== 'none' && effectiveCoverPrintType !== 'none') ? {
+                    unitPrice: (typeof coverUnitPrice === 'number' ? coverUnitPrice : 0),
+                    amount: totalCoverCost,
+                    paperType: coverPaperType,
+                    printType: effectiveCoverPrintType,
+                    ...(isWireCover ? {
+                        front: wireFront?.checked ?? false,
+                        back: wireBack?.checked ?? false,
+                        frontMode: wireFrontMode,
+                        backMode: wireBackMode,
+                        printedImpressions: wirePrintImpressions,
+                    } : {}),
+                } : null,
                 inners: innerSectionDetailsForSubmission,
                 interleaf: (interleafSheets > 0) ? { sheets: interleafSheets, color: interleafColor, unitPrice: (typeof interleafUnitPrice === 'number' ? interleafUnitPrice : 0), amount: totalInterleafCost } : null,
                 binding: (bindingType !== 'none') ? { type: bindingType, direction: bindingDirection, directionLabel: bindingDirectionLabels[bindingDirection] || '세로좌철', unitPrice: (typeof bindingUnitPrice === 'number' ? bindingUnitPrice : 0), amount: bindingCost } : null,
