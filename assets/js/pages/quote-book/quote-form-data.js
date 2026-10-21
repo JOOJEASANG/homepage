@@ -2,7 +2,17 @@
 // draft와 Firestore 제출은 기존 코드의 간지 0장 처리 차이를 그대로 유지합니다.
 
 function readCommonQuoteItem(itemEl) {
+    const wireFront = itemEl.querySelector('.wireCoverFront');
+    const wireBack = itemEl.querySelector('.wireCoverBack');
+    const bindingType = itemEl.querySelector('.bindingType').value;
+    const wireCoverSettings = bindingType === 'wire' && (wireFront && wireBack || itemEl.dataset?.wireCoverSettings === '1');
     return {
+        ...(wireCoverSettings ? {
+            wireCoverFront: wireFront ? wireFront.checked : itemEl.dataset.wireCoverFront === '1',
+            wireCoverBack: wireBack ? wireBack.checked : itemEl.dataset.wireCoverBack === '1',
+            wireCoverFrontMode: itemEl.querySelector('.wireCoverFrontMode')?.value || itemEl.dataset.wireCoverFrontMode || 'simplex',
+            wireCoverBackMode: itemEl.querySelector('.wireCoverBackMode')?.value || itemEl.dataset.wireCoverBackMode || 'simplex',
+        } : {}),
         orderName: itemEl.querySelector('.orderName').value,
         coverPaperType: itemEl.querySelector('.coverPaperType').value,
         coverPrintType: itemEl.querySelector('.coverPrintType').value,
