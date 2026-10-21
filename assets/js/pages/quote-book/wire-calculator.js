@@ -7,14 +7,14 @@ export const WIRE_A5_INNER_MULTIPLIER = 0.70;
 export const WIRE_MAX_INNER_PAGES = 450;
 
 /**
- * 와이어 표지 출력은 펼침 표지 1부 단면 가격의 1/2을 1면 가격으로 계산합니다.
- * 앞면/뒷면을 각각 선택하면 선택한 면 수만큼 누적합니다.
+ * 와이어 표지 출력은 펼침 표지 1부 단면 가격의 1/2을 인쇄 1면 가격으로 계산합니다.
+ * 앞표지/뒤표지별 단면(1면), 양면(2면) 선택에 따라 최대 4면을 누적합니다.
  * 관리자 단가표의 별도 '컬러 양면' 값이 더 낮아도 2면이 1면보다 싸지 않습니다.
  */
 export function getWireCoverCost(rawSingleSidedCoverCost, printedSides = 1) {
   const cost = Number(rawSingleSidedCoverCost);
   if (!Number.isFinite(cost) || cost <= 0) return 0;
-  const sides = Math.min(2, Math.max(0, Math.floor(Number(printedSides) || 0)));
+  const sides = Math.min(4, Math.max(0, Math.floor(Number(printedSides) || 0)));
   return cost * sides / 2;
 }
 
@@ -30,6 +30,24 @@ export function getWireCoverPrintedSides({ frontChecked, backChecked, coverPrint
   if (coverPrintType === 'color_duplex') return 2;
   if (coverPrintType === 'color_simplex') return 1;
   return 0;
+}
+
+/**
+ * 와이어 표지: 앞표지·뒤표지 각각을 단면/양면으로 출력할 때의 총 인쇄면 수.
+ * 옛날 견적서에는 앞/뒤 체크 및 인쇄 방식 정보가 없어 coverPrintType으로 복구합니다.
+ */
+export function getWireCoverPrintImpressions({
+  frontChecked,
+  backChecked,
+  frontMode = 'simplex',
+  backMode = 'simplex',
+  coverPrintType = 'none',
+} = {}) {
+  const coverCount = getWireCoverPrintedSides({ frontChecked, backChecked, coverPrintType });
+  if (typeof frontChecked !== 'boolean' || typeof backChecked !== 'boolean') return coverCount;
+  const frontSheets = frontChecked ? (frontMode === 'duplex' ? 2 : 1) : 0;
+  const backSheets = backChecked ? (backMode === 'duplex' ? 2 : 1) : 0;
+  return frontSheets + backSheets;
 }
 
 /**
