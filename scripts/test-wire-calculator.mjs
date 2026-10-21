@@ -121,7 +121,7 @@ assert.match(
 );
 assert.match(
   quoteBookSource,
-  /const coverKey = \`\$\{coverPaperType\}_\$\{isWireCover \? 'color_simplex' : coverPrintType\}\`;/,
+  /const coverKey = \`\$\{coverPaperType\}_\$\{isWireCover \? 'color_simplex' : effectiveCoverPrintType\}\`;/,
   '와이어 표지 단가표는 컬러 단면을 기준으로 조회해야 함'
 );
 assert.match(
