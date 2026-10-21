@@ -839,12 +839,20 @@ function applyImagePreviewsToUI(root=document) {
             let totalCoverCost = 0;
 
             if (coverPaperType !== 'none' && coverPrintType !== 'none') {
-                const coverKey = `${coverPaperType}_${coverPrintType}`;
-                const coverTiers = priceConfig.cover[coverKey] || [];
-                coverUnitPrice = findPriceTier(coverTiers, quantity) * largeSizeMultiplier;
-                totalCoverCost = coverUnitPrice * quantity;
-                if (selectedBindingType === 'wire') totalCoverCost = getWireCoverCost(totalCoverCost);
-                totalCoverCost = floorToHundred(totalCoverCost); // 100원 단위 절삭
+                const isWireCover = selectedBindingType === 'wire';
+                // 와이어 표지는 앞면/뒷면을 각각 A4 한 면으로 계산합니다.
+                // 양면 단가표가 단면보다 낮게 설정되어 있어도 2면 가격이 역전되지 않도록
+                // 단면 기준 동일한 면당 가격을 면 수(1/2)에 따라 합산합니다.
+                const coverKey = `${coverPaperType}_${isWireCover ? 'color_simplex' : coverPrintType}`;
+                const coverTiers = priceConfig.cover[coverKey]
+                    || (isWireCover ? priceConfig.cover[`${coverPaperType}_color_duplex`] : null)
+                    || [];
+                const rawCoverUnitPrice = findPriceTier(coverTiers, quantity) * largeSizeMultiplier;
+                const printedSides = coverPrintType === 'color_duplex' ? 2 : 1;
+                coverUnitPrice = isWireCover
+                    ? getWireCoverCost(rawCoverUnitPrice, printedSides)
+                    : rawCoverUnitPrice;
+                totalCoverCost = floorToHundred(coverUnitPrice * quantity); // 100원 단위 절삭
 
                 if (totalCoverCost > 0) {
                     const coverSpecText = `${getSpecText('coverPaperType', coverPaperType)} / ${getSpecText('coverPrintType', coverPrintType)}`;
