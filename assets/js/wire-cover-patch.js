@@ -4,9 +4,9 @@
 // 역할:
 //   - 책자/제본 페이지에서 견적 항목 순서를
 //     기본 정보(품명·수량) → 제본방식 → 표지 → 내지 → 요청사항으로 보정합니다.
-//   - 와이어 제본 선택 시 표지 인쇄를 A4 기준 앞면 출력 / 뒷면 출력 체크 방식으로 표시합니다.
+//   - 와이어 제본은 앞·뒤 표지별 출력 선택과 단면/양면 설정을 제공합니다.
 //   - 고급 내지 스노우 120g/150g이 일정 페이지 이상이면 무선제본을 비활성화하고 안내문을 표시합니다.
-//   - 기존 계산식과 호환되도록 coverPrintType 값을 자동 변환합니다.
+//   - 기존 견적/단가 방식과 호환되도록 coverPrintType 및 별도 인쇄면 설정을 동기화합니다.
 // ============================================================
 
 const WIRE_COVER_PATCH_FILE = (() => {
@@ -139,22 +139,34 @@ function ensureWireCoverBox(itemEl) {
   const wrapper = document.createElement('div');
   wrapper.className = 'wire-cover-print-box md:col-span-2 hidden bg-blue-50 border border-blue-100 rounded-lg p-3 mt-1';
   wrapper.innerHTML = `
-    <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-3">
       <div class="flex items-center justify-between gap-3">
         <div class="text-xs font-extrabold text-blue-700">와이어 표지 출력</div>
-        <div class="text-[11px] text-blue-500">A4 기준 계산</div>
+        <div class="text-[11px] text-blue-500">표지별 단면·양면 선택 / A4 기준</div>
       </div>
-      <div class="flex flex-wrap gap-4">
-        <label class="inline-flex items-center gap-2 cursor-pointer text-sm text-slate-700">
-          <input type="checkbox" class="wireCoverFront rounded text-brand-600 focus:ring-brand-500">
-          <span>앞면 출력</span>
-        </label>
-        <label class="inline-flex items-center gap-2 cursor-pointer text-sm text-slate-700">
-          <input type="checkbox" class="wireCoverBack rounded text-brand-600 focus:ring-brand-500">
-          <span>뒷면 출력</span>
-        </label>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="rounded-lg border border-blue-100 bg-white p-3 flex flex-col gap-2">
+          <label class="inline-flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700">
+            <input type="checkbox" class="wireCoverFront rounded text-brand-600 focus:ring-brand-500">
+            <span>앞면 출력</span>
+          </label>
+          <select class="wireCoverFrontMode form-select w-full text-sm" aria-label="앞표지 단면 또는 양면">
+            <option value="simplex">단면 출력</option>
+            <option value="duplex">양면 출력</option>
+          </select>
+        </div>
+        <div class="rounded-lg border border-blue-100 bg-white p-3 flex flex-col gap-2">
+          <label class="inline-flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700">
+            <input type="checkbox" class="wireCoverBack rounded text-brand-600 focus:ring-brand-500">
+            <span>뒷면 출력</span>
+          </label>
+          <select class="wireCoverBackMode form-select w-full text-sm" aria-label="뒷표지 단면 또는 양면">
+            <option value="simplex">단면 출력</option>
+            <option value="duplex">양면 출력</option>
+          </select>
+        </div>
       </div>
-      <p class="text-[11px] text-slate-500 leading-relaxed">와이어 제본 선택 시 표지는 일반 책자 표지 펼침 기준이 아니라 A4 앞면/뒷면 출력 기준으로 계산됩니다.</p>
+      <p class="text-[11px] text-slate-500 leading-relaxed">앞면·뒷면 표지를 각각 출력할 수 있으며, 선택한 표지의 단면은 1면, 양면은 2면 비용으로 계산됩니다.</p>
     </div>
   `;
 
@@ -165,57 +177,70 @@ function ensureWireCoverBox(itemEl) {
 
   const front = wrapper.querySelector('.wireCoverFront');
   const back = wrapper.querySelector('.wireCoverBack');
+  const frontMode = wrapper.querySelector('.wireCoverFrontMode');
+  const backMode = wrapper.querySelector('.wireCoverBackMode');
+  let initialised = false;
 
-  function syncChecksFromSelect() {
-    const v = coverPrintSelect.value;
-    if (v === 'none') {
-      front.checked = false;
-      back.checked = false;
-    } else if (v === 'color_duplex') {
-      front.checked = true;
-      back.checked = true;
-    } else if (!front.checked && !back.checked) {
-      front.checked = true;
-      back.checked = false;
+  function readInitialState() {
+    if (initialised) return;
+    initialised = true;
+    if (itemEl.dataset.wireCoverSettings === '1') {
+      front.checked = itemEl.dataset.wireCoverFront === '1';
+      back.checked = itemEl.dataset.wireCoverBack === '1';
+      frontMode.value = itemEl.dataset.wireCoverFrontMode === 'duplex' ? 'duplex' : 'simplex';
+      backMode.value = itemEl.dataset.wireCoverBackMode === 'duplex' ? 'duplex' : 'simplex';
+    } else {
+      // 기존 견적은 color_duplex가 '앞·뒤 표지 출력'을 의미했습니다.
+      // 별도 인쇄면 정보가 없으므로 각각 단면으로 복원합니다.
+      front.checked = coverPrintSelect.value !== 'none';
+      back.checked = coverPrintSelect.value === 'color_duplex';
+      frontMode.value = 'simplex';
+      backMode.value = 'simplex';
     }
   }
 
   function syncSelectFromChecks() {
-    const count = (front.checked ? 1 : 0) + (back.checked ? 1 : 0);
-    if (count === 0) coverPrintSelect.value = 'none';
-    else if (count === 1) coverPrintSelect.value = 'color_simplex';
-    else coverPrintSelect.value = 'color_duplex';
+    const count = Number(front.checked) + Number(back.checked);
+    // 기존 목록/단가 UI와의 호환용 값입니다. 실제 와이어 비용은 별도 모드를 읽습니다.
+    coverPrintSelect.value = count === 2 ? 'color_duplex' : count === 1 ? 'color_simplex' : 'none';
 
+    itemEl.dataset.wireCoverSettings = '1';
     itemEl.dataset.wireCoverFront = front.checked ? '1' : '0';
     itemEl.dataset.wireCoverBack = back.checked ? '1' : '0';
+    itemEl.dataset.wireCoverFrontMode = frontMode.value;
+    itemEl.dataset.wireCoverBackMode = backMode.value;
+
+    frontMode.disabled = !front.checked;
+    backMode.disabled = !back.checked;
   }
 
   function updateVisibility() {
     const isWire = bindingInput.value === 'wire';
     wrapper.classList.toggle('hidden', !isWire);
     coverPrintSelect.closest('div')?.classList.toggle('hidden', isWire);
-
     if (isWire) {
-      syncChecksFromSelect();
+      readInitialState();
       syncSelectFromChecks();
     }
   }
 
-  front.addEventListener('change', () => { syncSelectFromChecks(); scheduleRecalcFrom(itemEl); });
-  back.addEventListener('change', () => { syncSelectFromChecks(); scheduleRecalcFrom(itemEl); });
-  coverPrintSelect.addEventListener('change', () => {
-    if (bindingInput.value === 'wire') {
-      syncChecksFromSelect();
+  for (const control of [front, back, frontMode, backMode]) {
+    control.addEventListener('change', () => {
       syncSelectFromChecks();
-    }
+      scheduleRecalcFrom(itemEl);
+    });
+  }
+
+  // 기존 드래프트 불러오기 등 외부에서 기존 select를 변경하는 흐름과 호환합니다.
+  coverPrintSelect.addEventListener('change', () => {
+    if (bindingInput.value === 'wire') syncSelectFromChecks();
   });
 
   const observer = new MutationObserver(updateVisibility);
   observer.observe(bindingInput, { attributes: true, attributeFilter: ['value'] });
-
+  itemEl.__refreshWireCover = updateVisibility;
   updateVisibility();
 }
-
 function patchQuoteItemsNow() {
   if (!isWireCoverPatchTarget()) return;
   document.querySelectorAll('.quote-item').forEach(itemEl => {
@@ -249,22 +274,9 @@ function bindBookPatchEvents() {
       reorderQuoteItemSections(itemEl);
       updatePerfectBindingAvailability(itemEl);
       ensureWireCoverBox(itemEl);
-      const box = itemEl?.querySelector?.('.wire-cover-print-box');
-      const coverPrintSelect = itemEl?.querySelector?.('.coverPrintType');
-      const isWire = itemEl?.querySelector?.('.bindingType')?.value === 'wire';
-      box?.classList.toggle('hidden', !isWire);
-      coverPrintSelect?.closest('div')?.classList.toggle('hidden', isWire);
-      if (isWire) {
-        const front = box?.querySelector?.('.wireCoverFront');
-        const back = box?.querySelector?.('.wireCoverBack');
-        if (front && back && !front.checked && !back.checked && coverPrintSelect?.value !== 'none') front.checked = true;
-        // 제본방식 변경 직후에도 체크 상태와 계산용 select를 일치시킵니다.
-        if (front && back && coverPrintSelect) {
-          const selectedSides = Number(front.checked) + Number(back.checked);
-          coverPrintSelect.value = selectedSides === 2 ? 'color_duplex' : selectedSides === 1 ? 'color_simplex' : 'none';
-        }
-        scheduleRecalcFrom(itemEl);
-      }
+      // 제본 방식에 맞춰 표지 컨트롤을 표시하고 다시 계산합니다.
+      itemEl?.__refreshWireCover?.();
+      scheduleRecalcFrom(itemEl);
     }, 0);
   }, true);
 
