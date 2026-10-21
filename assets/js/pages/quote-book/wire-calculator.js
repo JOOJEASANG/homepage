@@ -6,11 +6,16 @@ import { getBindingPageCount, getLargeSizeMultiplier, positiveNumber } from './c
 export const WIRE_A5_INNER_MULTIPLIER = 0.70;
 export const WIRE_MAX_INNER_PAGES = 450;
 
-/** 와이어제본 표지는 기존 정책대로 일반 표지비의 1/2을 적용합니다. */
-export function getWireCoverCost(rawCoverCost) {
-  const cost = Number(rawCoverCost);
+/**
+ * 와이어 표지 출력은 펼침 표지 1부 단면 가격의 1/2을 1면 가격으로 계산합니다.
+ * 앞면/뒷면을 각각 선택하면 선택한 면 수만큼 누적합니다.
+ * 관리자 단가표의 별도 '컬러 양면' 값이 더 낮아도 2면이 1면보다 싸지 않습니다.
+ */
+export function getWireCoverCost(rawSingleSidedCoverCost, printedSides = 1) {
+  const cost = Number(rawSingleSidedCoverCost);
   if (!Number.isFinite(cost) || cost <= 0) return 0;
-  return cost / 2;
+  const sides = Math.min(2, Math.max(0, Math.floor(Number(printedSides) || 0)));
+  return cost * sides / 2;
 }
 
 /**
