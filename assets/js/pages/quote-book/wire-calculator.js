@@ -19,6 +19,20 @@ export function getWireCoverCost(rawSingleSidedCoverCost, printedSides = 1) {
 }
 
 /**
+ * 실제 화면의 와이어 표지 체크박스 상태를 우선 읽습니다.
+ * input 이벤트가 change 이벤트보다 먼저 실행되어 숨긴 select 값이 늦게
+ * 변경되는 경우에도 앞·뒷면 선택 수량을 정확하게 계산합니다.
+ */
+export function getWireCoverPrintedSides({ frontChecked, backChecked, coverPrintType = 'none' } = {}) {
+  if (typeof frontChecked === 'boolean' && typeof backChecked === 'boolean') {
+    return Number(frontChecked) + Number(backChecked);
+  }
+  if (coverPrintType === 'color_duplex') return 2;
+  if (coverPrintType === 'color_simplex') return 1;
+  return 0;
+}
+
+/**
  * 와이어제본 내지의 규격별 인쇄비 배율을 반환합니다.
  * - A5: A4 내지 단가의 70%
  * - B5 컬러: 기존 정책 그대로 A4 단가의 100%
