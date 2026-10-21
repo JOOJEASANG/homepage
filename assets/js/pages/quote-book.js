@@ -21,7 +21,7 @@ import { initHeader } from "../header.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
 import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
 import { getPerfectInnerPricingMultiplier, getPerfectBindingMetrics } from "./quote-book/perfect-calculator.js";
-import { getWireCoverCost, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js";
+import { getWireCoverCost, getWireCoverPrintedSides, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js";
 import { findPriceTier, findBindingPriceTier, floorToHundred, getLargeSizeMultiplier, getInnerSheetsPerCopy } from "./quote-book/calculator-utils.js";
 import { generateBookReceiptNo } from "./quote-book/quote-id.js";
 import { normalizeContactDigits, formatPhoneHyphen, formatContact, pickContactFromUserData, sha256Hex } from "./quote-book/contact-utils.js";
@@ -835,27 +835,40 @@ function applyImagePreviewsToUI(root=document) {
 
             const coverPaperType = itemEl.querySelector('.coverPaperType').value;
             const coverPrintType = itemEl.querySelector('.coverPrintType').value;
+            const isWireCover = selectedBindingType === 'wire';
+            // 체크박스 input 이벤트는 hidden select의 change 이벤트보다 먼저 발생합니다.
+            // 와이어 표지는 실제로 체크한 앞면/뒷면 수를 직접 세어 계산합니다.
+            const wireFront = itemEl.querySelector('.wireCoverFront');
+            const wireBack = itemEl.querySelector('.wireCoverBack');
+            const wirePrintedSides = getWireCoverPrintedSides({
+                frontChecked: wireFront?.checked,
+                backChecked: wireBack?.checked,
+                coverPrintType,
+            });
+            const effectiveCoverPrintType = isWireCover
+                ? (wirePrintedSides === 2 ? 'color_duplex' : wirePrintedSides === 1 ? 'color_simplex' : 'none')
+                : coverPrintType;
             let coverUnitPrice = 0;
             let totalCoverCost = 0;
 
-            if (coverPaperType !== 'none' && coverPrintType !== 'none') {
-                const isWireCover = selectedBindingType === 'wire';
-                // 와이어 표지는 앞면/뒷면을 각각 A4 한 면으로 계산합니다.
-                // 양면 단가표가 단면보다 낮게 설정되어 있어도 2면 가격이 역전되지 않도록
-                // 단면 기준 동일한 면당 가격을 면 수(1/2)에 따라 합산합니다.
-                const coverKey = `${coverPaperType}_${isWireCover ? 'color_simplex' : coverPrintType}`;
+            if (coverPaperType !== 'none' && effectiveCoverPrintType !== 'none') {
+                // 와이어 표지는 단면 단가표의 한 면 금액을 선택 면 수만큼 합산합니다.
+                // 일반 제본은 기존 단면/양면 단가표를 그대로 사용합니다.
+                const coverKey = `${coverPaperType}_${isWireCover ? 'color_simplex' : effectiveCoverPrintType}`;
                 const coverTiers = priceConfig.cover[coverKey]
                     || (isWireCover ? priceConfig.cover[`${coverPaperType}_color_duplex`] : null)
                     || [];
                 const rawCoverUnitPrice = findPriceTier(coverTiers, quantity) * largeSizeMultiplier;
-                const printedSides = coverPrintType === 'color_duplex' ? 2 : 1;
                 coverUnitPrice = isWireCover
-                    ? getWireCoverCost(rawCoverUnitPrice, printedSides)
+                    ? getWireCoverCost(rawCoverUnitPrice, wirePrintedSides)
                     : rawCoverUnitPrice;
                 totalCoverCost = floorToHundred(coverUnitPrice * quantity); // 100원 단위 절삭
 
                 if (totalCoverCost > 0) {
-                    const coverSpecText = `${getSpecText('coverPaperType', coverPaperType)} / ${getSpecText('coverPrintType', coverPrintType)}`;
+                    const coverSidesLabel = isWireCover
+                        ? (wirePrintedSides === 2 ? '앞면 + 뒷면 출력' : wireFront?.checked ? '앞면 출력' : wireBack?.checked ? '뒷면 출력' : '1면 출력')
+                        : getSpecText('coverPrintType', effectiveCoverPrintType);
+                    const coverSpecText = `${getSpecText('coverPaperType', coverPaperType)} / ${coverSidesLabel}`;
                     itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 표지 (${coverSpecText})</span><span class="text-slate-500 text-xs">${Math.round(coverUnitPrice).toLocaleString()}원/부</span></div><div class="flex justify-end font-medium text-slate-800">${totalCoverCost.toLocaleString()}원</div></li>`;
                 }
             }
@@ -1046,7 +1059,7 @@ function applyImagePreviewsToUI(root=document) {
             breakdownForLastQuote.push({
                 orderName: orderName || `견적항목 ${index + 1}`,
                 quantity,
-                cover: (coverPaperType !== 'none' && coverPrintType !== 'none') ? { unitPrice: (typeof coverUnitPrice === 'number' ? coverUnitPrice : 0), amount: totalCoverCost, paperType: coverPaperType, printType: coverPrintType } : null,
+                cover: (coverPaperType !== 'none' && effectiveCoverPrintType !== 'none') ? { unitPrice: (typeof coverUnitPrice === 'number' ? coverUnitPrice : 0), amount: totalCoverCost, paperType: coverPaperType, printType: effectiveCoverPrintType } : null,
                 inners: innerSectionDetailsForSubmission,
                 interleaf: (interleafSheets > 0) ? { sheets: interleafSheets, color: interleafColor, unitPrice: (typeof interleafUnitPrice === 'number' ? interleafUnitPrice : 0), amount: totalInterleafCost } : null,
                 binding: (bindingType !== 'none') ? { type: bindingType, direction: bindingDirection, directionLabel: bindingDirectionLabels[bindingDirection] || '세로좌철', unitPrice: (typeof bindingUnitPrice === 'number' ? bindingUnitPrice : 0), amount: bindingCost } : null,
