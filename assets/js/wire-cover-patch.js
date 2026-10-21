@@ -200,9 +200,10 @@ function ensureWireCoverBox(itemEl) {
   }
 
   function syncSelectFromChecks() {
-    const count = Number(front.checked) + Number(back.checked);
-    // 기존 목록/단가 UI와의 호환용 값입니다. 실제 와이어 비용은 별도 모드를 읽습니다.
-    coverPrintSelect.value = count === 2 ? 'color_duplex' : count === 1 ? 'color_simplex' : 'none';
+    const impressions = (front.checked ? (frontMode.value === 'duplex' ? 2 : 1) : 0)
+      + (back.checked ? (backMode.value === 'duplex' ? 2 : 1) : 0);
+    // 기존 출력 정보는 인쇄된 실제 면 수를 반영하고, 별도 저장 필드로 표지별 설정을 보존합니다.
+    coverPrintSelect.value = impressions >= 2 ? 'color_duplex' : impressions === 1 ? 'color_simplex' : 'none';
 
     itemEl.dataset.wireCoverSettings = '1';
     itemEl.dataset.wireCoverFront = front.checked ? '1' : '0';
@@ -240,6 +241,8 @@ function ensureWireCoverBox(itemEl) {
   observer.observe(bindingInput, { attributes: true, attributeFilter: ['value'] });
   itemEl.__refreshWireCover = updateVisibility;
   updateVisibility();
+  // 비동기 패치가 생성되기 전에 초기 견적이 계산됐다면 저장된 단/양면 설정으로 다시 계산합니다.
+  if (bindingInput.value === 'wire') scheduleRecalcFrom(itemEl);
 }
 function patchQuoteItemsNow() {
   if (!isWireCoverPatchTarget()) return;
