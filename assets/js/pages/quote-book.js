@@ -21,7 +21,7 @@ import { initHeader } from "../header.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
 import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
 import { getPerfectInnerPricingMultiplier, getPerfectBindingMetrics } from "./quote-book/perfect-calculator.js";
-import { getWireCoverCost, getWireCoverPrintedSides, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js";
+import { getWireCoverCost, getWireCoverPrintedSides, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js?v=20261021-cover-checkbox-fix";
 import { findPriceTier, findBindingPriceTier, floorToHundred, getLargeSizeMultiplier, getInnerSheetsPerCopy } from "./quote-book/calculator-utils.js";
 import { generateBookReceiptNo } from "./quote-book/quote-id.js";
 import { normalizeContactDigits, formatPhoneHyphen, formatContact, pickContactFromUserData, sha256Hex } from "./quote-book/contact-utils.js";
