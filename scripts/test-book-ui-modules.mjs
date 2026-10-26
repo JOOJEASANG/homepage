@@ -59,13 +59,13 @@ assert.match(a5Source, /내지 인쇄비에만 적용/);
 assert.match(a5Source, /표지·간지·제본·오시·디자인비에는 A5 할인율을 적용하지 않습니다/);
 assert.doesNotMatch(a5Source, /book-a5-display-fix\.js/);
 
-// 관리자 전용 하청 계산은 책자/제본 + 디지털출력 모두에서 고정 20% 체크 방식입니다.
+// 관리자 전용 하청 계산은 책자/제본 + 디지털출력 모두에서 고정 25% 체크 방식입니다.
 const subcontractPath = path.join(root, 'assets/js/book-admin-subcontract-calculator.js');
 const subcontractSource = fs.readFileSync(subcontractPath, 'utf8');
-assert.match(subcontractSource, /SUBCONTRACT_DISCOUNT_PERCENT = 20/);
+assert.match(subcontractSource, /SUBCONTRACT_DISCOUNT_PERCENT = 25/);
 assert.match(subcontractSource, /quote-book\.html/);
 assert.match(subcontractSource, /quote-print\.html/);
-assert.match(subcontractSource, /하청업체 20% 할인 적용/);
+assert.match(subcontractSource, /하청업체 25% 할인 적용/);
 assert.match(subcontractSource, /admin-subcontract-enabled/);
 assert.match(subcontractSource, /고객 화면의 견적금액과 접수·저장되는 최종금액은 변경하지 않습니다/);
 assert.doesNotMatch(subcontractSource, /setDoc|updateDoc|addDoc/, '하청 보조 계산기는 Firestore 견적을 수정하면 안 됨');
