@@ -7,13 +7,13 @@
 //
 // 동작:
 //   - Firebase users/{uid}.role === 'admin' 인 경우에만 표시
-//   - '하청업체 20% 할인 적용' 체크 시 현재 전체 견적의 80%를 별도 표시
+//   - '하청업체 25% 할인 적용' 체크 시 현재 전체 견적의 75%를 별도 표시
 //   - 고객 견적/Firestore 저장 금액에는 절대 반영하지 않는 조회 전용 기능
 // ============================================================
 
 import { auth, db, onAuthStateChanged, doc, getDoc } from './firebase.js';
 
-const SUBCONTRACT_DISCOUNT_PERCENT = 20;
+const SUBCONTRACT_DISCOUNT_PERCENT = 25;
 const ALLOWED_FILES = new Set(['quote-book.html', 'quote-print.html']);
 
 function currentFile() {
@@ -107,8 +107,8 @@ function renderCalculatorShell() {
         <input id="admin-subcontract-enabled" type="checkbox"
           class="mt-0.5 w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500">
         <span class="flex-1">
-          <span class="block text-sm font-extrabold text-amber-950">하청업체 20% 할인 적용</span>
-          <span class="block mt-1 text-[11px] leading-4 text-amber-700">체크하면 현재 전체 견적에서 20% 할인된 관리자 확인용 금액을 계산합니다.</span>
+          <span class="block text-sm font-extrabold text-amber-950">하청업체 25% 할인 적용</span>
+          <span class="block mt-1 text-[11px] leading-4 text-amber-700">체크하면 현재 전체 견적에서 25% 할인된 관리자 확인용 금액을 계산합니다.</span>
         </span>
       </label>
 
@@ -118,7 +118,7 @@ function renderCalculatorShell() {
           <strong id="admin-subcontract-original" class="text-slate-900">0원</strong>
         </div>
         <div class="flex justify-between gap-3 text-amber-700">
-          <span>하청 할인 (20%)</span>
+          <span>하청 할인 (25%)</span>
           <strong id="admin-subcontract-discount-amount">-0원</strong>
         </div>
         <div class="pt-2 border-t border-amber-200 flex justify-between gap-3 items-end">
