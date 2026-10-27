@@ -679,3 +679,38 @@ test('customer design files and cancelled selections use the real quote upload h
   await input.setInputFiles([]);
   expect(errors).toEqual([]);
 });
+
+
+for (const width of [390, 1440]) {
+  test(`homepage notice form action buttons stay inside the editor card at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await openAdmin(page);
+    await choose(page, 'homepage-management-btn');
+    const card = page.locator('#notice-editor-card');
+    const period = page.locator('#notice-publish-period-wrap');
+    const actions = page.locator('#notice-form-actions');
+    await expect(card).toBeVisible();
+    await expect(period).toBeVisible();
+    await expect(actions).toBeVisible();
+    const layout = await page.evaluate(() => {
+      const card = document.getElementById('notice-editor-card').getBoundingClientRect();
+      const actions = document.getElementById('notice-form-actions').getBoundingClientRect();
+      const period = document.getElementById('notice-publish-period-wrap').getBoundingClientRect();
+      const clear = document.getElementById('clear-notice-form-btn').getBoundingClientRect();
+      const save = document.getElementById('save-notice-btn').getBoundingClientRect();
+      return {
+        cardTop: card.top, cardBottom: card.bottom, cardLeft: card.left, cardRight: card.right,
+        periodBottom: period.bottom,
+        actionsTop: actions.top, actionsBottom: actions.bottom,
+        clearLeft: clear.left, clearBottom: clear.bottom,
+        saveRight: save.right, saveBottom: save.bottom,
+      };
+    });
+    expect(layout.actionsTop).toBeGreaterThanOrEqual(layout.periodBottom + 6);
+    expect(layout.actionsBottom).toBeLessThanOrEqual(layout.cardBottom - 8);
+    expect(layout.clearLeft).toBeGreaterThanOrEqual(layout.cardLeft + 8);
+    expect(layout.saveRight).toBeLessThanOrEqual(layout.cardRight - 8);
+    expect(layout.clearBottom).toBeLessThanOrEqual(layout.cardBottom - 8);
+    expect(layout.saveBottom).toBeLessThanOrEqual(layout.cardBottom - 8);
+  });
+}
