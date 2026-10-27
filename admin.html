@@ -1178,12 +1178,12 @@
                         <div class="grid grid-cols-1 lg:grid-cols-10 gap-6">
                             
                             <div class="lg:col-span-6">
-                                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-full max-h-[650px] flex flex-col">
+                                <div id="notice-editor-card" class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col">
                                     <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
                                         <span class="w-8 h-8 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center text-sm"><i class="fas fa-pen"></i></span>
                                         <h4 class="text-sm font-bold text-slate-700">새 공지 작성</h4>
                                     </div>
-                                    <form id="notice-form" class="space-y-4 h-full flex flex-col">
+                                    <form id="notice-form" class="space-y-4 flex flex-col">
                                         <input type="hidden" id="notice-id">
                                         <div>
                                             <input type="text" id="notice-title" class="form-input w-full font-bold placeholder-slate-400" placeholder="공지 제목을 입력하세요" required>
@@ -1228,8 +1228,8 @@
 
                                             <textarea id="notice-content" class="hidden"></textarea>
                                         </div>
-                                        <div class="flex items-center justify-between pt-2">
-                                            <div class="flex items-center gap-4">
+                                        <div id="notice-form-actions" class="flex flex-wrap items-center justify-between gap-3 pt-4 pb-1 border-t border-slate-100">
+                                            <div class="flex flex-wrap items-center gap-4">
                                                 <label class="flex items-center text-sm text-slate-600 cursor-pointer select-none hover:text-brand-700 transition-colors">
                                                     <div class="relative flex items-center">
                                                         <input type="checkbox" id="notice-isImportant" class="peer sr-only">
@@ -1245,7 +1245,7 @@
                                                     <span class="ml-2 font-medium">메인 팝업</span>
                                                 </label>
                                             </div>
-                                            <div class="space-x-2 shrink-0">
+                                            <div class="flex items-center gap-2 shrink-0">
                                                 <button type="button" id="clear-notice-form-btn" class="btn btn-secondary btn-sm">초기화</button>
                                                 <button type="submit" id="save-notice-btn" class="btn btn-primary btn-sm px-4"><i class="fas fa-check mr-1"></i>저장</button>
                                             </div>
@@ -1255,7 +1255,7 @@
                             </div>
 
                             <div class="lg:col-span-4 flex flex-col">
-                                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col h-full max-h-[650px]">
+                                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col h-full max-h-[850px]">
                                     <div class="flex items-center justify-between mb-3 shrink-0 pb-3 border-b border-slate-200">
                                         <h4 class="text-sm font-bold text-slate-700"><i class="fas fa-list-ul mr-1.5 text-brand-500"></i>등록된 공지 목록</h4>
                                         <span class="text-[10px] text-slate-400 font-medium bg-white px-2 py-1 rounded border border-slate-200">최신순</span>
