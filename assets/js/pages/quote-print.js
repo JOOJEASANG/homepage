@@ -16,7 +16,7 @@ import { app, auth, db, storage, doc, getDoc, collection, addDoc, updateDoc,
 import { initHeader } from "../header.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
 import "../overlays.js";
-import "../session.js?v=20261026-subcontract25";
+import "../session.js?v=20261028-print-reset";
 import { loadPrintGuide } from "../print-guide-recovery.js";
 
 // 페이지 로드 시 공통 헤더 렌더링
