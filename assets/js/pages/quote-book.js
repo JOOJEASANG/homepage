@@ -34,7 +34,7 @@ import { isAdminEditSearch, parseQuoteReloadPayload } from "./quote-book/page-st
 import { readGuestSubmitSession, readGuestMenuSession, getGuestMyPageLookupKey, restoreGuestSessionFromReload, persistGuestSessionAfterSubmit } from "./quote-book/guest-session.js";
 import { acquireBookSubmitLock, releaseBookSubmitLock } from "./quote-book/submit-lock.js";
 import { renderQuoteItemTemplate, renderInnerSectionTemplate } from "./quote-book/quote-item-template.js?v=20261012-input-heights";
-import "../session.js?v=20261026-subcontract25";
+import "../session.js?v=20261028-subcontract-choice";
 
 // 페이지 로드 시 공통 헤더 렌더링
 document.addEventListener("DOMContentLoaded", () => initHeader("book"));
