@@ -249,7 +249,7 @@ function applyAdminPricingModeUi() {
       <i class="fas fa-calculator mt-0.5 text-amber-700"></i>
       <div>
         <strong class="block font-extrabold">관리자 계산 모드</strong>
-        <span class="text-xs text-amber-800">견적 계산과 하청 25% 비교만 사용합니다. 이 화면에서는 고객 견적을 접수하지 않습니다.</span>
+        <span class="text-xs text-amber-800">견적 계산과 하청 20%·25% 비교만 사용합니다. 이 화면에서는 고객 견적을 접수하지 않습니다.</span>
       </div>
     `;
     main.prepend(banner);
@@ -304,7 +304,7 @@ function boot() {
   watchAdminNavigation();
 
   if (QUOTE_FILES.has(currentFile())) {
-    import('./book-admin-subcontract-calculator.js?v=20261026-discount25').catch(() => null);
+    import('./book-admin-subcontract-calculator.js?v=20261028-discount-choice').catch(() => null);
   }
 }
 
