@@ -218,6 +218,36 @@ for (const [label, path] of [
   });
 }
 
+test('real digital-output quote reset restores controls and recalculates without stale drafts', async ({ page }) => {
+  await fixture(page);
+  await page.goto('/quote-print.html?adminEdit=1&adminPricing=1', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#quantity')).toBeEnabled();
+  await page.locator('#orderName').fill('초기화 전 견적');
+  await page.locator('#quantity').fill('222');
+  await page.locator('#printSides').selectOption('2');
+  await page.locator('#paperSize').selectOption('CUSTOM');
+  await page.locator('#customW').fill('300');
+  await page.locator('#customH').fill('400');
+  await page.locator('#fullBackgroundEnabled').check();
+  await page.evaluate(() => {
+    localStorage.setItem('temp_quote_print', JSON.stringify({ orderName: '초기화 전 견적' }));
+    localStorage.setItem('pending_member_submit_print', JSON.stringify({ quantity: '222' }));
+  });
+  await page.locator('#resetFormBtn').click();
+  await expect(page.locator('#orderName')).toHaveValue('');
+  await expect(page.locator('#quantity')).toHaveValue('100');
+  await expect(page.locator('#printSides')).toHaveValue('1');
+  await expect(page.locator('#paperSize')).toHaveValue('A4');
+  await expect(page.locator('#fullBackgroundEnabled')).not.toBeChecked();
+  await expect(page.locator('#customSizeWrap')).toBeHidden();
+  await expect(page.locator('#breakdown')).not.toContainText('초기화된 견적을 다시 계산합니다.');
+  expect(await page.evaluate(() => [
+    localStorage.getItem('temp_quote_print'),
+    localStorage.getItem('pending_member_submit_print'),
+    localStorage.getItem('pendingRequestTypePrint'),
+  ])).toEqual([null, null, null]);
+});
+
 test('customer reads and replacement answers update receipts in real time', async ({ page }) => {
   await prepareInquiry(page);
   await page.locator('#searchPw').press('Enter');
