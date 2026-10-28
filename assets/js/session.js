@@ -123,7 +123,7 @@ try {
     import('./pages/mypage/runtime.js').catch(() => null);
   }
   if (currentFile === 'quote-print.html') {
-    import('./pages/quote-print/runtime.js').catch(() => null);
+    import('./pages/quote-print/runtime.js?v=20261028-reset').catch(() => null);
   }
   if (currentFile === 'index.html' || currentFile === '') {
     import('./public-feed-v2.js').catch(() => null);
