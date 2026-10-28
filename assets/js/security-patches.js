@@ -23,7 +23,7 @@ try {
     import('./book-item-unit-price-patch.js').catch(() => null);
   }
   if (CURRENT_FILE === 'quote-print.html') {
-    import('./print-vat-included-patch.js').catch(() => null);
+    import('./print-vat-included-patch.js?v=20261028-precise-vat').catch(() => null);
   }
 } catch (_) {}
 
