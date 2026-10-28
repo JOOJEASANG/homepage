@@ -28,8 +28,28 @@ export function serializePrintDraft(root = document, now = Date.now()) {
   };
 }
 
+export function isPristinePrintDraft(draft) {
+  if (!draft) return true;
+  return !(String(draft.orderName || '').trim()
+    || String(draft.quantity || '') !== '100'
+    || String(draft.printSides || '') !== '1'
+    || String(draft.paperSize || '') !== 'A4'
+    || String(draft.paperType || '') !== 'snow'
+    || String(draft.paperWeight || '') !== '200'
+    || String(draft.customW || '').trim()
+    || String(draft.customH || '').trim()
+    || draft.oshiEnabled
+    || draft.fullBackgroundEnabled
+    || String(draft.oshiLines || '1') !== '1');
+}
+
 export function savePrintDraft(storage = localStorage, root = document) {
   const draft = serializePrintDraft(root);
+  // 초기화된 폼을 떠날 때 새로운 임시견적을 재생성하지 않습니다.
+  if (isPristinePrintDraft(draft)) {
+    storage.removeItem(DRAFT_KEY);
+    return null;
+  }
   storage.setItem(DRAFT_KEY, JSON.stringify(draft));
   return draft;
 }
