@@ -1,12 +1,24 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const nav = fs.readFileSync(path.join(root, 'assets/js/admin-quote-navigation.js'), 'utf8');
 const calc = fs.readFileSync(path.join(root, 'assets/js/book-admin-subcontract-calculator.js'), 'utf8');
 const session = fs.readFileSync(path.join(root, 'assets/js/session.js'), 'utf8');
+
+const prices = await import(pathToFileURL(path.join(root, 'assets/js/pages/shared/subcontract-discount.js')).href);
+assert.equal(prices.DEFAULT_SUBCONTRACT_PERCENT, 25);
+assert.deepEqual(prices.SUBCONTRACT_PERCENT_OPTIONS, [25, 20]);
+assert.deepEqual(prices.calculateSubcontractDiscount(100000, 25),
+  { original: 100000, percent: 25, total: 75000, discountAmount: 25000 });
+assert.deepEqual(prices.calculateSubcontractDiscount(100000, 20),
+  { original: 100000, percent: 20, total: 80000, discountAmount: 20000 });
+assert.equal(prices.calculateSubcontractDiscount(100000).total, 75000, 'default remains 25%');
+assert.equal(prices.calculateSubcontractDiscount(100000, 99).total, 75000, 'unsupported rate falls back to 25%');
+assert.equal(prices.calculateSubcontractDiscount(112345, 20).total, 89800, 'retains 100-won floor');
+assert.equal(prices.calculateSubcontractDiscount(112345, 25).total, 84200, 'retains 100-won floor');
 
 assert.match(nav, /quote-book\.html/);
 assert.match(nav, /quote-print\.html/);
