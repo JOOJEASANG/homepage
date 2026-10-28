@@ -17,6 +17,24 @@ assert.equal(utils.quoteStatusKind('취소 요청'), 'cancelled');
 assert.equal(utils.quoteStatusKind('접수완료'), 'waiting');
 assert.equal(utils.formatQuoteStatus('  제작   진행  '), '제작 진행');
 
+// 디지털출력 단가표는 부가세 포함 가격이므로 고객에게 표시되는 총액을 보존합니다.
+const vatPrint = await import(pathToFileURL(path.join(root, 'assets/js/pages/quote-print/vat-calculator.js')).href);
+for (const [raw, expected] of [
+  [30000, 30000],
+  [29999.999999999996, 30000],
+  [29999.999999, 30000],
+  [33000, 33000],
+  [18000, 18000],
+  [12349.99, 12340],
+  [0, 0],
+]) {
+  const result = vatPrint.calculateVatIncludedPrintTotal(raw);
+  assert.equal(result.total, expected, 'digital print VAT-inclusive total must not lose 10 won');
+  assert.equal(result.supply + result.vat, result.total, 'supply and VAT must add up to final price');
+}
+assert.deepEqual(vatPrint.calculateVatIncludedPrintTotal(30000),
+  { supply: 27273, vat: 2727, total: 30000 });
+
 const fixed = new Date(2026, 8, 16, 15, 12, 9);
 assert.equal(
   utils.createReceiptNo({ date: fixed, random: () => 0.123 }),
@@ -27,6 +45,9 @@ const session = fs.readFileSync(path.join(root, 'assets', 'js', 'session.js'), '
 const header = fs.readFileSync(path.join(root, 'assets', 'js', 'header.js'), 'utf8');
 const printRuntime = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'quote-print', 'runtime.js'), 'utf8');
 const quotePrintPage = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'quote-print.js'), 'utf8');
+const vatLabelPatch = fs.readFileSync(path.join(root, 'assets', 'js', 'print-vat-included-patch.js'), 'utf8');
+assert.ok(!vatLabelPatch.includes('window.cut10 ='), 'do not monkey-patch global ten-won rounding');
+
 const quoteBookPage = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'quote-book.js'), 'utf8');
 const adminPage = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'admin.js'), 'utf8');
 const mypageRuntime = fs.readFileSync(path.join(root, 'assets', 'js', 'pages', 'mypage', 'runtime.js'), 'utf8');
@@ -48,6 +69,8 @@ for (const legacyImport of [
   assert.ok(!session.includes(legacyImport), `session should not directly load ${legacyImport}`);
 }
 
+assert.ok(quotePrintPage.includes('calculateVatIncludedPrintTotal(totalRaw)'), 'main quote calculator must use the VAT-inclusive helper');
+assert.ok(quotePrintPage.includes('const totalRaw = supplyRaw;'), 'do not add VAT twice to inclusive prices');
 assert.ok(printRuntime.includes("from '../shared/page-utils.js'"));
 assert.ok(printRuntime.includes('export function serializePrintDraft'));
 assert.ok(printRuntime.includes('export function generatePrintReceiptNo'));
