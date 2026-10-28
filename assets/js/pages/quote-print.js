@@ -1737,6 +1737,8 @@ openSignupModal();
       fillWeightOptions();
       if (el.paperWeight?.querySelector('option[value="200"]')) el.paperWeight.value = '200';
       setSubmissionIntent('order');
+      // 초기화 뒤에는 접수유형 복구 데이터도 남기지 않습니다.
+      try { localStorage.removeItem('pendingRequestTypePrint'); } catch (_) {}
       toggleCustom();
       toggleOshi();
       compute();
