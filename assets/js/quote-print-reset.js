@@ -37,14 +37,17 @@
       try { localStorage.removeItem(key); } catch (_) {}
     }
 
-    // 비동기 로드 중이거나 계산 스크립트 오류가 있어도 이전 금액은 남기지 않습니다.
+    // 마지막 견적의 숫자를 숨기되 기본금액 계산이 끝나기 전까지 0원으로 표시하지 않습니다.
+    // 실제 기본금액은 단가표를 가진 견적 엔진에서 계산해 이 영역에 채웁니다.
     const breakdown = document.getElementById('breakdown');
-    if (breakdown) breakdown.innerHTML = '<div class="text-slate-500 text-sm">초기화된 견적을 다시 계산합니다.</div>';
+    if (breakdown) breakdown.innerHTML = '<div class="text-slate-500 text-sm">기본 사양 견적금액을 계산 중입니다.</div>';
     for (const id of ['supplyPrice', 'vatPrice', 'totalPrice']) {
       const field = document.getElementById(id);
-      if (field) field.textContent = '0원';
+      if (field) field.textContent = '계산 중';
     }
     document.getElementById('minQtyHint')?.classList.add('hidden');
+    // 계산 모듈이 아직 비동기 초기화 중이어도 요청을 잃지 않습니다.
+    window.__gprintPrintResetRequested = true;
     form.dispatchEvent(new CustomEvent('gprint:print-quote-reset', { bubbles: true }));
   }
 
