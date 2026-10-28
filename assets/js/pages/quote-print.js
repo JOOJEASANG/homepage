@@ -1732,8 +1732,11 @@ openSignupModal();
       compute();
     });
     // 독립 초기화 스크립트가 폼 값을 먼저 되돌린 뒤 계산 엔진에 재계산을 알립니다.
-    el.form.addEventListener('gprint:print-quote-reset', () => {
+    el.form.addEventListener('gprint:print-quote-reset', async () => {
       existingAttachments = [];
+      // 초기화 중 단가정보가 로드되지 않았거나 실패한 경우 다시 확보합니다.
+      // 가격을 임의의 0원으로 대체하지 않고, 관리자 등록 단가로 재계산합니다.
+      if (!unitPriceConfigReady || unitPriceConfigError) await loadUnitPriceConfig();
       fillWeightOptions();
       if (el.paperWeight?.querySelector('option[value="200"]')) el.paperWeight.value = '200';
       setSubmissionIntent('order');
@@ -1741,9 +1744,10 @@ openSignupModal();
       try { localStorage.removeItem('pendingRequestTypePrint'); } catch (_) {}
       toggleCustom();
       toggleOshi();
-      compute();
+      const result = compute();
+      window.__gprintPrintResetRequested = false;
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      showToast('견적 내용이 초기화되었습니다.', 'success');
+      showToast(result.ok ? '기본 사양과 견적금액이 초기화되었습니다.' : '기본 사양으로 초기화되었습니다. 단가 정보를 확인해 주세요.', result.ok ? 'success' : 'error');
     });
     el.form.addEventListener('submit', (event) => submitQuote(event, 'order'));
     el.quoteOnlyBtn?.addEventListener('click', () => submitQuote({ preventDefault(){} }, 'estimate'));
@@ -1946,6 +1950,16 @@ openSignupModal();
 
 
     compute();
+    // 초기화가 비동기 모듈보다 먼저 실행되었더라도 부팅 후 기본금액을 표시합니다.
+    if (window.__gprintPrintResetRequested) {
+      const result = compute();
+      if (result.loading) {
+        await loadUnitPriceConfig();
+        fillWeightOptions();
+        compute();
+      }
+      window.__gprintPrintResetRequested = false;
+    }
     loadTempFormData();
     // 로그인 페이지에서 돌아온 경우, 저장된 "회원 접수" 데이터를 자동 접수
     await __autoSubmitAfterLoginIfNeeded();
