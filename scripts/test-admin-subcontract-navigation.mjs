@@ -22,15 +22,15 @@ assert.match(nav, /normalizeDigitalOutputLabels/);
 assert.match(nav, /디지털인쇄/);
 assert.match(nav, /디지털 인쇄/);
 
-assert.match(calc, /SUBCONTRACT_DISCOUNT_PERCENT = 25/);
 assert.match(calc, /Firebase users\/\{uid\}\.role === 'admin'/);
 assert.match(calc, /admin-subcontract-enabled/);
-assert.match(calc, /하청업체 25% 할인 적용/);
+assert.match(calc, /admin-subcontract-percent/);
+assert.match(calc, /25% 할인/);
+assert.match(calc, /20% 할인/);
 assert.match(calc, /quote-book\.html/);
 assert.match(calc, /quote-print\.html/);
-assert.match(nav, /하청 25% 비교/);
-assert.match(calc, /현재 전체 견적에서 25% 할인된/);
-assert.match(calc, /1 - SUBCONTRACT_DISCOUNT_PERCENT \/ 100/);
+assert.match(nav, /하청 20%·25% 비교/);
+assert.match(calc, /calculateSubcontractDiscount\(getCurrentQuoteTotal\(\), selectedPercent\)/);
 assert.doesNotMatch(calc, /setDoc|updateDoc|addDoc/);
 
 assert.match(session, /admin-quote-navigation\.js/);
