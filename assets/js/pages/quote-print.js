@@ -1731,18 +1731,17 @@ openSignupModal();
       }
       compute();
     });
-    el.resetFormBtn?.addEventListener('click', () => {
-      if (!window.confirm('정말 모든 내용을 지우고 새로 작성하시겠습니까?')) return;
-      el.form.reset();
-      localStorage.removeItem('temp_quote_print');
+    // 독립 초기화 스크립트가 폼 값을 먼저 되돌린 뒤 계산 엔진에 재계산을 알립니다.
+    el.form.addEventListener('gprint:print-quote-reset', () => {
       existingAttachments = [];
-      if (el.attachments) el.attachments.value = '';
       fillWeightOptions();
+      if (el.paperWeight?.querySelector('option[value="200"]')) el.paperWeight.value = '200';
+      setSubmissionIntent('order');
       toggleCustom();
       toggleOshi();
       compute();
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      showToast('모든 내용이 초기화되었습니다.', 'success');
+      showToast('견적 내용이 초기화되었습니다.', 'success');
     });
     el.form.addEventListener('submit', (event) => submitQuote(event, 'order'));
     el.quoteOnlyBtn?.addEventListener('click', () => submitQuote({ preventDefault(){} }, 'estimate'));
