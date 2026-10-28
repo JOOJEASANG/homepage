@@ -7,13 +7,13 @@
 //
 // 동작:
 //   - Firebase users/{uid}.role === 'admin' 인 경우에만 표시
-//   - '하청업체 25% 할인 적용' 체크 시 현재 전체 견적의 75%를 별도 표시
+//   - 하청 할인 활성화 후 25% 또는 20% 선택에 따라 할인 금액을 별도 표시
 //   - 고객 견적/Firestore 저장 금액에는 절대 반영하지 않는 조회 전용 기능
 // ============================================================
 
 import { auth, db, onAuthStateChanged, doc, getDoc } from './firebase.js';
+import { calculateSubcontractDiscount, DEFAULT_SUBCONTRACT_PERCENT } from './pages/shared/subcontract-discount.js?v=20261028-subcontract-choice';
 
-const SUBCONTRACT_DISCOUNT_PERCENT = 25;
 const ALLOWED_FILES = new Set(['quote-book.html', 'quote-print.html']);
 
 function currentFile() {
@@ -24,11 +24,6 @@ function currentFile() {
 function parseWon(text) {
   const digits = String(text || '').replace(/[^0-9]/g, '');
   return digits ? Number(digits) : 0;
-}
-
-function floorToHundred(value) {
-  const n = Number(value) || 0;
-  return Math.floor(n / 100) * 100;
 }
 
 async function isAdmin(user) {
@@ -107,10 +102,20 @@ function renderCalculatorShell() {
         <input id="admin-subcontract-enabled" type="checkbox"
           class="mt-0.5 w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500">
         <span class="flex-1">
-          <span class="block text-sm font-extrabold text-amber-950">하청업체 25% 할인 적용</span>
-          <span class="block mt-1 text-[11px] leading-4 text-amber-700">체크하면 현재 전체 견적에서 25% 할인된 관리자 확인용 금액을 계산합니다.</span>
+          <span class="block text-sm font-extrabold text-amber-950">하청업체 할인 적용</span>
+          <span class="block mt-1 text-[11px] leading-4 text-amber-700">20% 또는 25% 할인율을 선택해 관리자 확인용 금액을 계산합니다.</span>
         </span>
       </label>
+
+      <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-white p-3">
+        <label for="admin-subcontract-percent" class="text-sm font-bold text-amber-950">하청업체 할인율</label>
+        <select id="admin-subcontract-percent"
+          class="rounded-lg border border-amber-300 bg-white px-3 py-2.5 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          aria-label="하청업체 할인율 선택">
+          <option value="25" selected>25% 할인</option>
+          <option value="20">20% 할인</option>
+        </select>
+      </div>
 
       <div id="admin-subcontract-result" class="hidden rounded-lg bg-white border border-amber-200 p-4 space-y-2 text-sm">
         <div class="flex justify-between gap-3 text-slate-600">
@@ -118,7 +123,7 @@ function renderCalculatorShell() {
           <strong id="admin-subcontract-original" class="text-slate-900">0원</strong>
         </div>
         <div class="flex justify-between gap-3 text-amber-700">
-          <span>하청 할인 (25%)</span>
+          <span id="admin-subcontract-discount-label">하청 할인 (25%)</span>
           <strong id="admin-subcontract-discount-amount">-0원</strong>
         </div>
         <div class="pt-2 border-t border-amber-200 flex justify-between gap-3 items-end">
@@ -135,6 +140,12 @@ function renderCalculatorShell() {
 
   mount.card.insertAdjacentElement('afterend', panel);
   panel.querySelector('#admin-subcontract-enabled')?.addEventListener('change', updateCalculator);
+  panel.querySelector('#admin-subcontract-percent')?.addEventListener('change', () => {
+    // 할인율 선택만으로도 금액을 바로 확인할 수 있게 합니다.
+    const enabled = panel.querySelector('#admin-subcontract-enabled');
+    if (enabled) enabled.checked = true;
+    updateCalculator();
+  });
   return true;
 }
 
@@ -147,14 +158,16 @@ function updateCalculator() {
   result?.classList.toggle('hidden', !enabled);
   if (!enabled) return;
 
-  const original = getCurrentQuoteTotal();
-  const discounted = floorToHundred(original * (1 - SUBCONTRACT_DISCOUNT_PERCENT / 100));
-  const discountAmount = Math.max(0, original - discounted);
+  const selectedPercent = panel.querySelector('#admin-subcontract-percent')?.value ?? DEFAULT_SUBCONTRACT_PERCENT;
+  const { original, total: discounted, percent, discountAmount } =
+    calculateSubcontractDiscount(getCurrentQuoteTotal(), selectedPercent);
 
   const originalEl = panel.querySelector('#admin-subcontract-original');
   const discountEl = panel.querySelector('#admin-subcontract-discount-amount');
   const totalEl = panel.querySelector('#admin-subcontract-total');
+  const discountLabel = panel.querySelector('#admin-subcontract-discount-label');
 
+  if (discountLabel) discountLabel.textContent = `하청 할인 (${percent}%)`;
   if (originalEl) originalEl.textContent = `${original.toLocaleString()}원`;
   if (discountEl) discountEl.textContent = `-${discountAmount.toLocaleString()}원`;
   if (totalEl) totalEl.textContent = `${discounted.toLocaleString()}원`;
