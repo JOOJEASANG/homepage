@@ -11,7 +11,9 @@ export function calculateVatIncludedPrintTotal(rawVatIncludedPrice) {
   }
   // Six-decimal normalization prevents round-off just below exact won boundaries.
   const normalized = Math.round(gross * 1000000) / 1000000;
-  const total = Math.floor(normalized / 10) * 10;
+  // A numerical value within 0.00001 won of a 10-won boundary is the same
+  // currency amount, not a discount. Keep the normal floor rule elsewhere.
+  const total = Math.floor((normalized + 0.00001) / 10) * 10;
   // The customer total remains authoritative; rounding only changes the split.
   const supply = Math.round(total / 1.1);
   const vat = total - supply;
