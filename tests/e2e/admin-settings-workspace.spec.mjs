@@ -219,6 +219,35 @@ for (const [label, path] of [
   });
 }
 
+test('admin subcontract discount changes between 25% and 20% on the digital print quote', async ({ page }) => {
+  await fixture(page);
+  await page.goto('/quote-print.html?adminEdit=1&adminPricing=1', { waitUntil: 'domcontentloaded' });
+  const panel = page.locator('#admin-subcontract-calculator');
+  const enabled = page.locator('#admin-subcontract-enabled');
+  const percent = page.locator('#admin-subcontract-percent');
+  const discountedTotal = page.locator('#admin-subcontract-total');
+  const label = page.locator('#admin-subcontract-discount-label');
+  await expect(panel).toBeVisible();
+  await expect(percent).toHaveValue('25');
+  await page.evaluate(() => { document.getElementById('totalPrice').textContent = '100,000원'; });
+
+  await enabled.check();
+  await expect(discountedTotal).toHaveText('75,000원');
+  await expect(label).toHaveText('하청 할인 (25%)');
+
+  await percent.selectOption('20');
+  await expect(discountedTotal).toHaveText('80,000원');
+  await expect(label).toHaveText('하청 할인 (20%)');
+
+  await percent.selectOption('25');
+  await expect(discountedTotal).toHaveText('75,000원');
+
+  // 선택값이 고객 견적/실제 접수 금액을 변경해서는 안 됩니다.
+  await expect(page.locator('#totalPrice')).toHaveText('100,000원');
+  await enabled.uncheck();
+  await expect(page.locator('#admin-subcontract-result')).toBeHidden();
+});
+
 test('real digital-output quote reset restores controls and recalculates the default price', async ({ page }) => {
   await fixture(page);
   await page.addInitScript(() => {
