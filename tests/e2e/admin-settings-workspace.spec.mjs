@@ -225,7 +225,7 @@ test('real digital-output quote reset restores controls and recalculates the def
     window.__fixtureUnitPriceConfig = {
       digital_print: {
         output_base: {
-          snow_200: [{ threshold: 10, price: 250 }, { threshold: 100, price: 180 }],
+          snow_200: [{ threshold: 10, price: 400 }, { threshold: 100, price: 300 }],
           arte_200: [{ threshold: 10, price: 350 }, { threshold: 100, price: 280 }],
         },
         weight_factor: { snow_200: 1, arte_200: 1 },
@@ -256,8 +256,8 @@ test('real digital-output quote reset restores controls and recalculates the def
   await expect(page.locator('#customSizeWrap')).toBeHidden();
   await expect(page.locator('#paperWeight')).toHaveValue('200');
   await expect(page.locator('#breakdown')).toContainText('최종결제금액');
-  await expect(page.locator('#breakdown')).toContainText('19,800원');
-  await expect(page.locator('#totalPrice')).toHaveText('19,800원');
+  await expect(page.locator('#breakdown')).toContainText('30,000원');
+  await expect(page.locator('#totalPrice')).toHaveText('30,000원');
   expect(await page.evaluate(() => [
     localStorage.getItem('temp_quote_print'),
     localStorage.getItem('pending_member_submit_print'),
