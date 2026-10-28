@@ -16,7 +16,7 @@ import { app, auth, db, storage, doc, getDoc, collection, addDoc, updateDoc,
 import { initHeader } from "../header.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
 import "../overlays.js";
-import "../session.js?v=20261028-precise-vat";
+import "../session.js?v=20261028-subcontract-choice";
 import { loadPrintGuide } from "../print-guide-recovery.js";
 import { calculateVatIncludedPrintTotal } from "./quote-print/vat-calculator.js?v=20261028-precise-vat-v2";
 
