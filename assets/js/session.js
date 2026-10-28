@@ -113,8 +113,8 @@ try {
 try {
   const currentFile = getCurrentFile();
   // 관리자 로그인 상태에서는 책자/제본·디지털출력 견적 페이지 직접 접근 및
-  // 관리자 전용 하청 25% 보조 계산을 활성화합니다.
-  import('./admin-quote-navigation.js?v=20261026-subcontract25').catch(() => null);
+  // 관리자 전용 하청 25%·20% 보조 계산을 활성화합니다.
+  import('./admin-quote-navigation.js?v=20261028-subcontract-choice').catch(() => null);
 
   if (currentFile === 'admin.html') {
     import('./pages/admin/runtime.js').catch(() => null);
