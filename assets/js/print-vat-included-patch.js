@@ -6,7 +6,7 @@
 //   - 단가관리의 출력단가/오시단가를 부가세 포함 단가로 보고 계산합니다.
 //   - 화면에는 포함가 기준 공급가액 / 부가세 / 최종결제금액을 함께 표시합니다.
 //   - 상단 안내문 일부를 자연스럽게 정리합니다.
-//   - 기존 quote-print.js의 계산 흐름은 유지하되, quote-print.html에서만 cut10 호출을 보정합니다.
+//   - 금액 계산은 quote-print/vat-calculator.js가 담당하며 여기서는 라벨만 보정합니다.
 // ============================================================
 
 const PRINT_VAT_PATCH_FILE = (() => {
@@ -19,47 +19,6 @@ let vatLabelPatchRunning = false;
 
 function isPrintVatPatchTarget() {
   return PRINT_VAT_PATCH_FILE === 'quote-print.html';
-}
-
-function installVatIncludedCutPatch() {
-  if (!isPrintVatPatchTarget()) return false;
-  if (window.__printVatIncludedCutPatchInstalled === '1') return true;
-  if (typeof window.cut10 !== 'function') return false;
-
-  const originalCut10 = window.cut10;
-  let pendingIncludedTotal = null;
-  let pendingAt = 0;
-
-  window.cut10 = function printVatIncludedCut10(value) {
-    const n = Number(value) || 0;
-
-    // quote-print.js 기존 흐름:
-    //   totalRounded = cut10((기본 인쇄비 + 오시비) * 1.1)
-    //   supply       = cut10(totalRounded / 1.1)
-    // 여기서 첫 번째 cut10은 /1.1로 되돌려 최종금액을 부가세 포함가 기준으로 만들고,
-    // 두 번째 cut10은 정상 처리해서 포함가 안의 공급가액/부가세가 보이도록 합니다.
-    try {
-      const now = performance?.now?.() || Date.now();
-      if (
-        pendingIncludedTotal !== null &&
-        now - pendingAt < 120 &&
-        Math.abs(n - (pendingIncludedTotal / 1.1)) <= Math.max(2, pendingIncludedTotal * 0.002)
-      ) {
-        pendingIncludedTotal = null;
-        return originalCut10(n);
-      }
-
-      const includedTotal = originalCut10(n / 1.1);
-      pendingIncludedTotal = includedTotal;
-      pendingAt = now;
-      return includedTotal;
-    } catch (_) {
-      return originalCut10(n);
-    }
-  };
-
-  window.__printVatIncludedCutPatchInstalled = '1';
-  return true;
 }
 
 function setTextIfDifferent(el, text) {
@@ -132,24 +91,6 @@ function initPrintVatIncludedPatch() {
   setTimeout(patchPrintIntroCopy, 300);
   setTimeout(patchPrintIntroCopy, 1000);
 
-  const tryInstall = () => {
-    if (installVatIncludedCutPatch()) {
-      try {
-        const target = document.getElementById('quantity') || document.getElementById('paperWeight') || document.getElementById('breakdown');
-        target?.dispatchEvent?.(new Event('input', { bubbles: true }));
-        target?.dispatchEvent?.(new Event('change', { bubbles: true }));
-      } catch (_) {}
-      scheduleVatLabelPatch();
-      return true;
-    }
-    return false;
-  };
-
-  if (!tryInstall()) {
-    setTimeout(tryInstall, 50);
-    setTimeout(tryInstall, 200);
-    setTimeout(tryInstall, 800);
-  }
 
   const breakdown = document.getElementById('breakdown');
   if (breakdown) {
