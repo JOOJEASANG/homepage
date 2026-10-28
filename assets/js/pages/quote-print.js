@@ -18,6 +18,7 @@ import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
 import "../overlays.js";
 import "../session.js?v=20261028-print-reset";
 import { loadPrintGuide } from "../print-guide-recovery.js";
+import { calculateVatIncludedPrintTotal } from "./quote-print/vat-calculator.js?v=20261028-precise-vat";
 
 // 페이지 로드 시 공통 헤더 렌더링
 document.addEventListener("DOMContentLoaded", () => initHeader("print"));
@@ -730,12 +731,14 @@ loadEditPayloadIfAny();
       const fullBackgroundUnit = 100;
       const fullBackgroundCost = fullBackgroundEnabled ? fullBackgroundUnit * qty * mul : 0;
 
+      // 관리자 출력/오시 단가는 이미 부가세 포함 가격입니다.
+      // 먼저 부가세 포함 최종금액을 확정하고 공급가액과 부가세를 분리합니다.
+      // 기존 /1.1 → 10원 절삭 보정은 30,000원을 29,990원으로 만드는
+      // 부동소수점 오차가 발생할 수 있으므로 계산 단계에서 사용하지 않습니다.
       const supplyRaw = basePrint + oshiCost + fullBackgroundCost;
-      const totalRaw = supplyRaw * 1.1;
-      const totalRounded = cut10(totalRaw); // 10원단위 절삭
-      const supply = cut10(totalRounded / 1.1);
-      const vat = totalRounded - supply;
-      const total = totalRounded;
+      const totalRaw = supplyRaw;
+      const { supply, vat, total } = calculateVatIncludedPrintTotal(totalRaw);
+      const totalRounded = total;
 
       // breakdown
       const sizeLabel = size === 'CUSTOM'
