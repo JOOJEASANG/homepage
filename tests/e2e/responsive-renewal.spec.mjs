@@ -226,6 +226,51 @@ test.describe('responsive renewal', () => {
     await expect.poll(() => page.evaluate(() => window.__wireQuoteRecalcs)).toBeGreaterThan(0);
   });
 
+
+  for (const width of [390, 1440]) {
+    test(`digital output reset restores all fields and removes stale draft at ${width}px even without the page module`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/quote-print.html', { waitUntil: 'domcontentloaded' });
+      await exposeFixture(page, null);
+      await page.evaluate(() => {
+        const value = (id, x) => { document.getElementById(id).value = x; };
+        value('orderName', '기존 작성 중인 견적');
+        value('quantity', '275');
+        value('printSides', '2');
+        value('paperSize', 'CUSTOM');
+        value('customW', '280');
+        value('customH', '400');
+        value('paperType', 'arte');
+        document.getElementById('oshiEnabled').checked = true;
+        document.getElementById('fullBackgroundEnabled').checked = true;
+        document.querySelector('input[name="oshiLines"][value="2"]').checked = true;
+        document.getElementById('customSizeWrap').classList.remove('hidden');
+        document.getElementById('oshiOptions').classList.remove('hidden');
+        document.getElementById('breakdown').textContent = '이전 견적 금액';
+        localStorage.setItem('temp_quote_print', '{"orderName":"기존 작성 중인 견적"}');
+        localStorage.setItem('pending_member_submit_print', '{"quantity":"275"}');
+        localStorage.setItem('pendingRequestTypePrint', 'estimate');
+      });
+      await page.locator('#resetFormBtn').click();
+      await expect(page.locator('#orderName')).toHaveValue('');
+      await expect(page.locator('#quantity')).toHaveValue('100');
+      await expect(page.locator('#printSides')).toHaveValue('1');
+      await expect(page.locator('#paperSize')).toHaveValue('A4');
+      await expect(page.locator('#paperType')).toHaveValue('snow');
+      await expect(page.locator('#customW')).toHaveValue('');
+      await expect(page.locator('#customH')).toHaveValue('');
+      await expect(page.locator('#oshiEnabled')).not.toBeChecked();
+      await expect(page.locator('#fullBackgroundEnabled')).not.toBeChecked();
+      await expect(page.locator('input[name="oshiLines"][value="1"]')).toBeChecked();
+      await expect(page.locator('#customSizeWrap')).toBeHidden();
+      await expect(page.locator('#oshiOptions')).toBeHidden();
+      await expect(page.locator('#breakdown')).not.toContainText('이전 견적 금액');
+      expect(await page.evaluate(() => [
+        'temp_quote_print', 'pending_member_submit_print', 'pendingRequestTypePrint'
+      ].map(key => localStorage.getItem(key)))).toEqual([null, null, null]);
+    });
+  }
+
   test('mobile quote summary uses existing amount and original submit handler', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     for (const [url,kind,button] of [['quote-book.html','book','submitQuoteBtn'],['quote-print.html',null,'submitBtn']]) {
