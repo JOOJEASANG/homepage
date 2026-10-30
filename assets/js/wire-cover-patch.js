@@ -100,7 +100,6 @@ function ensurePerfectBindingWarning(itemEl) {
 function updatePerfectBindingAvailability(itemEl) {
   if (!itemEl) return;
   const perfectOption = itemEl.querySelector('.binding-options .option-card[data-value="perfect"]');
-  const noneOption = itemEl.querySelector('.binding-options .option-card[data-value="none"]');
   const bindingInput = itemEl.querySelector('.bindingType');
   const warning = ensurePerfectBindingWarning(itemEl);
   if (!perfectOption || !bindingInput || !warning) return;
@@ -118,8 +117,8 @@ function updatePerfectBindingAvailability(itemEl) {
 
   if (blocked && bindingInput.value === 'perfect') {
     perfectOption.classList.remove('selected');
-    noneOption?.classList.add('selected');
-    bindingInput.value = 'none';
+    // 선택 불가능한 제본 해제 후에도 명시적으로 선택해야 '제본안함'이 됩니다.
+    bindingInput.value = '';
     scheduleRecalcFrom(itemEl);
   }
 }
