@@ -144,6 +144,18 @@ for (const [name, source] of [['perfect', perfectSource], ['wire', wireSource]])
   assert.doesNotMatch(source, /function positiveNumber\(/, `${name} 계산기에 positiveNumber 중복 구현이 없어야 함`);
 }
 
+const quoteTemplate = fs.readFileSync(path.join(root, 'assets/js/pages/quote-book/quote-item-template.js'), 'utf8');
+const a5Compat = fs.readFileSync(path.join(root, 'assets/js/book-a5-size.js'), 'utf8');
+assert.match(quoteTemplate, /<option value="a5"/, 'A5 should be available before JavaScript async initialization');
+assert.match(quoteBookSource, /newSection\.querySelector\('\.paperSize'\)\.value = inheritedSize;/,
+  'A5 should remain selected when an inner section is added or restored');
+assert.match(quoteBookSource, /getBookSizeMultiplier\(sectionSizeValue\)/,
+  'A5 pricing should not depend on a global parseFloat monkey patch');
+assert.doesNotMatch(a5Compat, /window\.parseFloat\s*=/,
+  'A5 helper must not change global numeric parsing');
+assert.match(quoteBookSource, /const priceLookupQuantity = printMetrics\.totalImpressions;/);
+assert.match(quoteBookSource, /const sectionUnits = printMetrics\.totalImpressions;/);
+
 const syntaxPath = path.join(os.tmpdir(), `quote-book-utils-syntax-${process.pid}.mjs`);
 try {
   fs.writeFileSync(syntaxPath, quoteBookSource, 'utf8');
