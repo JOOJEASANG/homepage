@@ -16,6 +16,7 @@
     "test:book-state": "node scripts/test-book-page-state.mjs",
     "test:book-request": "node scripts/test-book-request-data.mjs",
     "test:page-runtime": "node scripts/test-page-runtime-modules.mjs",
+    "test:estimate-flow": "node scripts/test-estimate-quick-order.mjs",
     "test:firestore-security": "node scripts/test-firestore-rules-contract.mjs",
     "test:qna-security": "node scripts/test-qna-security-contract.mjs && node --test tests/functions/qna-receipts.spec.cjs",
     "test:storage-security": "node scripts/test-storage-rules-contract.mjs",
@@ -25,7 +26,7 @@
     "test:seo": "node scripts/test-seo-site-quality.mjs",
     "test:security": "npm run test:firestore-security && npm run test:qna-security && npm run test:storage-security && npm run test:public-feed && npm run test:ai-security && npm run test:ops-retention && npm run test:seo",
     "test:book": "npm run test:saddle && npm run test:perfect && npm run test:wire && npm run test:utils && npm run test:book-ui && npm run test:admin-subcontract && npm run test:book-form && npm run test:book-state && npm run test:book-request",
-    "test:ci": "npm run test:book && npm run test:page-runtime && npm run test:security && npm run test:header-shell",
+    "test:ci": "npm run test:book && npm run test:page-runtime && npm run test:estimate-flow && npm run test:security && npm run test:header-shell",
     "test:header-shell": "node scripts/test-header-shell-contract.mjs"
   },
   "devDependencies": {
