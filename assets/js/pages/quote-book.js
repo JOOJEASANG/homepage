@@ -1416,8 +1416,8 @@ DOMElements.signupModal.classList.remove('hidden');
             } catch (e) {}
         }
 
-        if (!isGuest && (!user || !user.uid)) { showToast('사용자 정보가 없어 접수할 수 없습니다.', 'error'); return; }
-        if (isGuest && (!guestLookupKey || !ordererName || !String(ordererContact || '').replace(/[^0-9]/g, ''))) { showToast('비회원 정보가 올바르지 않습니다.', 'error'); return; }
+        if (!isGuest && (!user || !user.uid)) { showToast('사용자 정보가 없어 접수할 수 없습니다.', 'error'); return false; }
+        if (isGuest && (!guestLookupKey || !ordererName || !String(ordererContact || '').replace(/[^0-9]/g, ''))) { showToast('비회원 정보가 올바르지 않습니다.', 'error'); return false; }
         // ✅ 혹시 로그인/복원 타이밍으로 계산값이 비어있으면 한 번 더 계산 시도
         if (Object.keys(lastCalculatedQuote).length === 0 || lastCalculatedQuote.finalPrice === undefined) {
             try { calculateQuote(); } catch(e) {}
@@ -1425,7 +1425,7 @@ DOMElements.signupModal.classList.remove('hidden');
 
         if (Object.keys(lastCalculatedQuote).length === 0 || lastCalculatedQuote.finalPrice === undefined) { 
             showToast('견적 정보가 계산되지 않았습니다. 다시 시도해주세요.', 'error'); 
-            return; 
+            return false; 
         }
 
         const allItemsData = serializeQuoteItems(document.querySelectorAll('.quote-item'), 'submission');
@@ -1599,12 +1599,13 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
                         shownPrice,
                     }),
                 });
-                return;
+                return true;
             }
             showToast(returnToAdmin ? '관리자 견적 수정이 저장되었습니다.' : (editState.enabled ? '견적이 수정되었습니다.' : '주문이 접수되었습니다.'), 'success');
             setTimeout(() => {
                  window.location.href = destination;
             }, 1500);
+            return true;
 
         } catch (error) {
             console.error("Failed to save quote request: ", error);
@@ -1629,6 +1630,7 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
             DOMElements.submitQuoteBtn.innerHTML = editState.enabled
                 ? (editState.adminEdit ? '<i class="fas fa-pen-to-square mr-2"></i>관리자 수정 저장' : '<i class="fas fa-pen-to-square mr-2"></i>견적 수정')
                 : '<i class="fas fa-paper-plane mr-2"></i>주문 접수';
+            return false;
         }
     }
 
@@ -1801,37 +1803,39 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
         DOMElements.signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const form = e.target;
+            const button = form.querySelector('button[type="submit"]');
+            if (!button || button.disabled) return;
+            const buttonText = button.querySelector('.btn-text');
+            const spinner = button.querySelector('.fa-spinner');
             const name = (form.querySelector('#signup-name')?.value || '').trim();
             const contactRaw = (form.querySelector('#signup-contact')?.value || '').trim();
             const contact = contactRaw.replace(/[^0-9]/g, '');
-            // 비회원 비밀번호 정책: 연락처 뒤 4자리
-            const password = (contact || '').slice(-4);
-
-            if (!name || !contact || contact.length < 4) { showToast('이름/연락처를 입력해주세요.', 'error'); return; }
-
-            const button = form.querySelector('button[type="submit"]');
-            const buttonText = button.querySelector('.btn-text');
-            const spinner = button.querySelector('.fa-spinner');
-            button.disabled = true;
-            if(buttonText) buttonText.classList.add('hidden');
-            if(spinner) spinner.classList.remove('hidden');
-
+            if (!name || (contact.length !== 10 && contact.length !== 11)) {
+                showToast('이름과 올바른 연락처(10~11자리)를 입력해 주세요.', 'error');
+                return;
+            }
+            // 입력 미완료 시에는 로딩 표시를 켜지 않습니다.
+            const setBusy = on => {
+                button.disabled = on;
+                button.setAttribute('aria-busy', on ? 'true' : 'false');
+                buttonText?.classList.toggle('hidden', on);
+                spinner?.classList.toggle('hidden', !on);
+                if (spinner) spinner.style.display = on ? 'inline-block' : 'none';
+            };
+            setBusy(true);
             try {
-                const pwLast4 = (contact||'').toString().replace(/[^0-9]/g,'').slice(-4);
-          if(password !== pwLast4){
-            guestErr?.classList.remove('hidden');
-            return;
-          }
-
+                const pwLast4 = contact.slice(-4);
                 const guestLookupKey = await sha256Hex(`${name}|${contact}|${pwLast4}`);
-                await submitQuoteRequest(null, name, contact, '', { isGuest: true, guestLookupKey, guestContactRaw: contactRaw });
-                DOMElements.signupModal.classList.add('hidden');
+                const success = await submitQuoteRequest(null, name, contact, '', {
+                    isGuest: true, guestLookupKey, guestContactRaw: contactRaw
+                });
+                // 저장 실패 시 입력창을 유지하여 고객이 재시도할 수 있게 합니다.
+                if (success) DOMElements.signupModal.classList.add('hidden');
             } catch (error) {
-                console.error(error);
-                showToast('접수 중 오류가 발생했습니다.', 'error');
-                button.disabled = false;
-                if(buttonText) buttonText.classList.remove('hidden');
-                if(spinner) spinner.classList.add('hidden');
+                console.error('Guest quote submit failed:', error);
+                showToast('접수 중 오류가 발생했습니다. 다시 시도해 주세요.', 'error');
+            } finally {
+                setBusy(false);
             }
         });
 
