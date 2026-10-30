@@ -65,6 +65,31 @@ assert.equal(
   '서로 다른 내지 구간의 남는 면을 합쳐 한 장으로 계산하지 않음'
 );
 
+// A5 16페이지 컬러양면: 중철 4장(양면 8인쇄면), 일반/와이어/무선 8장(16인쇄면).
+assert.equal(utils.getBookSizeMultiplier('a5'), 0.70, 'A5 문자열을 직접 70%로 해석');
+assert.equal(utils.getBookSizeMultiplier('A5'), 0.70, 'A5 대소문자 무관');
+assert.equal(utils.getBookSizeMultiplier('0.9'), 0.9, 'B5 기존 배율');
+assert.equal(utils.getBookSizeMultiplier('1'), 1, 'A4 기존 배율');
+assert.equal(utils.getBookSizeMultiplier('2'), 2, 'A3 기존 배율');
+
+for (const mode of ['none', 'wire', 'perfect']) {
+  assert.deepEqual(
+    utils.getBookInnerPrintMetrics({ pages: 16, printType: 'color_duplex', bindingType: mode, quantity: 1 }),
+    { pages: 16, sheetsPerCopy: 8, totalSheets: 8, impressionsPerCopy: 16, totalImpressions: 16, pricingUnit: 'impression' },
+    mode + ' A5 16p 실제 8장/인쇄면 16을 사용'
+  );
+}
+assert.deepEqual(
+  utils.getBookInnerPrintMetrics({ pages: 16, printType: 'color_duplex', bindingType: 'saddle', quantity: 1 }),
+  { pages: 16, sheetsPerCopy: 4, totalSheets: 4, impressionsPerCopy: 8, totalImpressions: 8, pricingUnit: 'impression' },
+  'A5 중철은 실제 A4 4장 × 양면 2인쇄면'
+);
+assert.equal(utils.getBookInnerPrintMetrics({ pages: 16, printType: 'color_duplex', bindingType: 'saddle', quantity: 10 }).totalImpressions, 80);
+assert.equal(utils.getBookInnerPrintMetrics({ pages: 16, printType: 'color_duplex', bindingType: 'wire', quantity: 10 }).totalImpressions, 160);
+assert.equal(utils.getBookInnerPrintMetrics({ pages: 15, printType: 'color_duplex', bindingType: 'wire', quantity: 1 }).sheetsPerCopy, 8);
+assert.equal(utils.getBookInnerPrintMetrics({ pages: 7, printType: 'color_duplex', bindingType: 'saddle', quantity: 1 }).totalImpressions, 4, '중철 빈 페이지 포함 인쇄면');
+assert.equal(utils.getBookInnerPrintMetrics({ pages: 7, printType: 'color_duplex', bindingType: 'none', quantity: 1 }).totalImpressions, 7, '일반 양면 빈 인쇄면은 청구하지 않음');
+
 // 금액 절삭과 대형 규격 배율은 기존 계산과 동일해야 함
 assert.equal(utils.floorToHundred(1234), 1200, '1234원은 1200원으로 절삭');
 assert.equal(utils.floorToHundred(100), 100, '100원은 유지');
@@ -81,7 +106,7 @@ const quoteBookSource = fs.readFileSync(quoteBookPath, 'utf8');
 
 assert.match(
   quoteBookSource,
-  /import \{ findPriceTier, findBindingPriceTier, floorToHundred, getLargeSizeMultiplier, getInnerSheetsPerCopy \} from "\.\/quote-book\/calculator-utils\.js";/,
+  /import \{ findPriceTier, findBindingPriceTier, floorToHundred, getLargeSizeMultiplier, getInnerSheetsPerCopy, getBookSizeMultiplier, getBookInnerPrintMetrics \} from "\.\/quote-book\/calculator-utils\.js\?v=20261030-a5-impressions";/,
   'quote-book.js가 공통 계산 유틸을 import해야 함'
 );
 assert.doesNotMatch(quoteBookSource, /function findPriceTier\(/, 'findPriceTier 로컬 구현은 제거되어야 함');
