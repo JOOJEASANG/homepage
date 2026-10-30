@@ -68,13 +68,13 @@ assert.match(
 );
 assert.match(
   quoteBookSource,
-  /const priceLookupQuantity = saddleMetrics \? saddleMetrics\.totalSheets : \(billablePages \* quantity\);/,
-  '중철 단가 구간 조회는 실제 출력 장수를 사용해야 함'
+  /const priceLookupQuantity = printMetrics\.totalImpressions;/,
+  '중철은 실제 용지 장수 × 양면 2회 인쇄를 기준으로 단가 구간을 조회해야 함'
 );
 assert.match(
   quoteBookSource,
-  /const sectionUnits = saddleMetrics \? saddleMetrics\.totalSheets : \(billablePages \* quantity\);/,
-  '중철 내지 비용은 실제 출력 장수를 사용해야 함'
+  /const sectionUnits = printMetrics\.totalImpressions;/,
+  '중철 내지 비용은 1장당 2인쇄면을 반영해야 함'
 );
 assert.match(
   quoteBookSource,
