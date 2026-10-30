@@ -135,7 +135,7 @@ try {
     import('./qna-secure-v2.js').catch(() => null);
   }
   import(currentFile === 'quote-book.html' ? './security-patches.js?v=20261030-staple-limit' : currentFile === 'quote-print.html' ? './security-patches.js?v=20261028-precise-vat' : './security-patches.js').catch(() => null);
-  import('./customer-ui-fixes.js').catch(() => null);
+  import(currentFile === 'quote-book.html' ? './customer-ui-fixes.js?v=20261030-a5-impressions' : './customer-ui-fixes.js').catch(() => null);
 } catch (e) {}
 
 try {
