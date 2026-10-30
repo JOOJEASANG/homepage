@@ -756,16 +756,17 @@ const primaryButtons = `
      <button type="button" class="view-details-btn action-btn items-center justify-center px-3 py-1.5 text-xs font-bold text-white bg-brand-600 border border-transparent rounded-lg hover:bg-brand-700 shadow-sm transition-all active:scale-95" data-id="${q.id}">
          <i class="fas fa-comments"></i><span class="lbl">상세/상담</span>
      </button>
+     ${q.requestType === 'estimate' && q.estimateStatus === 'completed' && canEdit ? `
+     <button type="button" class="convert-estimate-btn action-btn inline-flex items-center justify-center gap-1 px-3 py-2 text-xs font-extrabold text-white bg-violet-600 border border-violet-700 rounded-lg hover:bg-violet-700" data-id="${q.id}" title="관리자 승인 없이 견적금액을 확인하고 주문으로 전환">
+         <i class="fas fa-cart-plus"></i><span>바로 주문 접수</span>
+     </button>` : ''}
 `;
 
 let extraButtons = '';
 
 // 상태별 취소 버튼 처리 (더보기로 이동)
-if (q.requestType === 'estimate') {
-     extraButtons += q.estimateStatus === 'completed' ? `
-         <button type="button" class="convert-estimate-btn menu-btn w-full flex items-center gap-2 px-3 py-2 text-sm font-bold text-violet-700 hover:bg-violet-50 rounded-md" data-id="${q.id}" title="이 견적을 주문으로 전환합니다.">
-             <i class="fas fa-cart-plus"></i><span>주문으로 전환</span>
-         </button>` : `
+if (q.requestType === 'estimate' && q.estimateStatus !== 'completed') {
+     extraButtons += `
          <button type="button" class="menu-btn w-full flex items-center gap-2 px-3 py-2 text-sm font-bold text-slate-400 rounded-md cursor-not-allowed" disabled>
              <i class="fas fa-hourglass-half"></i><span>견적 확인 중</span>
          </button>`;
