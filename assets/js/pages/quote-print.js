@@ -15,6 +15,7 @@ import { app, auth, db, storage, doc, getDoc, collection, addDoc, updateDoc,
          ref as storageRef, uploadBytes, getDownloadURL } from "../firebase.js";
 import { initHeader } from "../header.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
+import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer } from "./shared/estimate-quick-order.js?v=20261030-estimate-direct";
 import "../overlays.js";
 import "../session.js?v=20261028-subcontract-choice";
 import { loadPrintGuide } from "../print-guide-recovery.js";
@@ -1407,8 +1408,13 @@ ordererName: ordererName,
 
           status: '접수완료',
           requestType: (opts.requestType || pendingRequestType) === 'estimate' ? 'estimate' : 'order',
-          estimateStatus: (opts.requestType || pendingRequestType) === 'estimate' ? 'requested' : null,
+          estimateStatus: (opts.requestType || pendingRequestType) === 'estimate'
+            ? (hasAutomaticEstimatePrice(calc.total) ? 'completed' : 'requested') : null,
           estimateRequestedAt: (opts.requestType || pendingRequestType) === 'estimate' ? Timestamp.now() : null,
+          ...((opts.requestType || pendingRequestType) === 'estimate' && hasAutomaticEstimatePrice(calc.total) ? {
+            estimateCompletedAt: Timestamp.now(),
+            automaticallyPricedEstimate: true,
+          } : {}),
           createdAt: Timestamp.now(),
           hasUnreadAdminMessage: false,
           hasUnreadCustomerMessage: false,
@@ -1569,14 +1575,28 @@ payload.lastEditedBy = editState.adminEdit ? 'admin' : 'customer';
 closeSignupModal();
         try{ localStorage.removeItem('pendingRequestTypePrint'); }catch(e){}
         const returnToAdmin = editState.enabled && !!editState.quoteId && editState.adminEdit;
-        showToast(returnToAdmin ? '관리자 견적 수정이 저장되었습니다.' :
-          (editState.enabled ? '견적이 수정되었습니다.' :
-            (quoteDoc.requestType === 'estimate' ? '견적 요청 완료! 마이페이지에서 확인할 수 있어요.' : '주문 접수 완료! 마이페이지에서 진행상황을 확인할 수 있어요.')), 'success');
         const destination = resolveQuoteSaveDestination({
           adminEdit: editState.adminEdit,
           editingExisting: editState.enabled && !!editState.quoteId,
           isGuest
         });
+        if (quoteDoc.requestType === 'estimate' && !editState.enabled && !returnToAdmin && savedDocId) {
+          const quoteIdForConversion = savedDocId;
+          const shownPrice = Number(quoteDoc.totalPrice);
+          showEstimateCompletedLayer({
+            total: shownPrice,
+            ready: quoteDoc.estimateStatus === 'completed',
+            mypageUrl: destination,
+            onConvert: () => convertSavedEstimateToOrder({
+              db, doc, runTransaction, serverTimestamp,
+              quoteId: quoteIdForConversion,
+              shownPrice,
+            }),
+          });
+          return;
+        }
+        showToast(returnToAdmin ? '관리자 견적 수정이 저장되었습니다.' :
+          (editState.enabled ? '견적이 수정되었습니다.' : '주문 접수 완료! 마이페이지에서 진행상황을 확인할 수 있어요.'), 'success');
         setTimeout(() => { location.href = destination; }, 900);
 
       } catch(err){
