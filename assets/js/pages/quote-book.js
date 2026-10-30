@@ -30,13 +30,13 @@ import { normalizeContactDigits, formatPhoneHyphen, formatContact, pickContactFr
 import { getPreviewUrl, inferInnerGroup } from "./quote-book/preview-utils.js";
 import { openImagePreview, openPreviewLayer, closeImagePreview } from "./quote-book/preview-ui.js";
 import { getBookTempStorageKey, writeBookDraft, readBookDraft, hasBookDraft, clearBookDraft, readLastQuoteCache, writeLastQuoteCache, clearLastQuoteCache } from "./quote-book/quote-storage.js";
-import { serializeQuoteItems } from "./quote-book/quote-form-data.js";
+import { serializeQuoteItems } from "./quote-book/quote-form-data.js?v=20261030-staple-limit";
 import { buildQuoteRequestData, buildQuoteUpdatePayload } from "./quote-book/quote-request-data.js";
 import { isAdminEditSearch, parseQuoteReloadPayload } from "./quote-book/page-state.js";
 import { readGuestSubmitSession, readGuestMenuSession, getGuestMyPageLookupKey, restoreGuestSessionFromReload, persistGuestSessionAfterSubmit } from "./quote-book/guest-session.js";
 import { acquireBookSubmitLock, releaseBookSubmitLock } from "./quote-book/submit-lock.js";
-import { renderQuoteItemTemplate, renderInnerSectionTemplate } from "./quote-book/quote-item-template.js?v=20261012-input-heights";
-import "../session.js?v=20261028-subcontract-choice";
+import { renderQuoteItemTemplate, renderInnerSectionTemplate } from "./quote-book/quote-item-template.js?v=20261030-staple-limit";
+import "../session.js?v=20261030-staple-limit";
 
 // 페이지 로드 시 공통 헤더 렌더링
 document.addEventListener("DOMContentLoaded", () => initHeader("book"));
