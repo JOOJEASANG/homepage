@@ -244,7 +244,7 @@ if (CURRENT_FILE === 'index.html') {
 }
 
 if (CURRENT_FILE === 'quote-book.html') {
-  import('./book-a5-size.js').catch(() => null);
+  import('./book-a5-size.js?v=20261030-a5-impressions').catch(() => null);
 }
 
 if (CURRENT_FILE === 'quote-book-price.html') {
