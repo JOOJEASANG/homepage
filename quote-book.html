@@ -867,6 +867,8 @@ function __displayNameForHeader(currentUser) {
 
       guestForm?.addEventListener('submit', async (e)=>{
         e.preventDefault();
+        const button = guestForm.querySelector('button[type="submit"]');
+        if (button?.disabled) return;
         guestErr?.classList.add('hidden');
         const name = (guestNameInput?.value || '').trim();
         const contactRaw = (guestContactInput?.value || '').trim();
@@ -874,6 +876,12 @@ function __displayNameForHeader(currentUser) {
         const password = (guestPasswordInput?.value || '').trim();
         if(!name || !contact || !password){
           guestErr?.classList.remove('hidden'); return;
+        }
+        const originalLabel = button?.textContent || '조회하기';
+        if (button) {
+          button.disabled = true;
+          button.setAttribute('aria-busy', 'true');
+          button.textContent = '조회 중...';
         }
         try{
           // sha256 is already defined in this page (used elsewhere). Fallback: simple hash not provided.
@@ -897,6 +905,12 @@ function __displayNameForHeader(currentUser) {
         }catch(ex){
           console.error(ex);
           guestErr?.classList.remove('hidden');
+        }finally {
+          if (button) {
+            button.disabled = false;
+            button.setAttribute('aria-busy', 'false');
+            button.textContent = originalLabel;
+          }
         }
       });
     })();
