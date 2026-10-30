@@ -325,13 +325,10 @@ window.addEventListener('pageshow', (e) => {
 
                 // 비회원 조회는 보통 인증(익명 포함)이 필요하도록 보안 규칙을 두는 경우가 많습니다.
                 // 따라서 비회원 조회 세션을 시작할 때 익명 로그인을 보장합니다.
-                try {
-                    if (!auth.currentUser) {
-                        await setPersistence(auth, browserSessionPersistence);
-                        await signInAnonymously(auth);
-                    }
-                } catch (e) {
-                    console.warn('Anonymous sign-in skipped/failed:', e);
+                if (!auth.currentUser) {
+                    // 인증 응답이 늦거나 실패하면 버튼이 무한 로딩되지 않도록 제한합니다.
+                    await withTimeout(setPersistence(auth, browserSessionPersistence), 8000, 'guestPersistenceTimeout');
+                    await withTimeout(signInAnonymously(auth), 12000, 'guestLoginTimeout');
                 }
                 
                 sessionStorage.setItem('guestLookupKey', key);
@@ -354,8 +351,11 @@ window.addEventListener('pageshow', (e) => {
                 
             } catch (error) {
                 console.error(error);
-                showMessage('조회 처리 중 시스템 오류가 발생했습니다.');
-                btn.disabled = false; btn.innerHTML = originalHTML;
+                showMessage('조회에 실패했습니다. 이름·연락처 또는 접속 상태를 확인하고 다시 시도해 주세요.');
+            } finally {
+                // 로그인 실패와 조회 실패 모두 버튼을 복원해 재시도할 수 있게 합니다.
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
             }
         });
         
