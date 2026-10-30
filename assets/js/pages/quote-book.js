@@ -1627,10 +1627,13 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
                 showToast('접수 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
             }
             DOMElements.submitQuoteBtn.disabled = false;
+            return false;
+        } finally {
+            // 견적 완료 레이어가 표시되더라도 기본 주문접수 버튼이 회전 아이콘으로 남지 않게 합니다.
+            DOMElements.submitQuoteBtn.disabled = false;
             DOMElements.submitQuoteBtn.innerHTML = editState.enabled
                 ? (editState.adminEdit ? '<i class="fas fa-pen-to-square mr-2"></i>관리자 수정 저장' : '<i class="fas fa-pen-to-square mr-2"></i>견적 수정')
                 : '<i class="fas fa-paper-plane mr-2"></i>주문 접수';
-            return false;
         }
     }
 
