@@ -774,7 +774,12 @@ function applyImagePreviewsToUI(root=document) {
         newSection.innerHTML = renderInnerSectionTemplate({ sectionCount });
         const paperSelect = newSection.querySelector('.innerPaperType');
         updateInnerPaperOptions(paperSelect);
-        if (data.paperSize) newSection.querySelector('.paperSize').value = data.paperSize;
+        // 새 내지 구간은 같은 책자의 기존 규격(A5 등)을 즉시 물려받습니다.
+        // 저장된 A5 값을 복원할 때도 옵션이 사전에 존재하므로 A4로 바뀌지 않습니다.
+        const inheritedSize = data.paperSize
+            || container.closest('.quote-item')?.querySelector('.inner-section .paperSize')?.value
+            || '1';
+        newSection.querySelector('.paperSize').value = inheritedSize;
         if (data.innerPaperType) paperSelect.value = data.innerPaperType;
         if (data.innerPrintType) newSection.querySelector('.innerPrintType').value = data.innerPrintType;
         if (data.innerPages) newSection.querySelector('.innerPages').value = data.innerPages;
