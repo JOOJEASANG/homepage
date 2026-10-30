@@ -17,7 +17,7 @@ function makeInner({ paperSize = '1', paper = 'mimoon80', print = 'bw_duplex', p
   };
   return { querySelector: (sel) => map[sel] };
 }
-function makeItem({ interleafHidden = false, interleafSheets = '0', wireCover = false } = {}) {
+function makeItem({ interleafHidden = false, interleafSheets = '0', wireCover = false, staple = false } = {}) {
   const interleaf = {
     classList: { contains: (name) => name === 'hidden' && interleafHidden },
     querySelector(sel) {
@@ -34,7 +34,9 @@ function makeItem({ interleafHidden = false, interleafSheets = '0', wireCover = 
     '.coverPrintType': input('color_simplex'),
     '.coverDesign': input('', true),
     '.coverOshi': input('', false),
-    '.bindingType': input(wireCover ? 'wire' : 'perfect'),
+    '.bindingType': input(wireCover ? 'wire' : staple ? 'none' : 'perfect'),
+    '.stapleEnabled': input('', staple),
+    '.staplePosition': input(staple ? 'portrait-upper-left' : ''),
     ...(wireCover ? {
       '.wireCoverFront': input('', true),
       '.wireCoverBack': input('', true),
@@ -78,6 +80,15 @@ assert.equal(submitFive.interleafColor, 'sky');
 assert.equal(submitFive.includeInterleaf, true);
 assert.equal(submitFive.innerSections.length, 2);
 assert.deepEqual(formData.serializeQuoteItems([visibleFive], 'submission'), [submitFive]);
+
+const stapledItem = makeItem({ staple: true });
+for (const stored of [formData.serializeDraftQuoteItem(stapledItem), formData.serializeSubmissionQuoteItem(stapledItem)]) {
+  assert.equal(stored.bindingType, 'none');
+  assert.equal(stored.stapleEnabled, true);
+  assert.equal(stored.staplePosition, 'portrait-upper-left');
+}
+assert.equal(formData.serializeDraftQuoteItem(makeItem()).stapleEnabled, false);
+assert.equal(formData.serializeSubmissionQuoteItem(makeItem()).staplePosition, '');
 
 const wireItem = makeItem({ wireCover: true });
 const wireDraft = formData.serializeDraftQuoteItem(wireItem);
