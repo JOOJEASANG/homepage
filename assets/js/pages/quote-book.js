@@ -783,7 +783,7 @@ function applyImagePreviewsToUI(root=document) {
 
     function setupItemEventListeners(itemEl) {
         itemEl.querySelector('.remove-quote-item-btn').addEventListener('click', () => { itemEl.remove(); calculateAndSave(); });
-        itemEl.querySelector('.add-inner-section-btn').addEventListener('click', (e) => { const container = e.target.closest('.quote-item').querySelector('.inner-sections-container'); addInnerSection(container); });
+        itemEl.querySelector('.add-inner-section-btn').addEventListener('click', (e) => { const container = e.target.closest('.quote-item').querySelector('.inner-sections-container'); addInnerSection(container); calculateAndSave(); });
         itemEl.querySelector('.add-interleaf-btn').addEventListener('click', (e) => {
             const interleafSection = e.target.closest('.quote-item').querySelector('.interleaf-section');
             interleafSection.classList.toggle('hidden');
