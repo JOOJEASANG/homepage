@@ -2093,8 +2093,9 @@ openSignupModal();
             }
 
             const btn = guestLookupForm.querySelector('button[type="submit"]');
+            if (btn?.disabled) return;
             const originalText = btn ? btn.innerText : '조회하기';
-            if (btn) { btn.disabled = true; btn.innerText = '확인 중...'; }
+            if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); btn.innerText = '조회 중...'; }
 
             try {
                 // 키 생성 (SHA-256)
@@ -2116,7 +2117,8 @@ openSignupModal();
                     errDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> 오류가 발생했습니다.';
                     errDiv.classList.remove('hidden');
                 }
-                if (btn) { btn.disabled = false; btn.innerText = originalText; }
+            } finally {
+                if (btn) { btn.disabled = false; btn.setAttribute('aria-busy', 'false'); btn.innerText = originalText; }
             }
         });
     }
