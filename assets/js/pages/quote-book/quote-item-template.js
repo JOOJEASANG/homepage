@@ -103,7 +103,7 @@ export function renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPri
                 </h2>
                 <div class="space-y-4">
                      <div>
-                        <input type="hidden" name="bindingType" class="bindingType" value="none">
+                        <input type="hidden" name="bindingType" class="bindingType" value="">
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 binding-options">
                             <button type="button" class="option-card" data-value="perfect">
                                 <div class="relative w-12 h-12 mb-2 rounded overflow-hidden border border-slate-100">
@@ -126,7 +126,7 @@ export function renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPri
                                 <span class="title">중철 제본</span>
                                 <span class="description">스테이플러</span>
                             </button>
-                            <button type="button" class="option-card selected" data-value="none">
+                            <button type="button" class="option-card" data-value="none">
                                 <div class="w-12 h-12 mb-2 rounded bg-slate-100 flex items-center justify-center text-slate-400">
                                     <i class="fas fa-file text-xl m-0"></i>
                                 </div>
@@ -134,6 +134,38 @@ export function renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPri
                                 <span class="description">낱장 인쇄</span>
                             </button>
                         </div>
+                    </div>
+                    <div class="staple-section hidden rounded-xl border border-indigo-200 bg-indigo-50 p-4 space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <label class="flex items-center gap-2 text-sm font-bold text-indigo-900 cursor-pointer">
+                                <input type="checkbox" name="stapleEnabled" class="stapleEnabled h-4 w-4 rounded border-indigo-300">
+                                스테플 작업 요청
+                            </label>
+                            <span class="staple-sheet-count text-xs font-semibold text-indigo-700">1부당 출력 장수 확인 중</span>
+                        </div>
+                        <p class="text-xs text-slate-600 leading-relaxed">제본 없이 낱장 인쇄 후 스테플 작업이 필요하면 체크해 주세요. 1부당 출력 용지 50장까지 선택할 수 있습니다.</p>
+                        <div class="staple-position-section hidden">
+                            <input type="hidden" name="staplePosition" class="staplePosition" value="">
+                            <div class="grid grid-cols-2 gap-3 staple-position-options">
+                                <button type="button" class="option-card" data-value="portrait-upper-left" aria-label="세로좌상 스테플">
+                                    <div class="w-10 h-14 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
+                                        <span class="absolute left-0.5 top-0.5 w-2 h-1 bg-slate-800 -rotate-45 rounded-sm"></span>
+                                    </div>
+                                    <span class="title">세로좌상</span>
+                                    <span class="description">세로 · 왼쪽 위</span>
+                                </button>
+                                <button type="button" class="option-card" data-value="landscape-upper-left" aria-label="가로좌상 스테플">
+                                    <div class="w-14 h-10 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
+                                        <span class="absolute left-0.5 top-0.5 w-2 h-1 bg-slate-800 -rotate-45 rounded-sm"></span>
+                                    </div>
+                                    <span class="title">가로좌상</span>
+                                    <span class="description">가로 · 왼쪽 위</span>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="staple-limit-warning hidden text-xs font-bold text-red-700" role="status">
+                            1부당 50장을 초과하여 스테플이 자동 해제되었습니다. 출력 장수를 줄이면 다시 선택할 수 있습니다.
+                        </p>
                     </div>
                     <div class="binding-direction-section hidden">
                         <label class="block text-xs font-bold text-slate-500 mb-2">제본 방향 / 철 위치</label>
