@@ -24,6 +24,7 @@ import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
 import { getPerfectInnerPricingMultiplier, getPerfectBindingMetrics } from "./quote-book/perfect-calculator.js";
 import { getWireCoverCost, getWireCoverPrintedSides, getWireCoverPrintImpressions, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js?v=20261021-wire-duplex-cover-v2";
 import { findPriceTier, findBindingPriceTier, floorToHundred, getLargeSizeMultiplier, getInnerSheetsPerCopy } from "./quote-book/calculator-utils.js";
+import { countStapleSheetsPerCopy, canStapleSheets, normalizeStapleSelection, STAPLE_MAX_SHEETS_PER_COPY, STAPLE_POSITIONS } from "./quote-book/staple-utils.js?v=20261030-staple-limit";
 import { generateBookReceiptNo } from "./quote-book/quote-id.js";
 import { normalizeContactDigits, formatPhoneHyphen, formatContact, pickContactFromUserData, sha256Hex } from "./quote-book/contact-utils.js";
 import { getPreviewUrl, inferInnerGroup } from "./quote-book/preview-utils.js";
@@ -646,10 +647,54 @@ function applyImagePreviewsToUI(root=document) {
         const selectedOption = bindingOptions.querySelector('.selected');
         if (selectedOption && selectedOption.classList.contains('disabled')) {
             selectedOption.classList.remove('selected');
-            const noneOption = bindingOptions.querySelector('[data-value="none"]');
-            noneOption.classList.add('selected');
-            itemEl.querySelector('.bindingType').value = 'none';
-            showToast('페이지 수 제한으로 제본 방식이 "제본 안함"으로 변경되었습니다.', 'info');
+            // 선택 불가능한 제본을 자동으로 "제본 안함"으로 오인하지 않도록 해제합니다.
+            itemEl.querySelector('.bindingType').value = '';
+            showToast('페이지 수 제한으로 선택한 제본을 해제했습니다. 제본방식을 다시 선택해 주세요.', 'info');
+        }
+    }
+
+    function refreshStapleAvailability(itemEl) {
+        const bindingType = itemEl.querySelector('.bindingType')?.value || '';
+        const wrapper = itemEl.querySelector('.staple-section');
+        const checkbox = itemEl.querySelector('.stapleEnabled');
+        const positionField = itemEl.querySelector('.staplePosition');
+        const positionSection = itemEl.querySelector('.staple-position-section');
+        if (!wrapper || !checkbox || !positionField) return;
+
+        const interleafContainer = itemEl.querySelector('.interleaf-section');
+        const interleafSheets = interleafContainer?.classList.contains('hidden')
+            ? 0 : (parseInt(itemEl.querySelector('.interleafSheets')?.value, 10) || 0);
+        const includeInterleaf = !!itemEl.querySelector('.includeInterleaf')?.checked;
+        const sections = Array.from(itemEl.querySelectorAll('.inner-section')).map(section => ({
+            pages: section.querySelector('.innerPages')?.value,
+            printType: section.querySelector('.innerPrintType')?.value,
+        }));
+        const physicalSheets = countStapleSheetsPerCopy(sections, interleafSheets, includeInterleaf);
+        const allowed = canStapleSheets(physicalSheets);
+        const isUnbound = bindingType === 'none';
+        const previouslyChecked = checkbox.checked;
+        const selected = normalizeStapleSelection({
+            bindingType,
+            enabled: previouslyChecked,
+            position: positionField.value,
+            sheets: physicalSheets,
+        });
+
+        wrapper.classList.toggle('hidden', !isUnbound);
+        checkbox.disabled = !isUnbound || !allowed;
+        checkbox.checked = selected.enabled;
+        if (!selected.enabled) positionField.value = '';
+        positionSection?.classList.toggle('hidden', !selected.enabled);
+        itemEl.querySelectorAll('.staple-position-options .option-card').forEach(card => {
+            card.classList.toggle('selected', selected.enabled && card.dataset.value === positionField.value);
+        });
+
+        const countLabel = itemEl.querySelector('.staple-sheet-count');
+        if (countLabel) countLabel.textContent = `1부당 ${physicalSheets.toLocaleString()}장 · ${allowed ? '스테플 가능' : '스테플 불가'}`;
+        const warning = itemEl.querySelector('.staple-limit-warning');
+        warning?.classList.toggle('hidden', !isUnbound || allowed);
+        if (previouslyChecked && !selected.enabled && isUnbound && !allowed) {
+            showToast(`1부당 ${physicalSheets}장으로 ${STAPLE_MAX_SHEETS_PER_COPY}장 초과하여 스테플이 자동 해제되었습니다.`, 'info');
         }
     }
 
@@ -685,7 +730,9 @@ function applyImagePreviewsToUI(root=document) {
             }
             newItem.querySelector('.coverDesign').checked = data.coverDesign || false;
             newItem.querySelector('.coverOshi').checked = data.coverOshi || false;
-            const bindingValue = data.bindingType || 'none';
+            // 옛 견적서에는 제본안함('none')이 이미 기록되어 있으므로 유지합니다.
+            // 새 견적서에는 아무 방식도 기본 선택하지 않습니다.
+            const bindingValue = data.bindingType ?? '';
             newItem.querySelector('.bindingType').value = bindingValue;
             newItem.querySelectorAll('.binding-options .option-card').forEach(card => {
                 card.classList.toggle('selected', card.dataset.value === bindingValue);
@@ -695,7 +742,9 @@ function applyImagePreviewsToUI(root=document) {
             newItem.querySelectorAll('.binding-direction-options .option-card').forEach(card => {
                 card.classList.toggle('selected', card.dataset.value === bindingDirectionValue);
             });
-            newItem.querySelector('.binding-direction-section')?.classList.toggle('hidden', bindingValue === 'none');
+            newItem.querySelector('.binding-direction-section')?.classList.toggle('hidden', bindingValue === 'none' || !bindingValue);
+            newItem.querySelector('.stapleEnabled').checked = bindingValue === 'none' && data.stapleEnabled === true;
+            newItem.querySelector('.staplePosition').value = STAPLE_POSITIONS[data.staplePosition] ? data.staplePosition : '';
             newItem.querySelector('.quantity').value = data.quantity || '1';
             newItem.querySelector('.remarks').value = data.remarks || '';
             if (data.interleafSheets > 0) {
@@ -749,6 +798,11 @@ function applyImagePreviewsToUI(root=document) {
             selectedCard.classList.add('selected');
             itemEl.querySelector('.bindingType').value = selectedCard.dataset.value;
             itemEl.querySelector('.binding-direction-section')?.classList.toggle('hidden', selectedCard.dataset.value === 'none');
+            if (selectedCard.dataset.value !== 'none') {
+                itemEl.querySelector('.stapleEnabled').checked = false;
+                itemEl.querySelector('.staplePosition').value = '';
+            }
+            refreshStapleAvailability(itemEl);
             calculateAndSave();
         });
         const bindingDirectionOptions = itemEl.querySelector('.binding-direction-options');
@@ -758,6 +812,20 @@ function applyImagePreviewsToUI(root=document) {
             bindingDirectionOptions.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected'));
             selectedCard.classList.add('selected');
             itemEl.querySelector('.bindingDirection').value = selectedCard.dataset.value;
+            calculateAndSave();
+        });
+        itemEl.querySelector('.stapleEnabled')?.addEventListener('change', () => {
+            if (!itemEl.querySelector('.stapleEnabled').checked) {
+                itemEl.querySelector('.staplePosition').value = '';
+            }
+            refreshStapleAvailability(itemEl);
+            calculateAndSave();
+        });
+        itemEl.querySelector('.staple-position-options')?.addEventListener('click', (event) => {
+            const selectedCard = event.target.closest('.option-card');
+            if (!selectedCard || !itemEl.querySelector('.stapleEnabled').checked) return;
+            itemEl.querySelector('.staplePosition').value = selectedCard.dataset.value;
+            refreshStapleAvailability(itemEl);
             calculateAndSave();
         });
     }
@@ -813,6 +881,7 @@ function applyImagePreviewsToUI(root=document) {
 
         document.querySelectorAll('.quote-item').forEach((itemEl, index) => {
             updateBindingOptions(itemEl);
+            refreshStapleAvailability(itemEl);
 
             const orderName = itemEl.querySelector('.orderName').value;
             const quantity = parseInt(itemEl.querySelector('.quantity').value) || 0;
@@ -828,7 +897,7 @@ function applyImagePreviewsToUI(root=document) {
                 : 1;
             const selectedBindingType = itemEl.querySelector('.bindingType').value;
             const bindingDirection = itemEl.querySelector('.bindingDirection')?.value || 'portrait-left';
-            itemEl.querySelector('.binding-direction-section')?.classList.toggle('hidden', selectedBindingType === 'none');
+            itemEl.querySelector('.binding-direction-section')?.classList.toggle('hidden', selectedBindingType === 'none' || !selectedBindingType);
             const bindingDirectionLabels = { 'landscape-top':'가로상철', 'landscape-left':'가로좌철', 'portrait-left':'세로좌철', 'portrait-top':'세로상철' };
             const largeSizeMultiplier = getLargeSizeMultiplier(itemSizeMultiplier);
             // A5 내지 인쇄비는 제본 방식에 따라 별도 배율(중철 60%, 무선/와이어 70%)을 적용합니다.
@@ -1010,7 +1079,7 @@ function applyImagePreviewsToUI(root=document) {
             let bindingCost = 0;
             let bindingUnitPrice = 0;
 
-            if (bindingType !== 'none') {
+            if (bindingType && bindingType !== 'none') {
                 const bindingMetrics = bindingType === 'perfect'
                     ? getPerfectBindingMetrics({
                         totalInnerPagesSpecified,
@@ -1076,6 +1145,12 @@ function applyImagePreviewsToUI(root=document) {
                 itemBreakdownHtml += `<li class="mt-2 pt-2 border-t border-slate-100"><div class="flex justify-between items-center"><span class="text-slate-600 font-medium">내지 인쇄 총 장수</span><span class="font-bold text-brand-600">${totalInnerSheets.toLocaleString()}장</span></div><div class="text-right text-[11px] text-slate-500 mt-0.5 leading-relaxed">${sheetDetails}${interleafNote}</div></li>`;
             }
 
+            if (bindingType === 'none' && itemEl.querySelector('.stapleEnabled')?.checked) {
+                const position = itemEl.querySelector('.staplePosition')?.value || '';
+                if (STAPLE_POSITIONS[position]) {
+                    itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 스테플 작업 (${STAPLE_POSITIONS[position]})</span><span class="text-slate-500 text-xs">별도 작업 요청</span></div></li>`;
+                }
+            }
   itemTotalPrice = totalCoverCost + totalInnerCost + totalInterleafCost + bindingCost + etcDesignCost + etcOshiCost;
 
             breakdownForLastQuote.push({
@@ -1096,7 +1171,10 @@ function applyImagePreviewsToUI(root=document) {
                 } : null,
                 inners: innerSectionDetailsForSubmission,
                 interleaf: (interleafSheets > 0) ? { sheets: interleafSheets, color: interleafColor, unitPrice: (typeof interleafUnitPrice === 'number' ? interleafUnitPrice : 0), amount: totalInterleafCost } : null,
-                binding: (bindingType !== 'none') ? { type: bindingType, direction: bindingDirection, directionLabel: bindingDirectionLabels[bindingDirection] || '세로좌철', unitPrice: (typeof bindingUnitPrice === 'number' ? bindingUnitPrice : 0), amount: bindingCost } : null,
+                binding: (bindingType && bindingType !== 'none') ? { type: bindingType, direction: bindingDirection, directionLabel: bindingDirectionLabels[bindingDirection] || '세로좌철', unitPrice: (typeof bindingUnitPrice === 'number' ? bindingUnitPrice : 0), amount: bindingCost } : null,
+                staple: bindingType === 'none' && itemEl.querySelector('.stapleEnabled')?.checked
+                    ? { enabled: true, position: itemEl.querySelector('.staplePosition')?.value || '', positionLabel: STAPLE_POSITIONS[itemEl.querySelector('.staplePosition')?.value] || '', amount: 0 }
+                    : null,
                 etc: { coverDesign: etcDesignCost, coverOshi: etcOshiCost },
                 itemTotal: itemTotalPrice
             });
@@ -1186,6 +1264,21 @@ function applyImagePreviewsToUI(root=document) {
         let isValid = true;
         document.querySelectorAll('.quote-item .orderName').forEach(input => { if (!input.value.trim()) { isValid = false; input.focus(); } });
         if (!isValid) { showToast('각 견적 항목의 품명을 모두 입력해주세요.', 'error'); return; }
+        const missingBinding = Array.from(document.querySelectorAll('.quote-item')).find(item => !item.querySelector('.bindingType')?.value);
+        if (missingBinding) {
+            missingBinding.querySelector('.binding-options')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            showToast('제본방식을 선택해 주세요. 제본하지 않으려면 "제본 안함"을 선택해 주세요.', 'error');
+            return;
+        }
+        // 내지 수량과 양면 여부를 마지막으로 검증해 50장 초과 스테플이 저장되지 않게 합니다.
+        document.querySelectorAll('.quote-item').forEach(refreshStapleAvailability);
+        const missingStaplePosition = Array.from(document.querySelectorAll('.quote-item')).find(item =>
+            item.querySelector('.stapleEnabled')?.checked && !item.querySelector('.staplePosition')?.value);
+        if (missingStaplePosition) {
+            missingStaplePosition.querySelector('.staple-position-options')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            showToast('스테플 위치(세로좌상 또는 가로좌상)를 선택해 주세요.', 'error');
+            return;
+        }
 
         calculateQuote();
 
