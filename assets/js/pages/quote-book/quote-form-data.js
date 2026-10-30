@@ -20,6 +20,10 @@ function readCommonQuoteItem(itemEl) {
         coverOshi: itemEl.querySelector('.coverOshi').checked,
         bindingType: itemEl.querySelector('.bindingType').value,
         bindingDirection: itemEl.querySelector('.bindingDirection')?.value || 'portrait-left',
+        // 스테플은 제본안함일 때만 별도 후가공 요청으로 저장합니다.
+        stapleEnabled: bindingType === 'none' && !!itemEl.querySelector('.stapleEnabled')?.checked,
+        staplePosition: bindingType === 'none' && itemEl.querySelector('.stapleEnabled')?.checked
+            ? (itemEl.querySelector('.staplePosition')?.value || '') : '',
         quantity: itemEl.querySelector('.quantity').value,
         remarks: itemEl.querySelector('.remarks').value,
     };
