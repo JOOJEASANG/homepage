@@ -600,7 +600,7 @@ let unitPriceConfig = {};
                              <i class="fas fa-info-circle text-blue-500 mt-0.5"></i>
                             <div>
                                 <p class="text-sm text-blue-800 font-bold mb-1">내지 단가 설정 안내</p>
-                                <p class="text-xs text-blue-600"><strong class="underline">A4 사이즈를 기준</strong>으로 내지 단가를 설정합니다. 다른 사이즈는 A4 단가에 따라 자동 계산됩니다. (B5: 0.9배, B4: 1.8배, A3: 2배)</p>
+                                <p class="text-xs text-blue-600 leading-relaxed"><strong class="underline">A4 내지 한 인쇄면(한 페이지)당 단가</strong>를 입력합니다. 양면은 앞·뒷면 각각 1인쇄면이며, 중철도 실제 용지 1장 양면에 2인쇄면이 발생합니다. A5 70%, B5 흑백 90%·컬러 100%, B4 180%, A3 200% 배율을 적용합니다. 표지·제본비는 별도로 계산합니다.</p>
                             </div>
                         </div>
                         <div id="inner-price-content" class="space-y-8"></div>
