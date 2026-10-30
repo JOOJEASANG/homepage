@@ -12,19 +12,9 @@ function percentText() {
   return Math.round(A5_INNER_MULTIPLIER * 100);
 }
 
-// quote-book.js는 paperSize 값을 parseFloat()하여 내지 규격 배율로 사용합니다.
-// A5에 대해서만 0.70을 반환하고, 표지/제본은 getLargeSizeMultiplier()에서 1배로 유지됩니다.
-try {
-  if (!window.__bookA5ParseFloatPatched) {
-    const nativeParseFloat = window.parseFloat.bind(window);
-    window.__bookA5NativeParseFloat = nativeParseFloat;
-    window.parseFloat = function(value) {
-      if (String(value ?? '').trim().toLowerCase() === 'a5') return A5_INNER_MULTIPLIER;
-      return nativeParseFloat(value);
-    };
-    window.__bookA5ParseFloatPatched = true;
-  }
-} catch (_) {}
+// 가격 계산은 quote-book/calculator-utils.js의 getBookSizeMultiplier()가
+// 'a5'를 해석합니다. 전역 window.parseFloat를 바꾸면 다른 모듈까지 영향을
+// 받아 불안정해지므로 더 이상 변경하지 않습니다.
 
 function ensureA5Option(select) {
   if (!select || !select.classList?.contains('paperSize')) return false;
