@@ -271,6 +271,38 @@ test.describe('responsive renewal', () => {
     });
   }
 
+  for (const width of [390, 1440]) {
+    test(`estimate completed layer displays calculated total and converts only when confirmed at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 880 });
+      await page.goto('/quote-book.html', { waitUntil: 'domcontentloaded' });
+      await page.evaluate(async () => {
+        const { showEstimateCompletedLayer } = await import('/assets/js/pages/shared/estimate-quick-order.js');
+        window.__convertedEstimates = 0;
+        showEstimateCompletedLayer({
+          total: 30000, ready: true, mypageUrl: 'mypage.html',
+          onConvert: async () => { window.__convertedEstimates++; },
+        });
+      });
+      const layer = page.locator('#estimate-completed-layer');
+      await expect(layer).toBeVisible();
+      await expect(layer).toContainText('30,000원');
+      await expect(layer).toContainText('아직 주문은 접수되지 않았습니다.');
+      expect(await page.evaluate(() => window.__convertedEstimates)).toBe(0);
+      await layer.locator('#estimate-completed-order').click();
+      await expect(layer).toContainText('주문 접수를 완료했습니다');
+      await expect(layer.locator('#estimate-completed-order')).toBeHidden();
+      expect(await page.evaluate(() => window.__convertedEstimates)).toBe(1);
+
+      await page.evaluate(async () => {
+        const { showEstimateCompletedLayer } = await import('/assets/js/pages/shared/estimate-quick-order.js');
+        showEstimateCompletedLayer({ total: 0, ready: false, mypageUrl: 'mypage.html' });
+      });
+      await expect(layer).toContainText('관리자 확인 필요');
+      await expect(layer.locator('#estimate-completed-order')).toBeHidden();
+      await expect(layer.locator('#estimate-completed-mypage')).toBeVisible();
+    });
+  }
+
   test('mobile quote summary uses existing amount and original submit handler', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     for (const [url,kind,button] of [['quote-book.html','book','submitQuoteBtn'],['quote-print.html',null,'submitBtn']]) {
