@@ -23,7 +23,7 @@ import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCom
 import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
 import { getPerfectInnerPricingMultiplier, getPerfectBindingMetrics } from "./quote-book/perfect-calculator.js";
 import { getWireCoverCost, getWireCoverPrintedSides, getWireCoverPrintImpressions, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js?v=20261021-wire-duplex-cover-v2";
-import { findPriceTier, findBindingPriceTier, floorToHundred, getLargeSizeMultiplier, getInnerSheetsPerCopy } from "./quote-book/calculator-utils.js";
+import { findPriceTier, findBindingPriceTier, floorToHundred, getLargeSizeMultiplier, getInnerSheetsPerCopy, getBookSizeMultiplier, getBookInnerPrintMetrics } from "./quote-book/calculator-utils.js?v=20261030-a5-impressions";
 import { countStapleSheetsPerCopy, canStapleSheets, normalizeStapleSelection, STAPLE_MAX_SHEETS_PER_COPY, STAPLE_POSITIONS } from "./quote-book/staple-utils.js?v=20261030-staple-limit";
 import { generateBookReceiptNo } from "./quote-book/quote-id.js";
 import { normalizeContactDigits, formatPhoneHyphen, formatContact, pickContactFromUserData, sha256Hex } from "./quote-book/contact-utils.js";
@@ -891,7 +891,7 @@ function applyImagePreviewsToUI(root=document) {
             // 단, A4 이상(A4/B4/A3)은 표지와 제본에도 같은 규격 배율을 적용합니다.
             // 간지와 오시는 규격과 관계없이 기본 단가를 사용합니다.
             const primarySizeSelect = itemEl.querySelector('.inner-section .paperSize');
-            const rawItemSizeMultiplier = primarySizeSelect ? parseFloat(primarySizeSelect.value) : 1;
+            const rawItemSizeMultiplier = primarySizeSelect ? getBookSizeMultiplier(primarySizeSelect.value) : 1;
             const itemSizeMultiplier = Number.isFinite(rawItemSizeMultiplier) && rawItemSizeMultiplier > 0
                 ? rawItemSizeMultiplier
                 : 1;
@@ -900,7 +900,7 @@ function applyImagePreviewsToUI(root=document) {
             itemEl.querySelector('.binding-direction-section')?.classList.toggle('hidden', selectedBindingType === 'none' || !selectedBindingType);
             const bindingDirectionLabels = { 'landscape-top':'가로상철', 'landscape-left':'가로좌철', 'portrait-left':'세로좌철', 'portrait-top':'세로상철' };
             const largeSizeMultiplier = getLargeSizeMultiplier(itemSizeMultiplier);
-            // A5 내지 인쇄비는 제본 방식에 따라 별도 배율(중철 60%, 무선/와이어 70%)을 적용합니다.
+            // A5는 제본 방식에 관계없이 내지 인쇄비 70%를 적용합니다. 제본비/표지비는 별개입니다.
 
             let itemTotalPrice = 0;
             let itemBreakdownHtml = '';
@@ -977,7 +977,7 @@ function applyImagePreviewsToUI(root=document) {
                 const paperTypeValue = section.querySelector('.innerPaperType').value;
                 const printTypeValue = section.querySelector('.innerPrintType').value;
                 const sectionSizeValue = section.querySelector('.paperSize').value;
-                const normalSizeMultiplier = parseFloat(sectionSizeValue);
+                const normalSizeMultiplier = getBookSizeMultiplier(sectionSizeValue);
                 const isColorPrint = printTypeValue === 'color_simplex' || printTypeValue === 'color_duplex';
                 // B5 컬러 내지는 A4와 동일한 100% 단가로 계산합니다. (B5 흑백은 기존 90% 유지)
                 // 중철은 saddle-calculator 모듈에서 실제 상위 규격 출력 장수/배율을 별도로 계산합니다.
@@ -1020,12 +1020,20 @@ function applyImagePreviewsToUI(root=document) {
                         fallbackMultiplier: sizeMultiplier,
                     })
                     : null;
-                const priceLookupQuantity = saddleMetrics ? saddleMetrics.totalSheets : (billablePages * quantity);
+                const printMetrics = getBookInnerPrintMetrics({
+                    pages: billablePages,
+                    printType: printTypeValue,
+                    bindingType: selectedBindingType,
+                    quantity,
+                });
+                // 관리자 단가표는 페이지(인쇄면)당입니다. 중철은 종이 1장에 양면 2회 출력되므로
+                // 4p/장 자체를 과금 수량으로 사용하면 50% 누락됩니다.
+                const priceLookupQuantity = printMetrics.totalImpressions;
                 const pricingMultiplier = saddleMetrics ? saddleMetrics.outputMultiplier : sizeMultiplier;
                 const baseUnitPrice = findPriceTier(a4Tiers, priceLookupQuantity);
                 const upcharge = priceConfig.inner.upcharges?.[paperTypeValue] || 0;
                 const finalInnerUnitPrice = (baseUnitPrice + upcharge) * pricingMultiplier;
-                const sectionUnits = saddleMetrics ? saddleMetrics.totalSheets : (billablePages * quantity);
+                const sectionUnits = printMetrics.totalImpressions;
                 
                 const sectionCostRaw = finalInnerUnitPrice * sectionUnits;
                 const sectionCost = floorToHundred(sectionCostRaw); // 100원 단위 절삭
@@ -1040,19 +1048,23 @@ function applyImagePreviewsToUI(root=document) {
                 innerSectionDetailsForSubmission.push({
                     index: innerIndex + 1,
                     specs: `${getSpecText('innerPaperType', paperTypeValue)} / ${getSpecText('innerPrintType', printTypeValue)} / ${pages}p${deductedMsg}${saddleMetrics ? ` / 출력 ${saddleMetrics.outputSize}` : ''}`,
-                    unitPricePerPage: finalInnerUnitPrice,
-                    pricingUnit: saddleMetrics ? 'sheet' : 'page',
+                    unitPricePerPage: finalInnerUnitPrice, // 이전 저장/표시 코드와 호환
+                    unitPricePerImpression: finalInnerUnitPrice,
+                    pricingUnit: 'impression',
                     pages: billablePages,
-                    sheetsPerCopy: saddleMetrics ? saddleMetrics.sheetsPerCopy : null,
-                    totalSheets: saddleMetrics ? saddleMetrics.totalSheets : null,
-                    outputSize: saddleMetrics ? saddleMetrics.outputSize : null,
+                    sheetsPerCopy: printMetrics.sheetsPerCopy,
+                    totalSheets: printMetrics.totalSheets,
+                    impressionsPerCopy: printMetrics.impressionsPerCopy,
+                    totalImpressions: printMetrics.totalImpressions,
+                    outputSize: saddleMetrics ? saddleMetrics.outputSize : sectionSizeValue,
                     amount: sectionCost
                 });
 
                 if (sectionCost > 0) {
-                    const saddleOutputText = saddleMetrics ? `, 출력 ${saddleMetrics.outputSize} · 권당 ${saddleMetrics.sheetsPerCopy}장` : '';
-                    const innerSpecText = `${getSpecText('innerPaperType', paperTypeValue)}, ${getSpecText('innerPrintType', printTypeValue)}, ${pages}p${deductedMsg}${saddleOutputText}`;
-                    const innerUnitLabel = saddleMetrics ? '원/장' : '원/p';
+                    const finishedSizeText = sectionSizeValue === 'a5' ? 'A5' : (sectionSizeValue === '0.9' ? 'B5' : (sectionSizeValue === '1' ? 'A4' : (sectionSizeValue === '1.8' ? 'B4' : 'A3')));
+                    const outputText = saddleMetrics ? `, 출력 ${saddleMetrics.outputSize}` : '';
+                    const innerSpecText = `${finishedSizeText}, ${getSpecText('innerPaperType', paperTypeValue)}, ${getSpecText('innerPrintType', printTypeValue)}, ${pages}p${deductedMsg}${outputText} · 1부 ${printMetrics.sheetsPerCopy}장/${printMetrics.impressionsPerCopy}인쇄면`;
+                    const innerUnitLabel = '원/인쇄면';
                     if (billablePages > 0) {
                         itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 내지 #${innerIndex + 1} (${innerSpecText})</span><span class="text-slate-500 text-xs">${Math.round(finalInnerUnitPrice).toLocaleString()}${innerUnitLabel}</span></div><div class="flex justify-end font-medium text-slate-800">${sectionCost.toLocaleString()}원</div></li>`;
                     }
@@ -1139,7 +1151,7 @@ function applyImagePreviewsToUI(root=document) {
             const totalInnerSheets = isSaddleBinding ? saddleTotalSheets : innerSheetsPerCopy * quantity;
             if (totalInnerPagesSpecified > 0) {
                 const sheetDetails = isSaddleBinding
-                    ? `중철 출력 (4p/장) · 권당 ${innerSheetsPerCopy.toLocaleString()}장 × ${quantity.toLocaleString()}부${saddleHasRoundedSection ? ' · 구간별 4p 미만 올림' : ''}`
+                    ? `중철 출력 (4p/장, 양면 2인쇄면/장) · 권당 ${innerSheetsPerCopy.toLocaleString()}장 × ${quantity.toLocaleString()}부${saddleHasRoundedSection ? ' · 구간별 4p 미만 올림' : ''}`
                     : `단면 ${simplexSheetsPerCopy.toLocaleString()}장/부 × ${quantity.toLocaleString()}부 = ${(simplexSheetsPerCopy * quantity).toLocaleString()}장<br>양면 ${duplexSheetsPerCopy.toLocaleString()}장/부 × ${quantity.toLocaleString()}부 = ${(duplexSheetsPerCopy * quantity).toLocaleString()}장`;
                 const interleafNote = interleafSheets > 0 ? '<br>간지 장수 별도' : '';
                 itemBreakdownHtml += `<li class="mt-2 pt-2 border-t border-slate-100"><div class="flex justify-between items-center"><span class="text-slate-600 font-medium">내지 인쇄 총 장수</span><span class="font-bold text-brand-600">${totalInnerSheets.toLocaleString()}장</span></div><div class="text-right text-[11px] text-slate-500 mt-0.5 leading-relaxed">${sheetDetails}${interleafNote}</div></li>`;
