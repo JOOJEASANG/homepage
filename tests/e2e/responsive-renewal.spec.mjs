@@ -303,6 +303,44 @@ test.describe('responsive renewal', () => {
     });
   }
 
+  for (const width of [390, 1440]) {
+    test(`guest quote signup spinner is hidden until the real submit starts at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      for (const url of ['quote-book.html', 'quote-print.html']) {
+        await page.goto('/' + url, { waitUntil: 'domcontentloaded' });
+        const form = page.locator('#signup-form');
+        const spinner = form.locator('.fa-spinner');
+        await expect(spinner).toHaveCSS('display', 'none');
+        await page.evaluate(() => {
+          const icon = document.querySelector('#signup-form .fa-spinner');
+          icon.classList.remove('hidden');
+          icon.style.display = 'inline-block';
+        });
+        await expect(spinner).not.toHaveCSS('display', 'none');
+        await page.evaluate(() => {
+          const icon = document.querySelector('#signup-form .fa-spinner');
+          icon.classList.add('hidden');
+          icon.style.display = 'none';
+        });
+        await expect(spinner).toHaveCSS('display', 'none');
+      }
+    });
+  }
+  test('new book form requires binding selection and makes staple position clear', async ({ page }) => {
+    await page.goto('/quote-book.html', { waitUntil: 'domcontentloaded' });
+    await exposeFixture(page, 'book');
+    const item = page.locator('.quote-item').first();
+    await expect(item.locator('.bindingType')).toHaveValue('');
+    await expect(item.locator('.binding-options .option-card.selected')).toHaveCount(0);
+    await expect(item.locator('.staple-section')).toBeHidden();
+    const options = item.locator('.staple-position-options .option-card');
+    await expect(options).toHaveCount(2);
+    await expect(options.nth(0)).toContainText('세로좌상');
+    await expect(options.nth(1)).toContainText('가로좌상');
+    await expect(options.locator('svg')).toHaveCount(2);
+    await expect(options.nth(0)).toContainText('왼쪽 위 스테플 위치');
+  });
+
   test('mobile quote summary uses existing amount and original submit handler', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     for (const [url,kind,button] of [['quote-book.html','book','submitQuoteBtn'],['quote-print.html',null,'submitBtn']]) {
