@@ -58,6 +58,43 @@ export function getInnerSheetsPerCopy(pages, printType) {
     : safePages;
 }
 
+/** 저장용 키 'a5'는 숫자가 아니므로 별도 해석합니다. 전역 parseFloat 변경은 사용하지 않습니다. */
+export const BOOK_A5_INNER_MULTIPLIER = 0.70;
+
+export function getBookSizeMultiplier(sizeValue) {
+  if (String(sizeValue ?? '').trim().toLowerCase() === 'a5') return BOOK_A5_INNER_MULTIPLIER;
+  return positiveNumber(sizeValue, 1);
+}
+
+/**
+ * 내지 단가는 관리자에서 페이지/인쇄면당으로 설정합니다.
+ * - 중철: 한 장에 완성 4페이지를 배치하지만 양면 2회 인쇄하므로 2클릭/장입니다.
+ * - 기타: 단면/양면 관계없이 내용이 있는 완성 페이지 하나가 1인쇄면입니다.
+ *
+ * 실제 용지 장수는 별도로 기록하여 16p A5 양면은 8장, 16p 중철은 4장이며
+ * 과금 인쇄면은 각각 16면, 8면으로 일관성 있게 계산합니다.
+ */
+export function getBookInnerPrintMetrics({
+  pages = 0,
+  printType = 'bw_duplex',
+  bindingType = 'none',
+  quantity = 1,
+} = {}) {
+  const pageCount = Math.max(0, Number.parseInt(pages, 10) || 0);
+  const qty = Math.max(0, Number.parseInt(quantity, 10) || 0);
+  const isSaddle = bindingType === 'saddle';
+  const sheetsPerCopy = isSaddle ? Math.ceil(pageCount / 4) : getInnerSheetsPerCopy(pageCount, printType);
+  const impressionsPerCopy = isSaddle ? sheetsPerCopy * 2 : pageCount;
+  return {
+    pages: pageCount,
+    sheetsPerCopy,
+    totalSheets: sheetsPerCopy * qty,
+    impressionsPerCopy,
+    totalImpressions: impressionsPerCopy * qty,
+    pricingUnit: 'impression',
+  };
+}
+
 /** 기존 정책대로 금액을 100원 단위로 절삭합니다. */
 export function floorToHundred(value) {
   return Math.floor(value / 100) * 100;
