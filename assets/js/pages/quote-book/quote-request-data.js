@@ -25,6 +25,7 @@ export function buildQuoteRequestData({
   breakdownHtml = '',
   allItemsData = [],
   requestType = 'order',
+  automaticallyPriced = false,
 } = {}) {
   const normalizedRequestType = requestType === 'estimate' ? 'estimate' : 'order';
   return {
@@ -44,8 +45,12 @@ export function buildQuoteRequestData({
     ordererCompany,
     status: '접수완료',
     requestType: normalizedRequestType,
-    estimateStatus: normalizedRequestType === 'estimate' ? 'requested' : null,
+    estimateStatus: normalizedRequestType === 'estimate' ? (automaticallyPriced ? 'completed' : 'requested') : null,
     estimateRequestedAt: normalizedRequestType === 'estimate' ? createdAt : null,
+    ...(normalizedRequestType === 'estimate' && automaticallyPriced ? {
+      estimateCompletedAt: createdAt,
+      automaticallyPricedEstimate: true,
+    } : {}),
     createdAt,
     hasUnreadAdminMessage: false,
     hasUnreadCustomerMessage: false,
