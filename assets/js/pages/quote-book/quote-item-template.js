@@ -149,17 +149,27 @@ export function renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPri
                             <div class="grid grid-cols-2 gap-3 staple-position-options">
                                 <button type="button" class="option-card" data-value="portrait-upper-left" aria-label="세로좌상 스테플">
                                     <div class="w-10 h-14 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
-                                        <span class="absolute left-0.5 top-0.5 w-2 h-1 bg-slate-800 -rotate-45 rounded-sm"></span>
+                                        <span aria-hidden="true" class="absolute -left-2 -top-2 h-7 w-7 rounded-full border-2 border-red-500 bg-red-50/80 flex items-center justify-center shadow-sm">
+                                            <svg viewBox="0 0 24 24" width="20" height="20" class="rotate-[-45deg]" fill="none" aria-hidden="true">
+                                                <path d="M5 16 V8 C5 6.9 5.9 6 7 6 H17 C18.1 6 19 6.9 19 8 V16" stroke="#b91c1c" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                                <path d="M4 16 H7 M17 16 H20" stroke="#475569" stroke-width="2" stroke-linecap="round"/>
+                                            </svg>
+                                        </span>
                                     </div>
                                     <span class="title">세로좌상</span>
-                                    <span class="description">세로 · 왼쪽 위</span>
+                                    <span class="description">↖ 왼쪽 위 스테플 위치</span>
                                 </button>
                                 <button type="button" class="option-card" data-value="landscape-upper-left" aria-label="가로좌상 스테플">
                                     <div class="w-14 h-10 mb-2 bg-white border border-slate-300 rounded-sm relative shadow-sm">
-                                        <span class="absolute left-0.5 top-0.5 w-2 h-1 bg-slate-800 -rotate-45 rounded-sm"></span>
+                                        <span aria-hidden="true" class="absolute -left-2 -top-2 h-7 w-7 rounded-full border-2 border-red-500 bg-red-50/80 flex items-center justify-center shadow-sm">
+                                            <svg viewBox="0 0 24 24" width="20" height="20" class="rotate-[-45deg]" fill="none" aria-hidden="true">
+                                                <path d="M5 16 V8 C5 6.9 5.9 6 7 6 H17 C18.1 6 19 6.9 19 8 V16" stroke="#b91c1c" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                                <path d="M4 16 H7 M17 16 H20" stroke="#475569" stroke-width="2" stroke-linecap="round"/>
+                                            </svg>
+                                        </span>
                                     </div>
                                     <span class="title">가로좌상</span>
-                                    <span class="description">가로 · 왼쪽 위</span>
+                                    <span class="description">↖ 왼쪽 위 스테플 위치</span>
                                 </button>
                             </div>
                         </div>
