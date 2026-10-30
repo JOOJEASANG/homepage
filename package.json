@@ -9,6 +9,7 @@
     "test:saddle": "node scripts/test-saddle-calculator.mjs",
     "test:perfect": "node scripts/test-perfect-calculator.mjs",
     "test:wire": "node scripts/test-wire-calculator.mjs",
+    "test:staple": "node scripts/test-book-staple.mjs",
     "test:utils": "node scripts/test-book-calculator-utils.mjs",
     "test:book-ui": "node scripts/test-book-ui-modules.mjs",
     "test:admin-subcontract": "node scripts/test-admin-subcontract-navigation.mjs",
@@ -25,7 +26,7 @@
     "test:ops-retention": "node scripts/test-ops-retention-contract.mjs",
     "test:seo": "node scripts/test-seo-site-quality.mjs",
     "test:security": "npm run test:firestore-security && npm run test:qna-security && npm run test:storage-security && npm run test:public-feed && npm run test:ai-security && npm run test:ops-retention && npm run test:seo",
-    "test:book": "npm run test:saddle && npm run test:perfect && npm run test:wire && npm run test:utils && npm run test:book-ui && npm run test:admin-subcontract && npm run test:book-form && npm run test:book-state && npm run test:book-request",
+    "test:book": "npm run test:saddle && npm run test:perfect && npm run test:wire && npm run test:staple && npm run test:utils && npm run test:book-ui && npm run test:admin-subcontract && npm run test:book-form && npm run test:book-state && npm run test:book-request",
     "test:ci": "npm run test:book && npm run test:page-runtime && npm run test:estimate-flow && npm run test:security && npm run test:header-shell",
     "test:header-shell": "node scripts/test-header-shell-contract.mjs"
   },
