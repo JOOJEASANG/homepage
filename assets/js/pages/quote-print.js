@@ -1261,7 +1261,7 @@ async function submitQuoteRequest(user, ordererName, ordererContact, ordererComp
       const calc = compute();
       if (!calc.ok){
         showToast('사양/최소수량/단가를 확인해주세요.', 'error');
-        return;
+        return false;
       }
 
       const isGuest = !!opts.isGuest && (!user || user.isAnonymous === true || opts.forceGuest === true);
@@ -1272,12 +1272,12 @@ async function submitQuoteRequest(user, ordererName, ordererContact, ordererComp
       if (isGuest){
         if (!guestLookupKey || !ordererName || !normalizedContact){
           showToast('비회원 정보(이름/연락처)를 확인해주세요.', 'error');
-          return;
+          return false;
         }
       } else {
         if (!user || !user.uid || user.isAnonymous){
           showToast('로그인 상태를 확인해주세요.', 'error');
-          return;
+          return false;
         }
       }
 
@@ -1593,11 +1593,12 @@ closeSignupModal();
               shownPrice,
             }),
           });
-          return;
+          return true;
         }
         showToast(returnToAdmin ? '관리자 견적 수정이 저장되었습니다.' :
           (editState.enabled ? '견적이 수정되었습니다.' : '주문 접수 완료! 마이페이지에서 진행상황을 확인할 수 있어요.'), 'success');
         setTimeout(() => { location.href = destination; }, 900);
+        return true;
 
       } catch(err){
         console.error(err);
@@ -1609,6 +1610,9 @@ closeSignupModal();
             showToast('접수 중 오류가 발생했습니다.', 'error');
           }
         })();
+        return false;
+      } finally {
+        // 견적 완료 레이어가 열린 뒤에도 기존 제출 버튼이 로딩으로 남지 않게 합니다.
         el.submitBtn.disabled = false;
         el.submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>주문 접수';
       }
@@ -1804,9 +1808,10 @@ openSignupModal();
       el.signupPassword.value = pw;
 
       const btn = el.signupForm.querySelector('button[type="submit"]');
+      if (btn?.disabled) return;
       const spinner = btn?.querySelector('i.fa-spinner');
-      if(btn){ btn.disabled = true; }
-      if(spinner) spinner.classList.remove('hidden');
+      if(btn){ btn.disabled = true; btn.setAttribute('aria-busy', 'true'); }
+      if(spinner) { spinner.classList.remove('hidden'); spinner.style.display = 'inline-block'; }
 
       try{
         const guestLookupKey = await sha256Hex(`${name}|${contact}|${pw}`);
@@ -1816,9 +1821,12 @@ openSignupModal();
           return;
         }
         await submitQuoteRequest(u, name, contact, '', { isGuest: true, guestLookupKey, guestContactRaw: contactRaw });
+      } catch (error) {
+        console.error('Print guest submission failed:', error);
+        showToast('접수 중 오류가 발생했습니다. 다시 시도해 주세요.', 'error');
       } finally {
-        if(btn){ btn.disabled = false; }
-        if(spinner) spinner.classList.add('hidden');
+        if(btn){ btn.disabled = false; btn.setAttribute('aria-busy', 'false'); }
+        if(spinner) { spinner.classList.add('hidden'); spinner.style.display = 'none'; }
       }
     });
 
