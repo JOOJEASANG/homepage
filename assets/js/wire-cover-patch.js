@@ -143,6 +143,9 @@ function ensureWireCoverBox(itemEl) {
         <div class="text-xs font-extrabold text-blue-700">와이어 표지 출력</div>
         <div class="text-[11px] text-blue-500">표지별 단면·양면 선택 / A4 기준</div>
       </div>
+      <p class="wire-cover-paper-hint hidden rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800" role="status">
+        <i class="fas fa-circle-info mr-1" aria-hidden="true"></i>표지용지를 먼저 선택하면 앞면출력·뒷면출력을 선택할 수 있습니다.
+      </p>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div class="rounded-lg border border-blue-100 bg-white p-3 flex flex-col gap-2">
           <label class="inline-flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700">
@@ -178,7 +181,15 @@ function ensureWireCoverBox(itemEl) {
   const back = wrapper.querySelector('.wireCoverBack');
   const frontMode = wrapper.querySelector('.wireCoverFrontMode');
   const backMode = wrapper.querySelector('.wireCoverBackMode');
+  const coverPaperSelect = itemEl.querySelector('.coverPaperType');
+  const paperHint = wrapper.querySelector('.wire-cover-paper-hint');
+  const frontCard = front?.closest('.rounded-lg');
+  const backCard = back?.closest('.rounded-lg');
   let initialised = false;
+
+  function hasCoverPaper() {
+    return !!coverPaperSelect?.value && coverPaperSelect.value !== 'none';
+  }
 
   function readInitialState() {
     if (initialised) return;
@@ -199,9 +210,16 @@ function ensureWireCoverBox(itemEl) {
   }
 
   function syncSelectFromChecks() {
+    const paperReady = hasCoverPaper();
+    // 표지용지가 '없음'이면 기존 견적/임시저장에 남은 앞뒤 선택도 즉시 해제합니다.
+    if (!paperReady) {
+      front.checked = false;
+      back.checked = false;
+      frontMode.value = 'simplex';
+      backMode.value = 'simplex';
+    }
     const impressions = (front.checked ? (frontMode.value === 'duplex' ? 2 : 1) : 0)
       + (back.checked ? (backMode.value === 'duplex' ? 2 : 1) : 0);
-    // 기존 출력 정보는 인쇄된 실제 면 수를 반영하고, 별도 저장 필드로 표지별 설정을 보존합니다.
     coverPrintSelect.value = impressions >= 2 ? 'color_duplex' : impressions === 1 ? 'color_simplex' : 'none';
 
     itemEl.dataset.wireCoverSettings = '1';
@@ -210,8 +228,13 @@ function ensureWireCoverBox(itemEl) {
     itemEl.dataset.wireCoverFrontMode = frontMode.value;
     itemEl.dataset.wireCoverBackMode = backMode.value;
 
-    frontMode.disabled = !front.checked;
-    backMode.disabled = !back.checked;
+    front.disabled = !paperReady;
+    back.disabled = !paperReady;
+    frontMode.disabled = !paperReady || !front.checked;
+    backMode.disabled = !paperReady || !back.checked;
+    frontCard?.classList.toggle('opacity-50', !paperReady);
+    backCard?.classList.toggle('opacity-50', !paperReady);
+    paperHint?.classList.toggle('hidden', paperReady);
   }
 
   function updateVisibility() {
@@ -230,6 +253,12 @@ function ensureWireCoverBox(itemEl) {
       scheduleRecalcFrom(itemEl);
     });
   }
+  coverPaperSelect?.addEventListener('change', () => {
+    if (bindingInput.value !== 'wire') return;
+    // 용지를 '없음'으로 되돌린 순간 출력 체크 및 금액을 초기화합니다.
+    updateVisibility();
+    scheduleRecalcFrom(itemEl);
+  });
 
   // 기존 드래프트 불러오기 등 외부에서 기존 select를 변경하는 흐름과 호환합니다.
   coverPrintSelect.addEventListener('change', () => {
