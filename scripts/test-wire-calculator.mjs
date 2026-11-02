@@ -208,6 +208,21 @@ assert.ok(wireCoverPatchSource.includes("new Event('input', { bubbles: true })")
   '체크박스 변경 뒤 견적 재계산에 input 이벤트를 사용해야 함');
 assert.ok(wireCoverPatchSource.includes('scheduleRecalcFrom(itemEl);'),
   '제본방식 변경 직후에도 와이어 표지를 다시 계산해야 함');
+assert.match(wireCoverPatchSource, /function hasCoverPaper\(\)/,
+  '표지용지 선택 여부를 확인해야 함');
+assert.match(wireCoverPatchSource, /front\.disabled = !paperReady;/,
+  '표지용지가 없으면 와이어 앞면출력을 비활성화해야 함');
+assert.match(wireCoverPatchSource, /back\.disabled = !paperReady;/,
+  '표지용지가 없으면 와이어 뒷면출력을 비활성화해야 함');
+assert.match(wireCoverPatchSource, /front\.checked = false;/,
+  '표지용지를 없음으로 변경할 때 앞면 출력을 해제해야 함');
+assert.match(wireCoverPatchSource, /back\.checked = false;/,
+  '표지용지를 없음으로 변경할 때 뒷면 출력을 해제해야 함');
+assert.match(wireCoverPatchSource, /coverPaperSelect\?\.addEventListener\('change'/,
+  '표지용지 변경 시 비활성화 상태와 견적을 즉시 갱신해야 함');
+assert.match(wireCoverPatchSource, /wire-cover-paper-hint/,
+  '표지용지를 먼저 선택하라는 안내가 있어야 함');
+
 assert.ok(wireCoverPatchSource.includes("target?.dispatchEvent?.(new Event('input', { bubbles: true }));"),
   '와이어 선택 변경 후 form input으로 전체 견적이 즉시 재계산돼야 함');
 
