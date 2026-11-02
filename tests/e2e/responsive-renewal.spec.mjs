@@ -184,6 +184,8 @@ test.describe('responsive renewal', () => {
     await page.evaluate(() => {
       const item = document.querySelector('.quote-item');
       item.querySelector('.bindingType').value = 'wire';
+      item.querySelector('.coverPaperType').innerHTML = '<option value="none">표지 없음</option><option value="snow200">스노우 200g</option>';
+      item.querySelector('.coverPaperType').value = 'snow200';
       item.querySelector('.coverPrintType').value = 'color_simplex';
       window.__wireQuoteRecalcs = 0;
       item.querySelector('.quantity').addEventListener('input', () => { window.__wireQuoteRecalcs++; });
@@ -226,6 +228,74 @@ test.describe('responsive renewal', () => {
     await expect.poll(() => page.evaluate(() => window.__wireQuoteRecalcs)).toBeGreaterThan(0);
   });
 
+
+  for (const width of [390, 1440]) {
+    test(`wire cover printing requires selected cover paper at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/quote-book.html', { waitUntil: 'domcontentloaded' });
+      await exposeFixture(page, 'book');
+      await page.evaluate(() => {
+        const coverPaper = document.querySelector('.quote-item .coverPaperType');
+        coverPaper.innerHTML = '<option value="none">표지 없음</option><option value="snow200">스노우 200g</option>';
+        coverPaper.value = 'none';
+      });
+      await page.locator('.binding-options [data-value="wire"]').first().click();
+      const item = page.locator('.quote-item').first();
+      const front = item.locator('.wireCoverFront');
+      const back = item.locator('.wireCoverBack');
+      const frontMode = item.locator('.wireCoverFrontMode');
+      const backMode = item.locator('.wireCoverBackMode');
+      const paper = item.locator('.coverPaperType');
+      const print = item.locator('.coverPrintType');
+      await expect(item.locator('.wire-cover-print-box')).toBeVisible();
+      await expect(item.locator('.wire-cover-paper-hint')).toBeVisible();
+      await expect(front).toBeDisabled();
+      await expect(back).toBeDisabled();
+      await expect(frontMode).toBeDisabled();
+      await expect(backMode).toBeDisabled();
+      await expect(front).not.toBeChecked();
+      await expect(back).not.toBeChecked();
+      await expect(print).toHaveValue('none');
+
+      await paper.selectOption('snow200');
+      await expect(item.locator('.wire-cover-paper-hint')).toBeHidden();
+      await expect(front).toBeEnabled();
+      await expect(back).toBeEnabled();
+      await expect(frontMode).toBeDisabled();
+      await expect(backMode).toBeDisabled();
+      await front.check();
+      await expect(frontMode).toBeEnabled();
+      await frontMode.selectOption('duplex');
+      await back.check();
+      await expect(backMode).toBeEnabled();
+      await expect(print).toHaveValue('color_duplex');
+
+      // Selecting no cover paper must discard both choices and not keep stale pricing.
+      await paper.selectOption('none');
+      await expect(front).toBeDisabled();
+      await expect(back).toBeDisabled();
+      await expect(front).not.toBeChecked();
+      await expect(back).not.toBeChecked();
+      await expect(frontMode).toBeDisabled();
+      await expect(backMode).toBeDisabled();
+      await expect(frontMode).toHaveValue('simplex');
+      await expect(backMode).toHaveValue('simplex');
+      await expect(print).toHaveValue('none');
+      await expect(item.locator('.wire-cover-paper-hint')).toBeVisible();
+      expect(await item.evaluate(node => ({
+        front: node.dataset.wireCoverFront,
+        back: node.dataset.wireCoverBack,
+      }))).toEqual({ front: '0', back: '0' });
+
+      // Selecting paper again must not restore choices that were explicitly cleared.
+      await paper.selectOption('snow200');
+      await expect(front).toBeEnabled();
+      await expect(back).toBeEnabled();
+      await expect(front).not.toBeChecked();
+      await expect(back).not.toBeChecked();
+      await expect(print).toHaveValue('none');
+    });
+  }
 
   for (const width of [390, 1440]) {
     test(`digital output reset restores all fields and removes stale draft at ${width}px even without the page module`, async ({ page }) => {
