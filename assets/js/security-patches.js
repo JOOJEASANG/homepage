@@ -18,7 +18,7 @@ const CURRENT_FILE = (() => {
 
 try {
   if (CURRENT_FILE === 'quote-book.html') {
-    import('./wire-cover-patch.js?v=20261030-staple-limit').catch(() => null);
+    import('./wire-cover-patch.js?v=20261102-wire-cover-paper').catch(() => null);
     import('./book-no-binding-cover-patch.js').catch(() => null);
     import('./book-item-unit-price-patch.js').catch(() => null);
   }
