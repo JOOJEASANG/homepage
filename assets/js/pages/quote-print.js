@@ -1546,7 +1546,9 @@ payload.lastEditedBy = editState.adminEdit ? 'admin' : 'customer';
             const url = await getDownloadURL(r);
             return { name: file.name, url, path, size: file.size, type: file.type || '' };
           }));
-          await updateDoc(doc(db, "quotes", savedDocId), { attachments: uploads });
+          // Keep previously uploaded customer artwork when more files are attached
+          // during a quote edit. Replacing with uploads alone orphaned old files.
+          await updateDoc(doc(db, "quotes", savedDocId), { attachments: [...baseAttachments, ...uploads] });
         }
 
         // save guest session for mypage lookup
