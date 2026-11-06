@@ -247,7 +247,7 @@ const editState = { enabled: false, quoteId: null, adminEdit: isAdminEditSearch(
         if (modalTitle) modalTitle.innerHTML = pendingRequestType === 'estimate'
             ? '<i class="fas fa-file-invoice-dollar text-base mr-2"></i>견적 요청자 정보 입력'
             : '<i class="fas fa-user-circle text-base mr-2"></i>주문자 정보 입력';
-        if (guestButtonText) guestButtonText.textContent = pendingRequestType === 'estimate' ? '동의하고 견적 요청' : '동의하고 접수하기';
+        if (guestButtonText) guestButtonText.textContent = pendingRequestType === 'estimate' ? '내용 확인 후 견적 요청' : '내용 확인 후 접수하기';
         if (memberButtonText) memberButtonText.textContent = pendingRequestType === 'estimate' ? '회원으로 견적 요청' : '회원으로 접수하기';
     }
     
