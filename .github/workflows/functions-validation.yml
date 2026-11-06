@@ -25,6 +25,10 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: functions/package-lock.json
+      - name: Apply security patches to the Functions lockfile for this build
+        working-directory: functions
+        run: npm audit fix --package-lock-only --ignore-scripts --audit-level=high
+
       - name: Install dependencies
         working-directory: functions
         run: npm ci
