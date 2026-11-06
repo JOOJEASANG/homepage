@@ -15,6 +15,7 @@ import { app, auth, db, storage,
          onAuthStateChanged, doc, setDoc, getDoc, serverTimestamp,
 } from "../firebase.js";
 import { initHeader } from "../header.js";
+import { requestGuestAccess } from "../guest-access-v2.js";
 import "../session.js";
 
 // 페이지 로드 시 헤더 렌더링 + URL 파라미터로 탭 자동 전환
@@ -320,38 +321,29 @@ window.addEventListener('pageshow', (e) => {
             btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 조회 중...';
 
             try {
-                const key = await sha256Hex(`${name}|${contact}|${pw}`);
+                // 서버에서 이름·연락처·비밀번호를 검증한 후에만 조회 권한을 발급합니다.
+                // 조회키만 로컬에 저장하는 방식으로는 Firestore 보안 규칙을 통과할 수 없습니다.
+                const result = await withTimeout(
+                    requestGuestAccess({ name, contactRaw, password: pw }),
+                    20000,
+                    'guestLookupTimeout'
+                );
+                const key = result.lookupKey;
                 const legacyKey = await sha256Hex(`${name}|${contactRaw}|${pw}`);
-
-                // 비회원 조회는 보통 인증(익명 포함)이 필요하도록 보안 규칙을 두는 경우가 많습니다.
-                // 따라서 비회원 조회 세션을 시작할 때 익명 로그인을 보장합니다.
-                if (!auth.currentUser) {
-                    // 인증 응답이 늦거나 실패하면 버튼이 무한 로딩되지 않도록 제한합니다.
-                    await withTimeout(setPersistence(auth, browserSessionPersistence), 8000, 'guestPersistenceTimeout');
-                    await withTimeout(signInAnonymously(auth), 12000, 'guestLoginTimeout');
+                for (const store of [sessionStorage, localStorage]) {
+                    store.setItem('guestLookupKey', key);
+                    store.setItem('guestLookupKeyLegacy', legacyKey);
+                    store.setItem('guestName', name);
+                    store.setItem('guestContact', contact);
+                    store.setItem('guestContactRaw', contactRaw);
+                    store.setItem('guestPwLast4', pw.slice(-4));
+                    store.setItem('guestAccessToken', result.sessionToken || '');
                 }
-                
-                sessionStorage.setItem('guestLookupKey', key);
-                sessionStorage.setItem('guestLookupKeyLegacy', legacyKey);
-                sessionStorage.setItem('guestName', name);
-                sessionStorage.setItem('guestContact', contact);
-                sessionStorage.setItem('guestContactRaw', contactRaw);
-                sessionStorage.setItem('guestPwLast4', (pw || '').toString().slice(-4));
-
-                 // persist to localStorage too (prevent session loss on refresh/new tab)
-                 try {
-                     localStorage.setItem('guestLookupKey', key);
-                     localStorage.setItem('guestLookupKeyLegacy', legacyKey);
-                     localStorage.setItem('guestName', name);
-                     localStorage.setItem('guestContact', contact);
-                     localStorage.setItem('guestContactRaw', contactRaw);
-                     localStorage.setItem('guestPwLast4', (pw || '').toString().slice(-4));
-                 } catch (e) {}
                  location.href = 'mypage.html?guest=1';
                 
             } catch (error) {
                 console.error(error);
-                showMessage('조회에 실패했습니다. 이름·연락처 또는 접속 상태를 확인하고 다시 시도해 주세요.');
+                showMessage(error?.message === 'guestLookupTimeout' ? '조회 서버 응답이 지연되고 있습니다. 다시 시도해 주세요.' : (error?.message || '조회에 실패했습니다. 다시 시도해 주세요.'));
             } finally {
                 // 로그인 실패와 조회 실패 모두 버튼을 복원해 재시도할 수 있게 합니다.
                 btn.disabled = false;
