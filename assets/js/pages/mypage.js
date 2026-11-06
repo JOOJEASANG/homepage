@@ -321,23 +321,14 @@ try { window.auth = auth; } catch(e) {}
         function startQuotesRealtimeListener({ mode, uid, guestLookupKey, guestContact, guestPwLast4 }){
             try{ if (unsubscribeQuotesSnapshot) unsubscribeQuotesSnapshot(); }catch(e){}
             let q = null;
-            if (mode === 'member' && uid){
+            if (mode === 'member' && uid) {
                 q = query(collection(db, "quotes"), where("userId", "==", uid));
-            } else if (mode === 'guest' && guestContact){
-                // ✅ guestContact 기반 실시간 구독: 책자·인쇄 두 견적 모두 구독 가능
-                // (guestLookupKey만 사용 시 다른 페이지의 접수건 누락 가능)
+            } else if (mode === 'guest' && auth.currentUser?.uid) {
+                // Firestore 규칙에서 허용하는 guestUid 기반으로 구독합니다.
                 q = query(collection(db, "quotes"),
                     where("isGuest", "==", true),
                     where("userId", "==", "guest"),
-                    where("guestContact", "==", guestContact)
-                );
-            } else if (mode === 'guest' && guestLookupKey){
-                // fallback: guestContact 없는 경우
-                q = query(collection(db, "quotes"),
-                    where("isGuest", "==", true),
-                    where("userId", "==", "guest"),
-                    where("guestLookupKey", "==", guestLookupKey)
-                );
+                    where("guestUid", "==", auth.currentUser.uid));
             } else {
                 return;
             }
@@ -531,57 +522,16 @@ try { window.auth = auth; } catch(e) {}
             if (!currentUser) return;
 
             const runGuestLookup = async () => {
-                const primaryKey = currentUser.guestLookupKey;
-                const legacyKey = currentUser.guestLookupKeyLegacy;
-                const pw4 = (currentUser.guestPwLast4 || "").toString().trim();
-                const cDigits = (currentUser.guestContact || "").toString().replace(/[^0-9]/g, "");
-
-                // ✅ Firestore 정적 분석 통과를 위해 isGuest==true + userId=='guest' 반드시 포함
-                // 등호(==) 필터만 사용하므로 복합 인덱스 생성 불필요
-                const docsMap = new Map();
-
-                const safeGet = async (q) => {
-                    try { return await getDocs(q); } catch (e) { return null; }
-                };
-
-                const addSnap = (snap) => {
-                    if (!snap || !snap.docs) return;
-                    snap.docs.forEach(d => {
-                        if (!d || !d.id) return;
-                        docsMap.set(d.id, d);
-                    });
-                };
-
-                // ✅ 연락처(guestContact)로 1차 조회 → 책자·인쇄 상관없이 동일 연락처의 모든 접수 조회
-                // guestContact는 두 견적페이지 모두 동일하게 저장되므로 가장 신뢰도 높음
-                if (cDigits) {
-                    addSnap(await safeGet(query(collection(db, "quotes"),
-                        where("isGuest", "==", true),
-                        where("userId", "==", "guest"),
-                        where("guestContact", "==", cDigits)
-                    )));
-                }
-
-                // 2) primaryKey 추가 조회 (연락처 조회로 안 잡힌 건 보완)
-                if (primaryKey) {
-                    addSnap(await safeGet(query(collection(db, "quotes"),
-                        where("isGuest", "==", true),
-                        where("userId", "==", "guest"),
-                        where("guestLookupKey", "==", primaryKey)
-                    )));
-                }
-
-                // 3) legacyKey 추가 조회 (구버전 호환)
-                if (legacyKey && legacyKey !== primaryKey) {
-                    addSnap(await safeGet(query(collection(db, "quotes"),
-                        where("isGuest", "==", true),
-                        where("userId", "==", "guest"),
-                        where("guestLookupKey", "==", legacyKey)
-                    )));
-                }
-
-                const mergedDocs = Array.from(docsMap.values());
-                return { snapshot: { docs: mergedDocs, empty: mergedDocs.length === 0 }, usedKey: primaryKey };
+                const uid = auth.currentUser?.uid;
+                if (!uid) throw new Error('비회원 인증 계정을 확인할 수 없습니다.');
+                // 연락처/조회키만으로 컬렉션을 검색하면 Firestore 권한이 거부됩니다.
+                // 주문조회 시 서버에서 인증한 문서에 현재 uid가 부여됩니다.
+                const q = query(collection(db, "quotes"),
+                    where("isGuest", "==", true),
+                    where("userId", "==", "guest"),
+                    where("guestUid", "==", uid));
+                const snapshot = await getDocs(q);
+                return { snapshot, usedKey: currentUser.guestLookupKey || null };
             };
 
             const p = (async () => {
