@@ -18,7 +18,14 @@ hasAll(ops, 'quote file retention', [
   "prefix: 'quotes/'",
   'deleted >= 500',
   "type: 'storage-retention-cleanup'",
+  "scope: 'orphaned-quote-files'",
+  "db.doc('quotes/' + quoteId).get()",
+  "if (existingQuotes.get(quoteId))",
 ]);
+assert.ok(ops.indexOf("if (existingQuotes.get(quoteId))") < ops.indexOf("await file.delete({ ignoreNotFound: true });"),
+  'saved quote attachments must be preserved before deleting orphaned uploads');
+assert.ok(!ops.includes("scope: 'quotes'"),
+  'retention audit scope must not imply deleting all saved quote attachments');
 
 hasAll(ops, 'audit logging', [
   'exports.auditQuoteWrites',

@@ -126,11 +126,29 @@ async function cleanupQuoteFiles() {
   const cutoff = Date.now() - FILE_RETENTION_DAYS * DAY_MS;
   let deleted = 0;
   let deletedBytes = 0;
+  let preserved = 0;
+  const existingQuotes = new Map();
 
   for (const file of files) {
     if (deleted >= 500) break;
     const created = Date.parse(file.metadata?.timeCreated || file.metadata?.updated || '');
     if (!Number.isFinite(created) || created >= cutoff) continue;
+
+    // Only delete orphaned uploads: never delete artwork attached to a
+    // saved quote, even when the storage object itself is older than 30 days.
+    const match = String(file.name || '').match(/^quotes\/([^/]+)\//);
+    if (!match) continue;
+    const quoteId = match[1];
+    if (!existingQuotes.has(quoteId)) {
+      // Fail closed: if Firestore is unavailable, throw instead of deleting.
+      const quoteSnap = await db.doc('quotes/' + quoteId).get();
+      existingQuotes.set(quoteId, quoteSnap.exists);
+    }
+    if (existingQuotes.get(quoteId)) {
+      preserved++;
+      continue;
+    }
+
     const size = Number(file.metadata?.size || 0);
     await file.delete({ ignoreNotFound: true });
     deleted++;
@@ -140,14 +158,14 @@ async function cleanupQuoteFiles() {
   if (deleted > 0) {
     await db.collection('audit_logs').add({
       type: 'storage-retention-cleanup',
-      scope: 'quotes',
+      scope: 'orphaned-quote-files',
       retentionDays: FILE_RETENTION_DAYS,
       deletedCount: deleted,
       deletedBytes,
       createdAt: FieldValue.serverTimestamp(),
     });
   }
-  return { deleted, deletedBytes };
+  return { deleted, deletedBytes, preserved };
 }
 
 exports.auditQuoteWrites = onDocumentWritten({
