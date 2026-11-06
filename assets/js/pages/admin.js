@@ -16,12 +16,13 @@ import { app, auth, db, storage, onAuthStateChanged, signOut,
          collection, onSnapshot, query, orderBy,
          doc, updateDoc, addDoc, serverTimestamp, deleteDoc,
          getDoc, setDoc, getDocs, writeBatch, deleteField,
-         limit, where, ref, uploadBytesResumable, getDownloadURL, deleteObject,
+         limit, where, ref, uploadBytesResumable, getDownloadURL, deleteObject, runTransaction,
 } from "../firebase.js";
 import { initHeader } from "../header.js";
 import "../session.js";
 import { validateUploadFiles } from "../file-upload-policy.js";
 import { activateAdminWorkspace, initAdminWorkspaceNavigation } from "./admin/price-workspace.js";
+import { isPendingCancellation, cancellationResolution } from "./admin/cancellation.js";
 
 // 페이지 로드 시 헤더 렌더링 (관리자 페이지는 활성 메뉴 없음)
 document.addEventListener("DOMContentLoaded", () => initHeader(""));
@@ -83,6 +84,7 @@ await setPersistence(auth, browserLocalPersistence);
 	        let isInitialQuotesSnapshot = true;
 	        let isInitialInquiriesSnapshot = true;
 	        const newQuoteIds = new Set();
+        const handlingCancellationIds = new Set();
 
         // =========================
         // [추천기능] 새 접수 알림/NEW 배지 유틸
@@ -1003,6 +1005,20 @@ async function listenToQuotes() {
             
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const statusFilter = document.getElementById('statusFilter').value;
+            const pendingCancelCount = quotesCache.filter(isPendingCancellation).length;
+            const pendingFilterButton = document.getElementById('pending-cancel-filter-btn');
+            const pendingCountLabel = document.getElementById('pending-cancel-count');
+            if (pendingCountLabel) pendingCountLabel.textContent = String(pendingCancelCount);
+            if (pendingFilterButton) {
+                pendingFilterButton.setAttribute('aria-pressed', String(statusFilter === '취소요청'));
+                pendingFilterButton.setAttribute('aria-label', `취소요청 ${pendingCancelCount}건, 목록 보기`);
+                pendingFilterButton.classList.toggle('bg-red-600', statusFilter === '취소요청');
+                pendingFilterButton.classList.toggle('text-white', statusFilter === '취소요청');
+                pendingFilterButton.classList.toggle('border-red-600', statusFilter === '취소요청');
+                pendingFilterButton.classList.toggle('bg-red-50', statusFilter !== '취소요청');
+                pendingFilterButton.classList.toggle('text-red-700', statusFilter !== '취소요청');
+                pendingFilterButton.classList.toggle('border-red-200', statusFilter !== '취소요청');
+            }
 
             // Helper functions
             const normalizeStatus = (s) => (s === 'submitted' || s === '접수대기' || !s) ? '접수완료' : s;
@@ -1034,14 +1050,14 @@ async function listenToQuotes() {
                             || (statusFilter === '견적요청' && isEstimateRequest(q) && getEstimateDisplayStatus(q) === '견적요청')
                             || (statusFilter === '견적완료' && isEstimateRequest(q) && getEstimateDisplayStatus(q) === '견적완료')
                             || (q.status === statusFilter && !(statusFilter === '접수완료' && isEstimateRequest(q)))
-                            || (statusFilter === '취소요청' && (q.status === '취소요청' || q.cancelRequestState === 'requested'))
+                            || (statusFilter === '취소요청' && isPendingCancellation(q))
                             || (statusFilter === '취소거절' && (q.status === '취소거절' || q.cancelRequestState === 'rejected'))
                            );
                 })
                 .sort((a, b) => {
     // 우선순위: 취소요청(0) → 새접수 NEW(1) → 미확인메시지(2) → 일반(3)
-    const isCancelA = ((a.status === '취소요청') || (a.cancelRequestState === 'requested'));
-    const isCancelB = ((b.status === '취소요청') || (b.cancelRequestState === 'requested'));
+    const isCancelA = isPendingCancellation(a);
+    const isCancelB = isPendingCancellation(b);
     const isNewA = newQuoteIds.has(a.id);
     const isNewB = newQuoteIds.has(b.id);
 
@@ -1071,7 +1087,7 @@ async function listenToQuotes() {
             // 3. 리스트 렌더링 (paginatedItems만 사용)
             const renderRow = (q) => {
                 const tr = document.createElement('tr');
-                tr.className = `quote-row-clickable border-b border-slate-100 hover:bg-slate-50 transition-colors ${q.hasUnreadAdminMessage ? 'bg-blue-50/50' : ''}`;
+                tr.className = `quote-row-clickable border-b border-slate-100 hover:bg-slate-50 transition-colors ${isPendingCancellation(q) ? 'bg-red-50/70 ring-1 ring-inset ring-red-100' : (q.hasUnreadAdminMessage ? 'bg-blue-50/50' : '')}`;
                 tr.dataset.quoteId = q.id;
                 tr.tabIndex = 0;
                 tr.setAttribute('aria-label', `${q.orderName || '접수 항목'} 상세보기`);
@@ -1082,7 +1098,8 @@ async function listenToQuotes() {
                 const phoneLink = normalizePhoneLink(getCustomerContactRaw(q));
                 const price = getDisplayPrice(q).toLocaleString();
 
-                const isCancelRequest = (q.status === '취소요청') || (q.cancelRequestState === 'requested');
+                const isCancelRequest = isPendingCancellation(q);
+                const isCancelProcessing = handlingCancellationIds.has(q.id);
                 const isCanceled = q.status === '주문취소';
                 const isCancelRejected = (q.cancelRequestState === 'rejected') || (q.status === '취소거절');
                 const isEstimate = isEstimateRequest(q);
@@ -1159,8 +1176,10 @@ async function listenToQuotes() {
                         <div class="flex items-center justify-center gap-2">
                             <button class="admin-edit-quote-btn p-1.5 text-slate-400 hover:text-indigo-600 transition-colors" data-id="${q.id}" title="견적수정(내용 변경)"><i class="fas fa-pen-to-square"></i></button>
                             ${isCancelRequest ? `
-                                <button class="approve-cancel-btn px-2 py-1 text-[11px] font-bold rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100" data-id="${q.id}" title="취소확정">취소확정</button>
-                                <button class="reject-cancel-btn px-2 py-1 text-[11px] font-bold rounded bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200" data-id="${q.id}" title="취소거절">취소거절</button>
+                                <div class="flex flex-wrap items-center justify-center gap-1.5">
+                                    <button type="button" class="approve-cancel-btn px-3 py-2 text-xs font-extrabold rounded-lg bg-red-600 text-white border border-red-700 hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500 disabled:opacity-60" data-id="${q.id}" aria-label="${sanitizeHTML(name)} 주문 취소 처리" ${isCancelProcessing ? 'disabled' : ''}> ${isCancelProcessing ? '처리 중...' : '주문취소 처리'} </button>
+                                    <button type="button" class="reject-cancel-btn px-3 py-2 text-xs font-bold rounded-lg bg-white text-slate-700 border border-slate-300 hover:bg-slate-100 disabled:opacity-60" data-id="${q.id}" aria-label="${sanitizeHTML(name)} 취소 요청 거절" ${isCancelProcessing ? 'disabled' : ''}>취소거절</button>
+                                </div>
                             ` : `
                                 <button class="delete-quote-btn p-1.5 text-slate-400 hover:text-red-500 transition-colors" data-id="${q.id}" title="삭제"><i class="fas fa-trash"></i></button>
                             `}
@@ -1330,57 +1349,72 @@ function updateDashboard() {
             } catch (error) { showToast('견적 상태 변경 중 오류가 발생했습니다.', 'error'); }
         }
 
+        // A customer only requests cancellation. The administrator makes
+        // the final decision from the list without deleting the quote/files.
         async function resolveCancelRequest(quoteId, decision) {
+            if (!quoteId || handlingCancellationIds.has(quoteId)) return;
+            const quoteRef = doc(db, 'quotes', quoteId);
+            let reason = '';
             try {
-                const quoteRef = doc(db, "quotes", quoteId);
-                const snap = await getDoc(quoteRef);
-                if (!snap.exists()) { showToast('주문을 찾을 수 없습니다.', 'error'); return; }
-                const q = snap.data();
-                if (q.status !== '취소요청' && q.cancelRequestState !== 'requested') { showToast('현재 상태가 취소요청이 아닙니다.', 'info'); return; }
-
-                if (decision === 'approve') {
-                    const ok = await showConfirmation('취소확정', '해당 주문을 취소 처리합니다. 진행하시겠습니까?');
-                    if (!ok) return;
-                    await updateDoc(quoteRef, {
-                        status: '주문취소',
-                        cancelApprovedAt: serverTimestamp(),
-                        cancelResolvedBy: 'admin',
-                        cancelRequestState: 'approved'
-                    });
-                    showToast('취소확정 처리되었습니다.', 'success');
-                } else if (decision === 'reject') {
-                    const reason = prompt('취소거절 사유(선택)');
-                    const prev = q.cancelPrevStatus || '작업중';
-                    const ok = await showConfirmation('취소거절', `취소요청을 거절하고 상태를 '${prev}'로 되돌립니다. 진행하시겠습니까?`);
-                    if (!ok) return;
-                    await updateDoc(quoteRef, {
-                        // 거절: 상태는 원래대로 유지(레거시로 status가 '취소요청'인 경우만 prev로 복구)
-                        status: (q.status === '취소요청' ? prev : q.status),
-                        cancelRejectedAt: serverTimestamp(),
-                        cancelRejectedReason: reason || '',
-                        cancelPrevStatus: prev,
-                        cancelRequestState: 'rejected',
-                        cancelResolvedBy: 'admin'
-                    });
-                                        // 고객에게 상세/상담 메시지로 거절 사유 안내
-                    try {
-                        if (reason && reason.trim()) {
-                            await addDoc(collection(db, `quotes/${quoteId}/messages`), {
-                                sender: 'admin',
-                                timestamp: serverTimestamp(),
-                                type: 'text',
-                                text: `취소요청이 거절되었습니다. 사유: ${reason.trim()}`
-                            });
-                            await updateDoc(quoteRef, { hasUnreadCustomerMessage: true });
-                        }
-                    } catch (e) {
-                        console.warn('[admin] failed to post cancel reject reason message', e);
-                    }
-showToast('취소거절 처리되었습니다.', 'success');
+                const latest = await getDoc(quoteRef);
+                if (!latest.exists() || !isPendingCancellation(latest.data())) {
+                    showToast('이미 처리되었거나 취소요청이 없는 주문입니다.', 'info');
+                    return;
                 }
-            } catch (e) {
-                logger.error(e);
-                showToast(`취소 처리 중 오류 발생 (${e?.code || 'unknown'})`, 'error');
+
+                if (decision === 'reject') {
+                    const answer = window.prompt('취소거절 사유를 입력하세요. (선택, 취소 버튼을 누르면 처리되지 않습니다)', '');
+                    if (answer === null) return;
+                    reason = answer.trim().slice(0, 500);
+                }
+                const title = decision === 'approve' ? '주문취소 처리' : '취소요청 거절';
+                const message = decision === 'approve'
+                    ? '고객의 취소요청을 승인하여 주문 상태를 주문취소로 변경합니다. 접수내역과 첨부파일은 삭제하지 않습니다. 진행하시겠습니까?'
+                    : '취소요청을 거절하고 고객에게 결과를 안내합니다. 진행하시겠습니까?';
+                if (!await showConfirmation(title, message)) return;
+
+                handlingCancellationIds.add(quoteId);
+                renderQuotes();
+                await runTransaction(db, async (tx) => {
+                    // Re-check within the transaction: two admins cannot process
+                    // one request twice, even if both had a stale list.
+                    const current = await tx.get(quoteRef);
+                    if (!current.exists()) throw new Error('CANCEL_ALREADY_HANDLED');
+                    const resolution = cancellationResolution(current.data(), decision, reason);
+                    const timestamp = serverTimestamp();
+                    const update = {
+                        status: resolution.status,
+                        cancelRequestState: resolution.cancelRequestState,
+                        cancelHandledAt: timestamp,
+                        cancelResolvedBy: 'admin',
+                        hasUnreadCustomerMessage: true,
+                        lastMessage: resolution.message,
+                        lastMessageAt: timestamp,
+                        updatedAt: timestamp
+                    };
+                    if (decision === 'approve') update.cancelApprovedAt = timestamp;
+                    else {
+                        update.cancelRejectedAt = timestamp;
+                        update.cancelRejectedReason = resolution.cancelRejectedReason;
+                    }
+                    const messageRef = doc(collection(db, 'quotes', quoteId, 'messages'));
+                    tx.update(quoteRef, update);
+                    tx.set(messageRef, {
+                        sender: 'admin',
+                        type: 'system',
+                        text: resolution.message,
+                        timestamp,
+                        readByCustomer: false
+                    });
+                });
+                showToast(decision === 'approve' ? '주문 취소를 확정하고 고객에게 알렸습니다.' : '취소요청을 거절하고 고객에게 알렸습니다.', 'success');
+            } catch (error) {
+                logger.error('resolveCancelRequest failed', error);
+                const stale = error?.message === 'CANCEL_ALREADY_HANDLED';
+                showToast(stale ? '다른 관리자에 의해 이미 처리된 요청입니다. 목록을 확인해 주세요.' : `취소 처리 중 오류가 발생했습니다. (${error?.code || 'unknown'})`, stale ? 'info' : 'error');
+            } finally {
+                handlingCancellationIds.delete(quoteId);
+                renderQuotes();
             }
         }
 
@@ -3263,6 +3297,13 @@ async function handleNoticeSave(e) {
                 renderQuotes();
             });
             document.getElementById('statusFilter')?.addEventListener('change', () => {
+                currentPage = 1;
+                renderQuotes();
+            });
+            document.getElementById('pending-cancel-filter-btn')?.addEventListener('click', () => {
+                const filter = document.getElementById('statusFilter');
+                if (!filter) return;
+                filter.value = filter.value === '취소요청' ? 'all' : '취소요청';
                 currentPage = 1;
                 renderQuotes();
             });
