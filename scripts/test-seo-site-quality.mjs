@@ -62,3 +62,24 @@ for (const marker of [
 }
 
 console.log('SEO, canonical, hosting header, private robots, and production AI-origin checks passed');
+
+
+// Legal pages must be directly readable without JavaScript and have one canonical content source.
+for (const [file, sections] of [['guide.html', 9], ['personal-info.html', 12], ['terms.html', 12]]) {
+  const html = fs.readFileSync(path.join(root, file), 'utf8');
+  assert.match(html, /id="legal-policy-content"/, file + ' should be directly readable');
+  assert.equal((html.match(/<section id=/g) || []).length, sections, file + ' section count');
+  assert.match(html, /2026년 11월 6일/, file + ' should display effective date');
+}
+const policy = fs.readFileSync(path.join(root, 'personal-info.html'), 'utf8');
+assert.match(policy, /계약 또는 청약철회/);
+assert.match(policy, /Google LLC/);
+assert.doesNotMatch(policy, /제작 완료 또는 상담 종료 후 30일 이내 삭제/);
+const terms = fs.readFileSync(path.join(root, 'terms.html'), 'utf8');
+assert.match(terms, /사전 별도 고지/);
+assert.match(terms, /서면 동의/);
+const legalModal = fs.readFileSync(path.join(root, 'assets/js/legal-modal.js'), 'utf8');
+assert.match(legalModal, /fetch\(path/);
+assert.match(legalModal, /#legal-policy-content/);
+const home = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+for (const file of ['guide.html','personal-info.html','terms.html']) assert.ok(home.includes('href="' + file + '"'), file + ' must be linked from homepage footer');
