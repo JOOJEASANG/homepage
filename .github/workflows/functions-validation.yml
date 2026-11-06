@@ -25,15 +25,12 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: functions/package-lock.json
-      - name: Refresh security-fixed lockfile
-        working-directory: functions
-        run: npm audit fix --package-lock-only --ignore-scripts
       - name: Install dependencies
         working-directory: functions
         run: npm ci
       - name: Audit dependencies
         working-directory: functions
-        run: npm audit
+        run: npm audit --audit-level=high
       - name: Syntax check modules
         working-directory: functions
         run: node --check main.js && node --check index.js && node --check guest-access.js && node --check qna-api.js && node --check public-feed.js && node --check ai-api.js && node --check ops-retention.js

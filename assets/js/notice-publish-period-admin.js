@@ -66,7 +66,7 @@ function injectPeriodFields() {
   const form = document.getElementById('notice-form');
   if (!form || document.getElementById('notice-publish-period-wrap')) return form;
 
-  const footer = document.getElementById('notice-isImportant')?.closest('.flex.items-center.justify-between.pt-2');
+  const footer = document.getElementById('notice-form-actions');
   const wrap = document.createElement('div');
   wrap.id = 'notice-publish-period-wrap';
   wrap.className = 'rounded-xl border border-slate-200 bg-slate-50/70 p-3';

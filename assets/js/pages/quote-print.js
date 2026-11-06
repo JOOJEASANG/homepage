@@ -15,6 +15,7 @@ import { app, auth, db, storage, doc, getDoc, collection, addDoc, updateDoc,
          ref as storageRef, uploadBytes, getDownloadURL } from "../firebase.js";
 import { initHeader } from "../header.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
+import { requestGuestAccess } from "../guest-access-v2.js";
 import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer } from "./shared/estimate-quick-order.js?v=20261030-estimate-direct";
 import "../overlays.js";
 import "../session.js?v=20261028-subcontract-choice";
@@ -2098,23 +2099,26 @@ openSignupModal();
             if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); btn.innerText = '조회 중...'; }
 
             try {
-                // 키 생성 (SHA-256)
-                const key = await sha256Hex(`${name}|${contact}|${pw}`);
+                // Only the server may issue access to an existing guest order.
+                const access = await requestGuestAccess({ name, contactRaw, password: pw });
+                const key = access.lookupKey;
                 const legacyKey = await sha256Hex(`${name}|${contactRaw}|${pw}`);
-
-                // 세션 저장
-                sessionStorage.setItem('guestLookupKey', key);
-                sessionStorage.setItem('guestLookupKeyLegacy', legacyKey);
-                sessionStorage.setItem('guestName', name);
-                sessionStorage.setItem('guestContact', contact); // 숫자만
-                sessionStorage.setItem('guestContactRaw', contactRaw); // 원본
+                for (const store of [sessionStorage, localStorage]) {
+                    store.setItem('guestLookupKey', key);
+                    store.setItem('guestLookupKeyLegacy', legacyKey);
+                    store.setItem('guestName', name);
+                    store.setItem('guestContact', contact);
+                    store.setItem('guestContactRaw', contactRaw);
+                    store.setItem('guestPwLast4', pw.slice(-4));
+                    store.setItem('guestAccessToken', access.sessionToken || '');
+                }
                 
                 // 마이페이지로 이동 (guest=1 파라미터 포함)
                 location.href = 'mypage.html?guest=1';
             } catch (err) {
                 console.error(err);
                 if (errDiv) {
-                    errDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> 오류가 발생했습니다.';
+                    errDiv.textContent = err?.message || '조회 중 오류가 발생했습니다.';
                     errDiv.classList.remove('hidden');
                 }
             } finally {

@@ -236,6 +236,7 @@ test.describe('responsive renewal', () => {
       await exposeFixture(page, 'book');
       await page.evaluate(() => {
         const coverPaper = document.querySelector('.quote-item .coverPaperType');
+        document.querySelector('.quote-item .bindingType').value = 'wire';
         coverPaper.innerHTML = '<option value="none">표지 없음</option><option value="snow200">스노우 200g</option>';
         coverPaper.value = 'none';
       });
@@ -348,6 +349,8 @@ test.describe('responsive renewal', () => {
       await page.evaluate(async () => {
         const { showEstimateCompletedLayer } = await import('/assets/js/pages/shared/estimate-quick-order.js');
         window.__convertedEstimates = 0;
+        document.getElementById('loading-overlay')?.remove();
+        document.getElementById('auth-check-overlay')?.remove();
         showEstimateCompletedLayer({
           total: 30000, ready: true, mypageUrl: 'mypage.html',
           onConvert: async () => { window.__convertedEstimates++; },

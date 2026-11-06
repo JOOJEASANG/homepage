@@ -1668,20 +1668,19 @@ async function hardLogout(redirectUrl = 'index.html') {
       const cell = row.cells[3];
       if (!cell) continue;
       let actions = cell.querySelector('.mobile-contact-actions');
-      // 이전 버전의 고객정보 마크업에는 행 클래스가 없을 수 있습니다.
-      // 고객명/연락처/버튼의 공통 부모에만 레이아웃 클래스를 보완합니다.
-      if (!cell.querySelector('.customer-info-row') && phoneElement) {
-        const wrapper = phoneElement.parentElement;
-        if (wrapper && wrapper !== cell && wrapper.parentElement === cell) {
-          wrapper.classList.add('customer-info-row');
-        }
-      }
       // 최신/구형 목록 양쪽에서 번호를 찾습니다. 접수번호나 상품번호는 사용하지 않습니다.
       const leaves = Array.from(cell.querySelectorAll('.customer-contact, span, a, p, strong, b, div'))
         .filter(el => el.children.length === 0);
       const phoneElement = leaves.find(el => phoneFromText(el.textContent));
       const number = phoneFromText(phoneElement?.textContent) || phoneFromText(cell.textContent);
       if (!number) continue;
+      // A phone node must be found before accessing it (legacy rows).
+      if (!cell.querySelector('.customer-info-row') && phoneElement) {
+        const wrapper = phoneElement.parentElement;
+        if (wrapper && wrapper !== cell && wrapper.parentElement === cell) {
+          wrapper.classList.add('customer-info-row');
+        }
+      }
 
       if (!actions) {
         actions = document.createElement('span');
