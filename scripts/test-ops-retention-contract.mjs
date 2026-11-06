@@ -22,7 +22,9 @@ hasAll(ops, 'quote file retention', [
   "db.doc('quotes/' + quoteId).get()",
   "if (existingQuotes.get(quoteId))",
 ]);
-assert.ok(ops.indexOf("if (existingQuotes.get(quoteId))") < ops.indexOf("await file.delete({ ignoreNotFound: true });"),
+const quoteCleanup = ops.slice(ops.indexOf('async function cleanupQuoteFiles()'), ops.indexOf('exports.auditQuoteWrites'));
+assert.ok(quoteCleanup.includes("if (existingQuotes.get(quoteId))"));
+assert.ok(quoteCleanup.indexOf("if (existingQuotes.get(quoteId))") < quoteCleanup.indexOf("await file.delete({ ignoreNotFound: true });"),
   'saved quote attachments must be preserved before deleting orphaned uploads');
 assert.ok(!ops.includes("scope: 'quotes'"),
   'retention audit scope must not imply deleting all saved quote attachments');
