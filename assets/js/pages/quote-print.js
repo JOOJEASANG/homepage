@@ -1761,7 +1761,9 @@ openSignupModal();
     });
     // 독립 초기화 스크립트가 폼 값을 먼저 되돌린 뒤 계산 엔진에 재계산을 알립니다.
     el.form.addEventListener('gprint:print-quote-reset', async () => {
-      existingAttachments = [];
+      // existingAttachments is local to submitQuoteRequest; resetting it here
+      // raised ReferenceError and stopped recalculation for every reset.
+      // The standalone reset controller already clears the file input.
       // 초기화 중 단가정보가 로드되지 않았거나 실패한 경우 다시 확보합니다.
       // 가격을 임의의 0원으로 대체하지 않고, 관리자 등록 단가로 재계산합니다.
       if (!unitPriceConfigReady || unitPriceConfigError) await loadUnitPriceConfig();
