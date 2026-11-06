@@ -349,9 +349,9 @@
                         충남 천안시 서북구 쌍용14길 29 1층
                     </p>
                     <nav aria-label="이용 및 법적 안내" class="flex flex-wrap justify-center md:justify-end gap-x-4 gap-y-2 mt-2 text-[12px]">
-                        <a href="guide.html" class="text-slate-300 hover:text-white">이용안내</a>
-                        <a href="personal-info.html" class="text-slate-300 hover:text-white font-bold">개인정보처리방침</a>
-                        <a href="terms.html" class="text-slate-300 hover:text-white">이용약관</a>
+                        <a href="guide.html" data-legal="guide" class="text-slate-300 hover:text-white">이용안내</a>
+                        <a href="personal-info.html" data-legal="privacy" class="text-slate-300 hover:text-white font-bold">개인정보처리방침</a>
+                        <a href="terms.html" data-legal="terms" class="text-slate-300 hover:text-white">이용약관</a>
                     </nav>
                     <p class="text-slate-600 text-[11px] pt-3 border-t border-white/05 text-center md:text-right">
                         Copyright © 2026 <span class="text-emerald-500 font-bold">Green Office</span>. All rights reserved.
@@ -441,6 +441,7 @@
     (function(){ try { const hasFirebaseUser = !!(window.__currentFirebaseUser && !window.__currentFirebaseUser.isAnonymous); const guestKey = localStorage.getItem('guestLookupKey') || localStorage.getItem('guestLookupKeyLegacy'); const guestName = localStorage.getItem('guestName') || '비회원'; const isGuestSession = !!guestKey; const userMenuStatus = document.getElementById('userMenuStatus'); const btnMyPage = document.getElementById('userMenuGoMyPageBtn'); const btnLogin = document.getElementById('userMenuGoLoginBtn'); const btnLogout = document.getElementById('userMenuLogoutBtn'); const btnGuestLookup = document.getElementById('guest-lookup-open'); const welcomeMsg = document.getElementById('welcome-message'); function safeShow(el){ if(el) el.style.display = 'block'; } function safeHide(el){ if(el) el.style.display = 'none'; } if (isGuestSession && !hasFirebaseUser) { if (userMenuStatus) { userMenuStatus.innerHTML = '<span class="font-bold text-slate-800">' + escapeHtml(guestName) + '</span>님<br><span class="text-xs text-slate-400">비회원 조회 세션이 유지 중입니다.</span>'; } safeHide(btnLogin); safeHide(btnGuestLookup); safeShow(btnMyPage); safeShow(btnLogout); if (btnMyPage) btnMyPage.onclick = () => location.href = 'mypage.html?guest=1'; if (btnLogout) { btnLogout.onclick = async () => { if (typeof window.hardLogout === 'function') { await window.hardLogout(location.pathname.split('/').pop() || 'index.html'); } else { try{ localStorage.removeItem('guestLookupKey'); localStorage.removeItem('guestLookupKeyLegacy'); localStorage.removeItem('guestName'); localStorage.removeItem('guestContact'); localStorage.removeItem('guestPwLast4'); }catch(e){} location.replace('index.html'); } }; } if (welcomeMsg) welcomeMsg.innerHTML = '<span class="font-semibold">' + escapeHtml(guestName) + '</span>님, 환영합니다!'; if (typeof window.updateAuthLabels === 'function') window.updateAuthLabels(); } } catch(e) {} function escapeHtml(str){ return String(str || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;"); } })();
     </script>
 
+    <script type="module" src="assets/js/legal-modal.js?v=20261106"></script>
     <script type="module" src="assets/js/maintenance-check.js"></script>
     <script type="module" src="assets/js/pages/index.js"></script>
 </body>

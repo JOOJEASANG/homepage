@@ -371,3 +371,29 @@ test('order lookup control keeps the same button styling across public pages', a
     expect(style).toEqual(snapshots[0]);
   }
 });
+
+
+for (const [path, expected] of [
+  ['/guide.html', '견적부터 제작까지'],
+  ['/personal-info.html', '보유·이용기간'],
+  ['/terms.html', '청약철회·환불 및 하자 처리'],
+]) {
+  test(`legal page ${path} is readable directly and linked from its tabs`, async ({ page }) => {
+    await page.goto(path, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('h1')).toBeVisible();
+    await expect(page.locator('#legal-policy-content')).toContainText(expected);
+    await expect(page.locator('#legal-policy-content section')).not.toHaveCount(0);
+    for (const href of ['guide.html', 'personal-info.html', 'terms.html']) {
+      await expect(page.locator('.legal-tabs a[href="' + href + '"]')).toHaveCount(1);
+    }
+    await assertNoHorizontalOverflow(page);
+  });
+}
+
+test('homepage exposes working legal-document links', async ({ page }) => {
+  await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
+  const footer = page.locator('footer.site-footer');
+  for (const href of ['guide.html', 'personal-info.html', 'terms.html']) {
+    await expect(footer.locator('a[href="' + href + '"]')).toBeVisible();
+  }
+});
