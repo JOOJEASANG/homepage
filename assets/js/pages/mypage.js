@@ -20,6 +20,7 @@ import { app, auth, db, storage,
          getDownloadURL, deleteObject,
 } from "../firebase.js";
 import { initHeader } from "../header.js";
+import { requestGuestAccess } from "../guest-access-v2.js";
 import "../overlays.js";
 import "../session.js";
 import { validateUploadFiles } from "../file-upload-policy.js";
@@ -530,7 +531,34 @@ try { window.auth = auth; } catch(e) {}
                     where("isGuest", "==", true),
                     where("userId", "==", "guest"),
                     where("guestUid", "==", uid));
-                const snapshot = await getDocs(q);
+                let snapshot = await getDocs(q);
+                if (snapshot.empty) {
+                    // 접수 당시 익명 Firebase 세션이 브라우저에서 사라진 경우,
+                    // 저장된 고객 조회 정보를 서버에서 재확인한 뒤 접근 권한을 복구합니다.
+                    const guestName = (sessionStorage.getItem('guestName') || localStorage.getItem('guestName') || '').trim();
+                    const contactRaw = (sessionStorage.getItem('guestContactRaw')
+                        || localStorage.getItem('guestContactRaw')
+                        || sessionStorage.getItem('guestContact')
+                        || localStorage.getItem('guestContact') || '').trim();
+                    const password = (sessionStorage.getItem('guestPwLast4')
+                        || localStorage.getItem('guestPwLast4')
+                        || contactRaw.replace(/\\D/g, '').slice(-4) || '').trim();
+                    const retryId = 'guestAccessRetry:' + uid + ':' + (currentUser.guestLookupKey || '');
+                    if (guestName && contactRaw && password && sessionStorage.getItem(retryId) !== '1') {
+                        sessionStorage.setItem(retryId, '1');
+                        try {
+                            const verified = await requestGuestAccess({ name: guestName, contactRaw, password });
+                            if (verified.lookupKey) {
+                                currentUser.guestLookupKey = verified.lookupKey;
+                                sessionStorage.setItem('guestLookupKey', verified.lookupKey);
+                                localStorage.setItem('guestLookupKey', verified.lookupKey);
+                            }
+                            snapshot = await getDocs(q);
+                        } catch (err) {
+                            throw new Error(err?.message || '접수 내역 재인증에 실패했습니다. 주문조회를 다시 진행해 주세요.');
+                        }
+                    }
+                }
                 return { snapshot, usedKey: currentUser.guestLookupKey || null };
             };
 
