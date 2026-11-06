@@ -93,21 +93,9 @@ try {
   }
 } catch (e) {}
 
-try {
-  const currentFile = getCurrentFile();
-  const hasGuestKey = !!(
-    sessionStorage.getItem('guestLookupKey') ||
-    localStorage.getItem('guestLookupKey') ||
-    sessionStorage.getItem('guestLookupKeyLegacy') ||
-    localStorage.getItem('guestLookupKeyLegacy')
-  );
-  if (currentFile === 'mypage.html' && hasGuestKey) {
-    ['guestContact', 'guestContactRaw', 'guestContactHyphen'].forEach(k => {
-      try { sessionStorage.removeItem(k); } catch (_) {}
-      try { localStorage.removeItem(k); } catch (_) {}
-    });
-  }
-} catch (e) {}
+// 비회원 조회 정보는 마이페이지에서 재인증에 필요합니다.
+// 페이지 진입만으로 연락처를 삭제하면 익명 Firebase 세션이 갱신되었을 때
+// 기존 접수내역을 복구할 수 없으므로, 해당 정보는 명시적 로그아웃 시 정리합니다.
 
 // 페이지별 보정/표시 로직은 각 runtime을 단일 진입점으로 사용합니다.
 try {
