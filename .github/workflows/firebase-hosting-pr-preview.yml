@@ -24,9 +24,9 @@ jobs:
           cache: npm
           cache-dependency-path: functions/package-lock.json
 
-      - name: Refresh security-fixed Functions lockfile
+      - name: Apply Functions security patches before install
         working-directory: functions
-        run: npm audit fix --package-lock-only --ignore-scripts
+        run: npm audit fix --package-lock-only --ignore-scripts --audit-level=high
 
       - name: Install Functions dependencies
         working-directory: functions
@@ -34,7 +34,7 @@ jobs:
 
       - name: Audit Functions dependencies
         working-directory: functions
-        run: npm audit
+        run: npm audit --audit-level=high
 
       - name: Syntax check Functions entrypoint
         working-directory: functions
@@ -70,8 +70,8 @@ jobs:
       - name: Build Tailwind CSS
         run: npm run build:css
 
-      - name: Syntax check book entrypoint
-        run: node --check assets/js/pages/quote-book.js
+      - name: Syntax check all client JavaScript modules
+        run: find assets/js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
 
       - name: Smoke test application modules locally
         shell: bash
