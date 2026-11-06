@@ -178,6 +178,15 @@ const quoteBookSource = fs.readFileSync(path.join(root, 'assets/js/pages/quote-b
 assert.match(quoteBookSource, /quote-request-data\.js/);
 assert.match(quoteBookSource, /buildQuoteRequestData\s*\(/);
 assert.match(quoteBookSource, /buildQuoteUpdatePayload\s*\(/);
+const guestAuthPosition = quoteBookSource.indexOf('guestAuthUser = await ensureGuestAuth()');
+const payloadPosition = quoteBookSource.indexOf('const quoteRequestData = buildQuoteRequestData(');
+assert.ok(guestAuthPosition >= 0 && guestAuthPosition < payloadPosition,
+  'guest authentication must finish before constructing a Firestore quote');
+assert.ok(quoteBookSource.includes('guestUid: isGuest ? guestAuthUser.uid : null'),
+  'guest quote must use the UID from the authenticated user, not a pre-login null');
+assert.ok(!quoteBookSource.includes('guestUid: auth.currentUser ? auth.currentUser.uid : null'),
+  'regression: guest UID must not be read before anonymous sign-in');
+
 assert.doesNotMatch(quoteBookSource, /const quoteRequestData = \{\s*\.\.\.lastCalculatedQuote/);
 assert.doesNotMatch(quoteBookSource, /const payload = \{ \.\.\.quoteRequestData \};/);
 

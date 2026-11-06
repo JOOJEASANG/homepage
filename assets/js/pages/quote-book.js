@@ -1445,6 +1445,20 @@ DOMElements.signupModal.classList.remove('hidden');
             return false; 
         }
 
+        // Firestore requires guestUid to equal the authenticated request UID.
+        // Resolve anonymous auth before constructing the quote payload.
+        let guestAuthUser = null;
+        if (isGuest) {
+            try {
+                guestAuthUser = await ensureGuestAuth();
+                if (!guestAuthUser?.uid) throw new Error('Missing guest UID');
+            } catch (error) {
+                console.warn('[quote-book] guest authentication failed:', error);
+                showToast('비회원 접수를 위한 인증에 실패했습니다. 다시 시도해 주세요.', 'error');
+                return false;
+            }
+        }
+
         const allItemsData = serializeQuoteItems(document.querySelectorAll('.quote-item'), 'submission');
         
         const quoteRequestData = buildQuoteRequestData({
@@ -1458,7 +1472,7 @@ DOMElements.signupModal.classList.remove('hidden');
             guestLookupKey,
             guestContactRaw: opts.guestContactRaw || null,
             guestContactHyphen: formatPhoneHyphen(normalizedContact) || null,
-            guestUid: auth.currentUser ? auth.currentUser.uid : null,
+            guestUid: isGuest ? guestAuthUser.uid : null,
             createdAt: Timestamp.now(),
             breakdownHtml: DOMElements.priceBreakdownEl.innerHTML,
             allItemsData,
@@ -1472,7 +1486,6 @@ DOMElements.signupModal.classList.remove('hidden');
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>처리 중...';
             
             
-            if (isGuest && (!auth.currentUser || !auth.currentUser.uid)) { await ensureGuestAuth(); }
 
 // ✅ Idempotent create (prevents duplicate submissions when auto-submit triggers twice)
 const __forceDocId = (opts && opts.forceDocId) ? String(opts.forceDocId) : null;
