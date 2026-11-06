@@ -34,12 +34,18 @@ async function fixture(page, role = 'admin', realSession = true) {
     export const Timestamp = {};
     export const runTransaction = async (_, callback) => {
       const updates = [];
-      const result = await callback({ get: getDoc, update: (path, data) => updates.push({ path, data }) });
+      const tx = {
+        get: getDoc,
+        update: (path, data) => updates.push({ path, data }),
+        set: (path, data) => updates.push({ path, data }),
+      };
+      const result = await callback(tx);
       for (const update of updates) write(update.path, update.data);
       return result;
     };
     export const getApps = () => [app], getApp = () => app;
-    export const doc = (_, ...parts) => parts.join('/'), collection = doc;
+    export const doc = (_, ...parts) => parts.length ? parts.join('/') : String(_) + '/fixture-msg-' + ((window.__fixtureDocSequence = (window.__fixtureDocSequence || 0) + 1));
+    export const collection = doc;
     export const query = (path, ...filters) => path === 'qna' ? { path, filters } : path;
     export const orderBy = () => ({}), limit = orderBy;
     export const where = (field, op, value) => ({ field, op, value });
@@ -70,8 +76,10 @@ async function fixture(page, role = 'admin', realSession = true) {
     export const onSnapshot = (path, callback) => {
       const listener = () => callback(snapshotFor(path));
       listener.qna = path === 'qna' || path.path === 'qna' || (typeof path === 'string' && path.startsWith('qna/'));
+      listener.quotes = path === 'quotes';
       (window.__fixtureSnapshotListeners ||= []).push(listener);
       window.__fixtureEmitQna = () => window.__fixtureSnapshotListeners.filter(listener => listener.qna).forEach(listener => listener());
+      window.__fixtureEmitQuotes = () => window.__fixtureSnapshotListeners.filter(listener => listener.quotes).forEach(listener => listener());
       queueMicrotask(listener);
       return () => { window.__fixtureSnapshotListeners = window.__fixtureSnapshotListeners.filter(item => item !== listener); };
     };
@@ -79,6 +87,7 @@ async function fixture(page, role = 'admin', realSession = true) {
       (window.__fixtureReads ||= []).push(path);
       if (path.startsWith('qna/')) return snapshotFor(path);
       const data = path.startsWith('users/') ? { role: ${JSON.stringify(role)} }
+        : path.startsWith('quotes/') ? ((window.__fixtureQuotes || []).find(item => item.id === path.slice(7)) || null)
         : path === 'settings/site' ? { maintenance: false, maintenanceMessage: '기존 안내문', qnaApiV2: window.__fixtureSecureQna === true }
         : path === 'settings/print' ? { guideHtml: window.__fixtureGuideHtml || '' }
         : path === 'settings/unitPriceConfig' ? (window.__fixtureUnitPriceConfig || null) : null;
@@ -94,6 +103,10 @@ async function fixture(page, role = 'admin', realSession = true) {
       if (path.startsWith('qna/')) {
         window.__fixtureQna = (window.__fixtureQna || []).map(item => item.id === path.slice(4) ? { ...item, ...data } : item);
         queueMicrotask(() => window.__fixtureEmitQna?.());
+      }
+      if (path.startsWith('quotes/') && path.split('/').length === 2) {
+        window.__fixtureQuotes = (window.__fixtureQuotes || []).map(item => item.id === path.slice(7) ? { ...item, ...data } : item);
+        queueMicrotask(() => window.__fixtureEmitQuotes?.());
       }
     }
     export const setDoc = async (path, data, options) => write(path, data, options);
@@ -790,3 +803,56 @@ for (const width of [390, 1440]) {
     expect(layout.saveBottom).toBeLessThanOrEqual(layout.cardBottom - 8);
   });
 }
+
+
+test('administrator approves a customer cancellation directly in the reception list and notifies the customer', async ({ page }) => {
+  await fixture(page);
+  await page.addInitScript(() => {
+    window.__fixtureQuotes = [
+      { id: 'fixture-cancel', userId: 'guest', isGuest: true, guestName: '취소고객', guestContact: '01012345678',
+        cancelRequestState: 'requested', cancelPrevStatus: '접수완료', status: '접수완료',
+        productType: 'book', orderName: '취소 신청 책자', finalPrice: 28000, createdAt: { toDate: () => new Date(), seconds: 1 } },
+      { id: 'fixture-normal', userId: 'customer', isGuest: false, status: '접수완료',
+        productType: 'print', orderName: '정상 접수', finalPrice: 5000, createdAt: { toDate: () => new Date(), seconds: 2 } }
+    ];
+  });
+  await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#pending-cancel-count')).toHaveText('1');
+  await page.locator('#pending-cancel-filter-btn').click();
+  await expect(page.locator('#pending-cancel-filter-btn')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#quote-list-body tr[data-quote-id]')).toHaveCount(1);
+  await expect(page.locator('#quote-list-body tr[data-quote-id="fixture-cancel"]')).toContainText('취소요청');
+  await page.locator('#quote-list-body .approve-cancel-btn').click();
+  await expect(page.locator('#confirmationModal')).not.toHaveClass(/hidden/);
+  await page.locator('#confirmActionBtn').click();
+  await expect.poll(() => page.evaluate(() => (window.__fixtureQuotes || []).find(q => q.id === 'fixture-cancel')?.status)).toBe('주문취소');
+  await expect(page.locator('#pending-cancel-count')).toHaveText('0');
+  const result = await page.evaluate(() => window.__fixtureWrites || []);
+  const quote = result.find(w => w.path === 'quotes/fixture-cancel');
+  expect(quote.data.cancelRequestState).toBe('approved');
+  expect(quote.data.hasUnreadCustomerMessage).toBe(true);
+  expect(result.some(w => w.path.startsWith('quotes/fixture-cancel/messages/') && w.data.text.includes('승인'))).toBe(true);
+  expect(result.some(w => w.path === 'quotes/fixture-normal')).toBe(false);
+});
+
+test('administrator rejects a pending cancellation without deleting the order', async ({ page }) => {
+  await fixture(page);
+  await page.addInitScript(() => {
+    window.__fixtureQuotes = [{ id: 'fixture-cancel-reject', userId: 'customer', isGuest: false,
+      cancelRequestState: 'requested', cancelPrevStatus: '접수완료', status: '접수완료',
+      productType: 'print', orderName: '취소 재검토 인쇄', finalPrice: 9000,
+      createdAt: { toDate: () => new Date(), seconds: 1 } }];
+  });
+  await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#quote-list-body .reject-cancel-btn')).toHaveCount(1);
+  page.once('dialog', dialog => dialog.accept('고객 요청 내용 확인 필요'));
+  await page.locator('.reject-cancel-btn').click();
+  await expect(page.locator('#confirmationModal')).not.toHaveClass(/hidden/);
+  await page.locator('#confirmActionBtn').click();
+  await expect.poll(() => page.evaluate(() => (window.__fixtureQuotes || [])[0]?.cancelRequestState)).toBe('rejected');
+  const result = await page.evaluate(() => window.__fixtureWrites || []);
+  const quote = result.find(w => w.path === 'quotes/fixture-cancel-reject');
+  expect(quote.data.status).toBe('접수완료');
+  expect(quote.data.cancelRejectedReason).toBe('고객 요청 내용 확인 필요');
+  expect(result.some(w => w.path.startsWith('quotes/fixture-cancel-reject/messages/') && w.data.text.includes('사유: 고객 요청 내용 확인 필요'))).toBe(true);
+});
