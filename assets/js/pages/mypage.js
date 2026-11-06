@@ -542,7 +542,7 @@ try { window.auth = auth; } catch(e) {}
                         || localStorage.getItem('guestContact') || '').trim();
                     const password = (sessionStorage.getItem('guestPwLast4')
                         || localStorage.getItem('guestPwLast4')
-                        || contactRaw.replace(/\\D/g, '').slice(-4) || '').trim();
+                        || contactRaw.replace(/\D/g, '').slice(-4) || '').trim();
                     const retryId = 'guestAccessRetry:' + uid + ':' + (currentUser.guestLookupKey || '');
                     if (guestName && contactRaw && password && sessionStorage.getItem(retryId) !== '1') {
                         sessionStorage.setItem(retryId, '1');
