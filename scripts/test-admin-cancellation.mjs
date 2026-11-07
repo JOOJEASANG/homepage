@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { isPendingCancellation, cancellationResolution } from '../assets/js/pages/admin/cancellation.js';
+import { isPendingCancellation, canAdminDirectCancel, cancellationResolution } from '../assets/js/pages/admin/cancellation.js';
 
 const requested = { id: 'guest-1', status: '접수완료', cancelRequestState: 'requested', cancelPrevStatus: '접수완료' };
 const legacy = { status: '취소요청', cancelPrevStatus: '작업중' };
@@ -22,3 +22,17 @@ assert.throws(() => cancellationResolution({ status: '주문취소', cancelReque
 assert.throws(() => cancellationResolution(requested, 'undo'), /INVALID_CANCEL_DECISION/);
 
 console.log('Administrator cancellation request decisions passed');
+
+for (const status of ['접수완료', '접수대기', '작업중', '작업완료', '결제완료', '취소거절']) {
+  assert.equal(canAdminDirectCancel({ status }), true, 'admin can directly cancel ' + status);
+}
+assert.equal(canAdminDirectCancel({ status: '주문취소' }), false);
+assert.equal(canAdminDirectCancel({ status: '접수완료', cancelRequestState: 'approved' }), false);
+assert.equal(canAdminDirectCancel({ status: '접수완료', cancelRequestState: 'admin_cancelled' }), false);
+assert.deepEqual(cancellationResolution({ status: '작업중' }, 'direct', '전화로 취소 요청'), {
+  status: '주문취소', cancelRequestState: 'admin_cancelled', cancelSource: 'admin_direct',
+  cancelReason: '전화로 취소 요청',
+  message: '관리자가 주문을 취소 처리했습니다. 사유: 전화로 취소 요청'
+});
+assert.throws(() => cancellationResolution({ status: '주문취소' }, 'direct'), /CANCEL_ALREADY_HANDLED/);
+assert.throws(() => cancellationResolution({ status: '접수완료', cancelRequestState: 'admin_cancelled' }, 'direct'), /CANCEL_ALREADY_HANDLED/);

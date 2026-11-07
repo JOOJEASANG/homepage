@@ -856,3 +856,58 @@ test('administrator rejects a pending cancellation without deleting the order', 
   expect(quote.data.cancelRejectedReason).toBe('고객 요청 내용 확인 필요');
   expect(result.some(w => w.path.startsWith('quotes/fixture-cancel-reject/messages/') && w.data.text.includes('사유: 고객 요청 내용 확인 필요'))).toBe(true);
 });
+
+test('administrator directly cancels a telephone request without prior website cancellation request', async ({ page }) => {
+  await fixture(page);
+  await page.addInitScript(() => {
+    window.__fixtureQuotes = [
+      { id: 'telephone-order', userId: 'guest', isGuest: true,
+        guestName: '전화 고객', guestContact: '01012345678', status: '접수완료',
+        productType: 'book', orderName: '전화 취소 책자', finalPrice: 22000,
+        createdAt: { seconds: 10, toDate: () => new Date() } },
+      { id: 'other-order', userId: 'customer', isGuest: false, status: '접수완료',
+        productType: 'print', orderName: '유지할 주문', finalPrice: 13000,
+        createdAt: { seconds: 11, toDate: () => new Date() } }
+    ];
+  });
+  await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+  const row = page.locator('#quote-list-body tr[data-quote-id="telephone-order"]');
+  await expect(row.locator('.direct-cancel-btn')).toBeVisible();
+  await expect(row.locator('.approve-cancel-btn')).toHaveCount(0);
+  await expect(page.locator('#pending-cancel-count')).toHaveText('0');
+  page.once('dialog', dialog => dialog.accept('고객 전화로 접수'));
+  await row.locator('.direct-cancel-btn').click();
+  await expect(page.locator('#confirmationModal')).not.toHaveClass(/hidden/);
+  await expect(page.locator('#confirmationMessage')).toContainText('홈페이지 취소요청 없이');
+  await page.locator('#confirmActionBtn').click();
+  await expect.poll(() => page.evaluate(() =>
+    (window.__fixtureQuotes || []).find(q => q.id === 'telephone-order')?.status
+  )).toBe('주문취소');
+  const result = await page.evaluate(() => window.__fixtureWrites || []);
+  const update = result.find(w => w.path === 'quotes/telephone-order');
+  expect(update.data.cancelRequestState).toBe('admin_cancelled');
+  expect(update.data.cancelSource).toBe('admin_direct');
+  expect(update.data.cancelReason).toBe('고객 전화로 접수');
+  expect(update.data.hasUnreadCustomerMessage).toBe(true);
+  expect(result.some(w => w.path.startsWith('quotes/telephone-order/messages/') &&
+    w.data.text.includes('사유: 고객 전화로 접수'))).toBe(true);
+  expect(result.some(w => w.path === 'quotes/other-order')).toBe(false);
+  expect(await page.locator('#quote-list-body tr[data-quote-id="telephone-order"] .direct-cancel-btn').count()).toBe(0);
+  expect(await page.locator('#quote-list-body tr[data-quote-id="other-order"] .direct-cancel-btn').count()).toBe(1);
+});
+
+test('administrator direct cancellation warns on paid orders and can be aborted', async ({ page }) => {
+  await fixture(page);
+  await page.addInitScript(() => {
+    window.__fixtureQuotes = [{ id: 'paid-telephone-order', userId: 'customer', isGuest: false,
+      status: '결제완료', productType: 'print', orderName: '결제된 주문', finalPrice: 50000,
+      createdAt: { seconds: 12, toDate: () => new Date() } }];
+  });
+  await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+  page.once('dialog', dialog => dialog.accept('전화 취소'));
+  await page.locator('#quote-list-body .direct-cancel-btn').click();
+  await expect(page.locator('#confirmationMessage')).toContainText('환불 및 제작 중단');
+  await page.locator('#confirmCancelBtn').click();
+  expect((await writes(page, 'quotes/paid-telephone-order')).length).toBe(0);
+  await expect(page.locator('#quote-list-body .direct-cancel-btn')).toBeVisible();
+});

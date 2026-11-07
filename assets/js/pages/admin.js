@@ -22,7 +22,7 @@ import { initHeader } from "../header.js";
 import "../session.js";
 import { validateUploadFiles } from "../file-upload-policy.js";
 import { activateAdminWorkspace, initAdminWorkspaceNavigation } from "./admin/price-workspace.js";
-import { isPendingCancellation, cancellationResolution } from "./admin/cancellation.js";
+import { isPendingCancellation, canAdminDirectCancel, cancellationResolution } from "./admin/cancellation.js";
 
 // 페이지 로드 시 헤더 렌더링 (관리자 페이지는 활성 메뉴 없음)
 document.addEventListener("DOMContentLoaded", () => initHeader(""));
@@ -1175,6 +1175,12 @@ async function listenToQuotes() {
                     <td class="px-6 py-4 text-center">
                         <div class="flex items-center justify-center gap-2">
                             <button class="admin-edit-quote-btn p-1.5 text-slate-400 hover:text-indigo-600 transition-colors" data-id="${q.id}" title="견적수정(내용 변경)"><i class="fas fa-pen-to-square"></i></button>
+                            ${!isCancelRequest && canAdminDirectCancel(q) ? `
+                                <button type="button" class="direct-cancel-btn inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-lg bg-orange-50 text-red-700 border border-orange-200 hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500 disabled:opacity-60"
+                                    data-id="${q.id}" title="고객 전화·상담 요청 시 관리자가 직접 주문취소" aria-label="${sanitizeHTML(name)} 관리자 직접 주문취소" ${isCancelProcessing ? 'disabled' : ''}>
+                                    <i class="fas fa-ban" aria-hidden="true"></i>직접 취소
+                                </button>
+                            ` : ''}
                             ${isCancelRequest ? `
                                 <div class="flex flex-wrap items-center justify-center gap-1.5">
                                     <button type="button" class="approve-cancel-btn px-3 py-2 text-xs font-extrabold rounded-lg bg-red-600 text-white border border-red-700 hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500 disabled:opacity-60" data-id="${q.id}" aria-label="${sanitizeHTML(name)} 주문 취소 처리" ${isCancelProcessing ? 'disabled' : ''}> ${isCancelProcessing ? '처리 중...' : '주문취소 처리'} </button>
@@ -1357,20 +1363,31 @@ function updateDashboard() {
             let reason = '';
             try {
                 const latest = await getDoc(quoteRef);
-                if (!latest.exists() || !isPendingCancellation(latest.data())) {
-                    showToast('이미 처리되었거나 취소요청이 없는 주문입니다.', 'info');
+                if (!latest.exists() || (decision === 'direct'
+                    ? !canAdminDirectCancel(latest.data())
+                    : !isPendingCancellation(latest.data()))) {
+                    showToast('이미 취소되었거나 처리할 수 없는 주문입니다.', 'info');
                     return;
                 }
 
-                if (decision === 'reject') {
-                    const answer = window.prompt('취소거절 사유를 입력하세요. (선택, 취소 버튼을 누르면 처리되지 않습니다)', '');
+                if (decision === 'reject' || decision === 'direct') {
+                    const answer = window.prompt(
+                        decision === 'direct'
+                            ? '직접 취소 사유를 기록해 주세요. (취소 버튼을 누르면 처리되지 않습니다)'
+                            : '취소거절 사유를 입력하세요. (선택, 취소 버튼을 누르면 처리되지 않습니다)',
+                        decision === 'direct' ? '전화로 취소 요청' : ''
+                    );
                     if (answer === null) return;
                     reason = answer.trim().slice(0, 500);
                 }
-                const title = decision === 'approve' ? '주문취소 처리' : '취소요청 거절';
+                const title = decision === 'approve' ? '주문취소 처리' : decision === 'direct' ? '관리자 직접 취소' : '취소요청 거절';
+                const status = String(latest.data()?.status || '접수완료');
+                const isInProduction = /작업중|제작|작업완료|결제완료/.test(status);
                 const message = decision === 'approve'
                     ? '고객의 취소요청을 승인하여 주문 상태를 주문취소로 변경합니다. 접수내역과 첨부파일은 삭제하지 않습니다. 진행하시겠습니까?'
-                    : '취소요청을 거절하고 고객에게 결과를 안내합니다. 진행하시겠습니까?';
+                    : decision === 'direct'
+                        ? `고객의 홈페이지 취소요청 없이 관리자가 직접 주문을 취소합니다. 현재 상태: ${status}. ${isInProduction ? '이미 제작·결제가 진행되었을 수 있으니 환불 및 제작 중단 여부를 별도로 확인하세요. ' : ''}접수내역과 파일은 보존되며 자동 환불은 실행되지 않습니다. 계속할까요?`
+                        : '취소요청을 거절하고 고객에게 결과를 안내합니다. 진행하시겠습니까?';
                 if (!await showConfirmation(title, message)) return;
 
                 handlingCancellationIds.add(quoteId);
@@ -1393,7 +1410,12 @@ function updateDashboard() {
                         updatedAt: timestamp
                     };
                     if (decision === 'approve') update.cancelApprovedAt = timestamp;
-                    else {
+                    else if (decision === 'direct') {
+                        update.cancelDirectAt = timestamp;
+                        update.cancelSource = 'admin_direct';
+                        update.cancelReason = resolution.cancelReason;
+                        update.cancelPrevStatus = current.data().status || '접수완료';
+                    } else {
                         update.cancelRejectedAt = timestamp;
                         update.cancelRejectedReason = resolution.cancelRejectedReason;
                     }
@@ -1407,7 +1429,11 @@ function updateDashboard() {
                         readByCustomer: false
                     });
                 });
-                showToast(decision === 'approve' ? '주문 취소를 확정하고 고객에게 알렸습니다.' : '취소요청을 거절하고 고객에게 알렸습니다.', 'success');
+                showToast(decision === 'direct'
+                    ? '관리자 직접 취소가 완료되었습니다. 고객 마이페이지에 처리 결과가 표시됩니다.'
+                    : decision === 'approve'
+                        ? '주문 취소를 확정하고 고객에게 알렸습니다.'
+                        : '취소요청을 거절하고 고객에게 알렸습니다.', 'success');
             } catch (error) {
                 logger.error('resolveCancelRequest failed', error);
                 const stale = error?.message === 'CANCEL_ALREADY_HANDLED';
@@ -3389,12 +3415,14 @@ DOMElements.quoteListBody.addEventListener('click', (e) => {
                 const editBtn = e.target.closest('.admin-edit-quote-btn');
                 const approveCancelBtn = e.target.closest('.approve-cancel-btn');
                 const rejectCancelBtn = e.target.closest('.reject-cancel-btn');
+                const directCancelBtn = e.target.closest('.direct-cancel-btn');
                 const deleteBtn = e.target.closest('.delete-quote-btn');
                 
                 // 전화/문자 링크의 기본 동작은 유지하고 목록 행 상세보기만 차단합니다.
                 if (contactAction) { e.stopPropagation(); return; }
                 if (approveCancelBtn) { resolveCancelRequest(approveCancelBtn.dataset.id, 'approve'); return; }
                 if (rejectCancelBtn) { resolveCancelRequest(rejectCancelBtn.dataset.id, 'reject'); return; }
+                if (directCancelBtn) { resolveCancelRequest(directCancelBtn.dataset.id, 'direct'); return; }
                 if (editBtn) { startAdminEdit(editBtn.dataset.id); return; }
                 if (deleteBtn) { deleteQuote(deleteBtn.dataset.id); return; }
                 if (e.target.closest('button, a, select, input, textarea, label')) return;

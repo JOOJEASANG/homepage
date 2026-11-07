@@ -8,12 +8,34 @@ export function isPendingCancellation(quote = {}) {
       && quote?.cancelRequestState !== 'rejected');
 }
 
+// Administrator can cancel any active order without a customer-initiated
+// cancellation request, including a request received by phone.
+export function canAdminDirectCancel(quote = {}) {
+  return !!quote
+    && quote.status !== '주문취소'
+    && quote.cancelRequestState !== 'approved'
+    && quote.cancelRequestState !== 'admin_cancelled';
+}
+
 export function cancellationResolution(quote, decision, reason = '') {
+  if (!['approve', 'reject', 'direct'].includes(decision)) {
+    throw new Error('INVALID_CANCEL_DECISION');
+  }
+  if (decision === 'direct') {
+    if (!canAdminDirectCancel(quote)) throw new Error('CANCEL_ALREADY_HANDLED');
+    const cleanedReason = String(reason || '').trim().slice(0, 500);
+    return {
+      status: '주문취소',
+      cancelRequestState: 'admin_cancelled',
+      cancelSource: 'admin_direct',
+      cancelReason: cleanedReason,
+      message: cleanedReason
+        ? '관리자가 주문을 취소 처리했습니다. 사유: ' + cleanedReason
+        : '관리자가 주문을 취소 처리했습니다.'
+    };
+  }
   if (!isPendingCancellation(quote) || quote?.status === '주문취소') {
     throw new Error('CANCEL_ALREADY_HANDLED');
-  }
-  if (decision !== 'approve' && decision !== 'reject') {
-    throw new Error('INVALID_CANCEL_DECISION');
   }
 
   if (decision === 'approve') {
