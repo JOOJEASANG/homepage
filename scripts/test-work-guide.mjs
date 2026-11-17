@@ -35,6 +35,10 @@ for (const id of ['guideSearch','guideFilters','guideResultCount','viewSummary',
 assert.match(guidePage, /assets\/css\/work-guide-v3\.css/);
 assert.match(admin, /assets\/css\/work-guide-v3\.css/);
 assert.match(styles, /@media \(max-width: 767px\)/);
+assert.match(styles, /height: calc\(100dvh - 36px\)/, 'desktop dialog should fill remaining viewport height');
+assert.doesNotMatch(styles, /min\(92dvh, 920px\)/, 'fixed 920px cap must not leave a large bottom gap');
+assert.doesNotMatch(guidePage, /md:h-\[85vh\]/, 'legacy modal height limit should be removed');
+assert.match(styles, /#workGuideModal #guideViewer \{ min-height: 0;/, 'viewer must shrink to allow internal scrolling');
 assert.match(script, /renderGuideDetails\(guide\.title\)/);
 assert.match(script, /guideVersion: 3/);
 assert.match(script, /filteredGuides\(\)/);
