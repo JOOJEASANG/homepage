@@ -27,6 +27,7 @@
 
   <script type="module">
     import { auth, db, onAuthStateChanged, collection, addDoc, getDocs, doc, getDoc, updateDoc, serverTimestamp } from './assets/js/firebase.js';
+    import { renderGuideDetails } from './assets/js/pages/work-guide/guide-details.js';
 
     const statusEl = document.getElementById('seed-status');
     const seedBtn = document.getElementById('seed-btn');
@@ -83,9 +84,9 @@
         let added = 0, updated = 0;
         let orderBase = snap.size;
         for (const g of guides) {
-          const contentHtml = html(g);
+          const contentHtml = html(g) + renderGuideDetails(g.title);
           const content = contentHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-          const payload = { title:g.title, content, contentHtml, category:g.category, tags:g.tags, updatedAt:serverTimestamp(), guideVersion:2 };
+          const payload = { title:g.title, content, contentHtml, category:g.category, tags:g.tags, updatedAt:serverTimestamp(), guideVersion:3 };
           const hit = existing.get(g.title);
           if (hit) { await updateDoc(doc(db, 'work_guides', hit.id), payload); updated++; }
           else { await addDoc(collection(db, 'work_guides'), { ...payload, order:++orderBase, createdAt:serverTimestamp() }); added++; }

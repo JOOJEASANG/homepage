@@ -2,7 +2,7 @@
 <html lang="ko" data-ui-refresh="1" data-page="work-guide">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="그린오피스 작업 가이드 — 파일 제작 방법, 규격, 주의사항 안내.">
     <title>작업 가이드 | 그린오피스</title>
   <link rel="icon" href="favicon.ico" />
@@ -49,14 +49,15 @@
       }
     </script>
     <link rel="stylesheet" href="assets/css/admin-price-workspace.css?v=20261006-settings">
+    <link rel="stylesheet" href="assets/css/work-guide-v3.css?v=20261117">
 </head>
 <body data-page="work-guide" class="bg-gray-100/60 font-sans text-slate-600">
 
     <div id="workGuideModal" class="fixed inset-0 z-[9999] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center md:p-4 transition-all duration-200">
-        <div class="bg-white w-full h-full md:max-w-6xl md:h-[85vh] md:rounded-2xl shadow-soft overflow-hidden flex flex-col md:flex-row animate-fade-in relative">
+        <div class="bg-white w-full h-full md:max-w-6xl md:h-[85vh] md:rounded-2xl shadow-soft overflow-hidden flex flex-col md:flex-row animate-fade-in relative wg-shell">
             
             <div class="md:hidden h-14 bg-white border-b border-slate-100 flex items-center justify-between px-4 shrink-0 z-50">
-                <span class="font-bold text-slate-700">업무 가이드</span>
+                <span class="font-bold text-slate-700">작업 가이드</span>
                 <button id="closeGuideMobile" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-800 -mr-2">
                     <i class="fas fa-times text-xl"></i>
                 </button>
@@ -64,12 +65,17 @@
 
             <div id="sidebarArea" class="w-full md:w-[280px] bg-[#f8fafc] border-r border-slate-200/80 flex flex-col h-full shrink-0 z-20">
                 
-                <div class="px-5 py-4 bg-[#f8fafc] border-b border-slate-100 shrink-0">
-                    <div class="flex items-center gap-2.5">
-                        <i class="fas fa-book text-brand-600"></i>
-                        <h2 class="text-[15px] font-bold text-slate-700 tracking-tight">가이드 목록</h2>
+                <div class="wg-sidebar-heading shrink-0">
+                    <span class="wg-eyebrow">GREEN OFFICE · PRINT GUIDE</span>
+                    <h2 class="wg-sidebar-title">작업 가이드</h2>
+                    <p class="wg-sidebar-description">파일 준비부터 디지털출력·제본·재단·후가공까지<br>제작 전에 꼭 알아야 할 실무 안내입니다.</p>
+                    <div class="wg-search-wrap">
+                        <i class="fas fa-magnifying-glass wg-search-icon" aria-hidden="true"></i>
+                        <input id="guideSearch" type="search" placeholder="가이드 제목·내용 검색" autocomplete="off" aria-label="작업가이드 검색">
                     </div>
                 </div>
+                <div id="guideFilters" class="wg-filter-list" role="group" aria-label="가이드 분야 필터"></div>
+                <div class="wg-list-heading"><span>GUIDE LIBRARY</span><span id="guideResultCount" aria-live="polite"></span></div>
 
                 <div id="guideList" class="flex-1 overflow-y-auto sidebar-scroll bg-slate-50">
                     <div class="text-center py-10">
@@ -99,21 +105,25 @@
                 </button>
 
                 <div id="guideViewer" class="flex-1 flex flex-col h-full overflow-hidden">
-                    <div class="px-6 md:px-10 pt-6 md:pt-10 pb-4 shrink-0">
-                        <h1 id="viewTitle" class="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight leading-snug">
-                            가이드를 선택해주세요
-                        </h1>
+                    <div class="wg-topbar shrink-0">
+                        <span class="wg-topbar-left"><i class="fas fa-layer-group" aria-hidden="true"></i> PRINT PRODUCTION LIBRARY</span>
+                        <a class="wg-topbar-link" href="quote-book.html" target="_top"><i class="fas fa-calculator" aria-hidden="true"></i> 책자/제본 견적</a>
                     </div>
-                    
-                    <div class="h-px w-full bg-slate-100 mx-6 md:mx-10 max-w-[calc(100%-3rem)] md:max-w-[calc(100%-5rem)]"></div>
-
-                    <div id="viewContent" class="flex-1 overflow-y-auto px-6 md:px-10 py-6 ql-view-content custom-scrollbar whitespace-pre-wrap break-words">
-                        <div class="flex flex-col items-center justify-center h-full text-slate-300/60 pb-20">
-                            <i class="fas fa-mouse-pointer text-4xl mb-3"></i>
-                            <p class="font-medium text-sm">목록에서 문서를 선택하세요.</p>
+                    <div class="wg-view-heading shrink-0">
+                        <div class="wg-view-meta">
+                            <span class="wg-view-pill" id="viewCategory">작업가이드</span>
+                            <span id="viewIndex"></span>
                         </div>
+                        <h1 id="viewTitle">가이드를 선택해주세요</h1>
+                        <p id="viewSummary">왼쪽 목록에서 항목을 선택하면 작업 기준과 주의사항을 확인할 수 있습니다.</p>
                     </div>
-                    
+                    <div id="viewContent" class="flex-1 overflow-y-auto ql-view-content custom-scrollbar break-words">
+                        <p>목록에서 문서를 선택하세요.</p>
+                    </div>
+                    <div id="guideNavigation" class="wg-navigation shrink-0" aria-label="이전·다음 가이드">
+                        <button id="guidePrev" class="wg-nav-btn" type="button" disabled>이전 가이드</button>
+                        <button id="guideNext" class="wg-nav-btn" type="button" disabled>다음 가이드</button>
+                    </div>
                     <div id="adminContentAction" class="px-6 py-4 bg-white border-t border-slate-100 flex justify-end gap-2 hidden shrink-0 pb-safe">
                         <button onclick="window.deleteCurrentGuide()" class="px-3 py-2 rounded-lg text-red-500 hover:bg-red-50 text-xs font-bold transition">
                             삭제

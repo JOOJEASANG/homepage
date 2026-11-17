@@ -2,6 +2,7 @@ import { app, auth, db, storage, getApps, getApp, onAuthStateChanged, collection
 import { initHeader } from "../header.js";
 import "../session.js";
 import { sanitizeRichText } from "../rich-text-sanitizer.js";
+import { getGuideDetail, renderGuideDetails } from "./work-guide/guide-details.js";
 
 // If opened inside a header layer (iframe), don't render the fixed header.
 const __WG_WORKSPACE__ = document.body.dataset.page === 'admin';
@@ -10,6 +11,7 @@ const __WG_EMBED__ = (()=>{
 })();
 
 function initializeWorkGuidePage() {
+  setupGuideSearch();
   if (__WG_WORKSPACE__) {
     setTimeout(() => loadGuides(), 0);
     return;
@@ -25,6 +27,33 @@ if (document.readyState === "loading") {
 // [수정] listAll, deleteObject 추가 (이미지 삭제용)
     
     let guides = [];
+    let guideSearchTerm = '';
+    let guideCategoryFilter = '전체';
+
+    function guideCategory(guide) {
+        return String(guide.category || getGuideDetail(guide.title)?.category || '기타').trim();
+    }
+
+    function filteredGuides() {
+        const search = guideSearchTerm.toLocaleLowerCase('ko').trim();
+        return guides.filter(guide => {
+            if (guideCategoryFilter !== '전체' && guideCategory(guide) !== guideCategoryFilter) return false;
+            if (!search) return true;
+            const target = [guide.title, guideCategory(guide), guide.content || '', getGuideDetail(guide.title)?.summary || ''].join(' ').toLocaleLowerCase('ko');
+            return target.includes(search);
+        });
+    }
+
+    function setupGuideSearch() {
+        const input = document.getElementById('guideSearch');
+        if (input && !input.dataset.wgSearchBound) {
+            input.dataset.wgSearchBound = '1';
+            input.addEventListener('input', () => {
+                guideSearchTerm = input.value;
+                renderSidebar();
+            });
+        }
+    }
     let currentGuideId = null;
     let isAdmin = false;
     let sortableInstance = null; 
@@ -228,7 +257,9 @@ if (document.readyState === "loading") {
             guides.sort((a, b) => a.order - b.order);
 
             renderSidebar();
-            
+            if (currentGuideId && guides.some(guide => guide.id === currentGuideId)) {
+                window.selectGuide(currentGuideId);
+            }
             if (window.innerWidth >= 768 && guides.length > 0 && !currentGuideId) {
                 window.selectGuide(guides[0].id);
             }
@@ -240,52 +271,90 @@ if (document.readyState === "loading") {
 
     function renderSidebar() {
         const guideListEl = document.getElementById('guideList');
-        if(!guideListEl) return;
-        
-        guideListEl.innerHTML = ''; 
-        
-        guides.forEach((g) => {
-            const isActive = g.id === currentGuideId;
-            const div = document.createElement('div');
-            
-            const baseClass = "w-full py-3.5 px-5 cursor-pointer border-b border-slate-100 transition-colors flex items-center justify-between group select-none bg-white";
-            const stateClass = isActive 
-                ? "border-l-4 border-l-brand-600 text-brand-900 bg-slate-50" 
-                : "border-l-4 border-l-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50";
+        if (!guideListEl) return;
+        if (sortableInstance) { sortableInstance.destroy(); sortableInstance = null; }
 
-            div.className = `${baseClass} ${stateClass}`;
-            div.setAttribute('data-id', g.id);
-            
-            div.onclick = (e) => {
-                if(e.target.closest('.handle')) return;
-                window.selectGuide(g.id);
+        const categoryEl = document.getElementById('guideFilters');
+        const available = ['전체', ...new Set(guides.map(guideCategory))];
+        if (!available.includes(guideCategoryFilter)) guideCategoryFilter = '전체';
+        if (categoryEl) {
+            categoryEl.replaceChildren();
+            available.forEach(category => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'wg-filter-btn';
+                btn.textContent = category;
+                btn.setAttribute('aria-pressed', String(category === guideCategoryFilter));
+                btn.addEventListener('click', () => {
+                    guideCategoryFilter = category;
+                    renderSidebar();
+                });
+                categoryEl.appendChild(btn);
+            });
+        }
+
+        const visible = filteredGuides();
+        const countEl = document.getElementById('guideResultCount');
+        if (countEl) countEl.textContent = `${visible.length} / ${guides.length}개`;
+        guideListEl.replaceChildren();
+        if (visible.length === 0) {
+            const empty = document.createElement('p');
+            empty.className = 'wg-no-results';
+            empty.textContent = guides.length ? '검색 결과가 없습니다. 검색어나 분야를 변경해 주세요.' : '등록된 작업가이드가 없습니다.';
+            guideListEl.appendChild(empty);
+            return;
+        }
+
+        visible.forEach((guide) => {
+            const row = document.createElement('div');
+            row.className = 'wg-guide-item' + (guide.id === currentGuideId ? ' is-active' : '');
+            row.dataset.id = guide.id;
+            row.tabIndex = 0;
+            row.setAttribute('role', 'button');
+            row.setAttribute('aria-current', guide.id === currentGuideId ? 'true' : 'false');
+            row.setAttribute('aria-label', guide.title || '작업가이드');
+
+            const number = document.createElement('span');
+            number.className = 'wg-item-number';
+            number.textContent = String(guides.indexOf(guide) + 1).padStart(2, '0');
+            const copy = document.createElement('span');
+            copy.className = 'wg-item-copy';
+            const title = document.createElement('span');
+            title.className = 'wg-item-title';
+            title.textContent = guide.title || '';
+            const category = document.createElement('span');
+            category.className = 'wg-item-category';
+            category.textContent = guideCategory(guide);
+            copy.append(title, category);
+            if (isAdmin && !guideSearchTerm.trim() && guideCategoryFilter === '전체') {
+                const handle = document.createElement('span');
+                handle.className = 'handle cursor-grab text-slate-300 hover:text-slate-600';
+                handle.title = '순서 이동';
+                handle.innerHTML = '<i class="fas fa-grip-vertical" aria-hidden="true"></i>';
+                row.appendChild(handle);
+            }
+            row.append(number, copy);
+            const pick = event => {
+                if (event.type === 'click' && event.target.closest('.handle')) return;
+                if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) return;
+                if (event.type === 'keydown') event.preventDefault();
+                window.selectGuide(guide.id);
             };
-
-            div.innerHTML = `
-                <div class="flex items-center gap-3 overflow-hidden w-full pointer-events-none">
-                    ${isAdmin ? '<div class="handle pointer-events-auto cursor-grab px-1 text-slate-300 hover:text-slate-600"><i class="fas fa-grip-vertical"></i></div>' : ''}
-                    <span class="text-[14px] font-semibold truncate flex-1">
-                    </span>
-                </div>
-                ${isActive ? '<i class="fas fa-chevron-right text-xs text-brand-600 shrink-0 ml-2"></i>' : ''}
-            `;
-            div.querySelector('span').textContent = g.title || '';
-            guideListEl.appendChild(div);
+            row.addEventListener('click', pick);
+            row.addEventListener('keydown', pick);
+            guideListEl.appendChild(row);
         });
 
-        if (isAdmin && Sortable) {
-            if (sortableInstance) sortableInstance.destroy();
-            
+        // 필터 중에는 일부 항목만 저장되는 정렬 사고를 방지합니다.
+        if (isAdmin && Sortable && !guideSearchTerm.trim() && guideCategoryFilter === '전체') {
             sortableInstance = new Sortable(guideListEl, {
-                animation: 150,
+                animation: 160,
                 handle: '.handle',
                 ghostClass: 'bg-indigo-50',
-                onEnd: async function (evt) {
-                    const newOrderIds = Array.from(guideListEl.children).map(el => el.getAttribute('data-id'));
-                    
-                    const idMap = new Map(guides.map(g => [g.id, g]));
-                    guides = newOrderIds.map(id => idMap.get(id)).filter(g => g);
-
+                onEnd: async () => {
+                    const newOrderIds = Array.from(guideListEl.children).map(el => el.dataset.id);
+                    const idMap = new Map(guides.map(guide => [guide.id, guide]));
+                    guides = newOrderIds.map(id => idMap.get(id)).filter(Boolean);
                     await saveOrder();
                 },
             });
@@ -315,29 +384,53 @@ if (document.readyState === "loading") {
         }
     }
 
+    function renderGuideNavigation() {
+        const visible = filteredGuides();
+        const index = visible.findIndex(guide => guide.id === currentGuideId);
+        const controls = [
+            [document.getElementById('guidePrev'), index > 0 ? visible[index - 1] : null, '← 이전'],
+            [document.getElementById('guideNext'), index >= 0 && index < visible.length - 1 ? visible[index + 1] : null, '다음 →'],
+        ];
+        controls.forEach(([button, guide, prefix]) => {
+            if (!button) return;
+            button.disabled = !guide;
+            button.textContent = guide ? `${prefix} · ${guide.title}` : prefix;
+            button.onclick = guide ? () => window.selectGuide(guide.id) : null;
+        });
+    }
+
     window.selectGuide = function(id) {
         currentGuideId = id;
         renderSidebar();
-        
-        const g = guides.find(x => x.id === id);
-        if (!g) return;
+        const guide = guides.find(item => item.id === id);
+        if (!guide) return;
 
         document.getElementById('guideViewer').classList.remove('hidden');
         document.getElementById('guideEditor').classList.add('hidden');
         document.getElementById('guideEditor').classList.remove('flex');
-        
-        document.getElementById('viewTitle').textContent = g.title;
-        document.getElementById('mobileHeaderTitle').textContent = g.title;
-        
+
+        document.getElementById('viewTitle').textContent = guide.title || '작업가이드';
+        document.getElementById('mobileHeaderTitle').textContent = guide.title || '내용 보기';
+        const detail = getGuideDetail(guide.title);
+        const categoryEl = document.getElementById('viewCategory');
+        if (categoryEl) categoryEl.textContent = guideCategory(guide);
+        const summary = document.getElementById('viewSummary');
+        if (summary) summary.textContent = detail?.summary || (guide.content || '').trim().slice(0, 180) || '출력·제본 작업에 필요한 내용을 확인하세요.';
+        const pageIndex = document.getElementById('viewIndex');
+        if (pageIndex) pageIndex.textContent = `${guides.indexOf(guide) + 1} / ${guides.length}`;
+
         const viewContent = document.getElementById('viewContent');
-        if (g.contentHtml) viewContent.innerHTML = sanitizeRichText(g.contentHtml);
-        else viewContent.textContent = g.content || '';
+        if (guide.contentHtml) viewContent.innerHTML = sanitizeRichText(guide.contentHtml);
+        else viewContent.textContent = guide.content || '등록된 내용이 없습니다.';
+        // 기존 데이터는 그대로 보존하고, v3 미만 기본가이드에 실무 예시를 더합니다.
+        if (detail && Number(guide.guideVersion || 0) < 3) {
+            viewContent.insertAdjacentHTML('beforeend', renderGuideDetails(guide.title));
+        }
+        viewContent.scrollTop = 0;
+        renderGuideNavigation();
 
         const adminActions = document.getElementById('adminContentAction');
-        if(adminActions) {
-            if (isAdmin) adminActions.classList.remove('hidden');
-            else adminActions.classList.add('hidden');
-        }
+        if (adminActions) adminActions.classList.toggle('hidden', !isAdmin);
         window.showContent();
     };
 
@@ -362,6 +455,9 @@ if (document.readyState === "loading") {
         const editor = document.getElementById('wg-content-editor');
         if(g.contentHtml) editor.innerHTML = sanitizeRichText(g.contentHtml);
         else editor.innerText = g.content || '';
+        if (getGuideDetail(g.title) && Number(g.guideVersion || 0) < 3) {
+            editor.insertAdjacentHTML('beforeend', renderGuideDetails(g.title));
+        }
         document.getElementById('guideViewer').classList.add('hidden');
         const editorSec = document.getElementById('guideEditor');
         editorSec.classList.remove('hidden');
@@ -392,6 +488,7 @@ if (document.readyState === "loading") {
                 title,
                 content: contentText,
                 contentHtml: contentHtml,
+                guideVersion: 3,
                 updatedAt: serverTimestamp()
             };
 

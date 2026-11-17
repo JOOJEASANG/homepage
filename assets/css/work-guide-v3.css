@@ -1,0 +1,81 @@
+
+/* Work guide v3: responsive reading workspace; shared by public page and admin workspace. */
+#workGuideModal { font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #183047; }
+#workGuideModal > div { max-width: 1320px; border: 1px solid #dce8e5; border-radius: 24px; box-shadow: 0 24px 80px rgba(13, 39, 48, .18); }
+#workGuideModal #sidebarArea { width: 324px; min-width: 324px; background: #f6f9f8; border-right: 1px solid #dce8e5; }
+#workGuideModal #contentArea { background: #fff; min-width: 0; }
+#workGuideModal .wg-sidebar-heading { padding: 26px 23px 15px; border-bottom: 0; background: transparent; }
+#workGuideModal .wg-eyebrow { color: #087e69; font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+#workGuideModal .wg-sidebar-title { color: #152e36; font-size: 23px; font-weight: 800; letter-spacing: -.05em; margin-top: 5px; }
+#workGuideModal .wg-sidebar-description { margin-top: 7px; font-size: 12px; color: #647a7c; line-height: 1.65; }
+#workGuideModal .wg-search-wrap { margin-top: 18px; position: relative; }
+#workGuideModal .wg-search-icon { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #78918e; font-size: 13px; }
+#workGuideModal #guideSearch { width: 100%; border: 1px solid #d6e3e0; background: #fff; color: #173036; height: 43px; padding: 0 12px 0 37px; border-radius: 11px; outline: none; font-size: 12px; transition: border-color .15s, box-shadow .15s; }
+#workGuideModal #guideSearch:focus { border-color: #07987b; box-shadow: 0 0 0 3px #d8f5ed; }
+#workGuideModal .wg-filter-list { padding: 0 19px 17px; display: flex; flex-wrap: wrap; gap: 7px; }
+#workGuideModal .wg-filter-btn { border: 1px solid #d9e5e2; border-radius: 18px; background: #fff; padding: 7px 10px; color: #617775; font-size: 11px; font-weight: 700; line-height: 1.1; transition: .15s; }
+#workGuideModal .wg-filter-btn:hover { border-color: #0d9b83; color: #087b69; }
+#workGuideModal .wg-filter-btn[aria-pressed="true"] { background: #146d5d; border-color: #146d5d; color: #fff; }
+#workGuideModal .wg-list-heading { display: flex; align-items: center; justify-content: space-between; padding: 7px 22px 12px; color: #6b8784; font-size: 11px; font-weight: 700; }
+#workGuideModal #guideList { padding: 0 10px 15px; background: transparent; }
+#workGuideModal #guideList .wg-guide-item { border: 1px solid transparent; border-radius: 13px; margin-bottom: 5px; padding: 13px 12px; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background .15s, border-color .15s, box-shadow .15s; }
+#workGuideModal #guideList .wg-guide-item:hover { background: #fff; border-color: #deebe8; }
+#workGuideModal #guideList .wg-guide-item.is-active { background: #fff; border-color: #bae4d8; box-shadow: 0 3px 12px rgba(19, 116, 96, .08); }
+#workGuideModal .wg-item-number { flex: 0 0 auto; width: 31px; height: 31px; border-radius: 9px; display: grid; place-items: center; background: #e6eeeb; color: #6f8c85; font-size: 11px; font-weight: 800; }
+#workGuideModal .is-active .wg-item-number { background: #def4ec; color: #0e7a62; }
+#workGuideModal .wg-item-copy { min-width: 0; flex: 1; }
+#workGuideModal .wg-item-title { display: block; color: #263c44; font-size: 12.5px; font-weight: 750; line-height: 1.45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#workGuideModal .wg-item-category { display: block; color: #8b9e9f; font-size: 10px; margin-top: 3px; }
+#workGuideModal .wg-no-results { padding: 38px 16px; color: #728785; text-align: center; font-size: 12px; line-height: 1.8; }
+#workGuideModal .wg-topbar { min-height: 68px; display: flex; align-items: center; justify-content: space-between; padding: 0 62px 0 40px; border-bottom: 1px solid #edf2f1; gap: 12px; }
+#workGuideModal .wg-topbar-left { display: flex; gap: 9px; align-items: center; font-size: 12px; color: #708887; font-weight: 700; }
+#workGuideModal .wg-topbar-left i { color: #0e8b73; }
+#workGuideModal .wg-topbar-link { display: inline-flex; align-items: center; gap: 8px; border-radius: 8px; color: #0b7f67; background: #eaf8f3; padding: 9px 12px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+#workGuideModal .wg-topbar-link:hover { background: #d9f2e9; }
+#workGuideModal .wg-view-heading { padding: 30px 42px 24px; background: linear-gradient(145deg,#fff 48%,#f6faf8); border-bottom: 1px solid #eaf0ee; }
+#workGuideModal .wg-view-meta { display: inline-flex; gap: 9px; align-items: center; font-size: 11px; font-weight: 750; color: #0c8068; }
+#workGuideModal .wg-view-pill { padding: 6px 11px; border-radius: 30px; border: 1px solid #cbeadd; background: #e9f7f1; }
+#workGuideModal #viewTitle { margin: 12px 0 0; letter-spacing: -.05em; color: #102b35; line-height: 1.32; font-size: clamp(23px, 2.4vw, 32px); }
+#workGuideModal #viewSummary { margin: 10px 0 0; max-width: 700px; font-size: 13px; line-height: 1.85; color: #587072; word-break: keep-all; }
+#workGuideModal #viewContent { padding: 24px 42px 50px; max-width: 950px; margin: 0 auto; width: 100%; white-space: normal; overflow-x: hidden; }
+#workGuideModal .ql-view-content { color: #425864; line-height: 1.85; font-size: 14px; }
+#workGuideModal .ql-view-content h2 { font-size: 17px; border: 0; border-bottom: 1px solid #e4eee9; padding: 0 0 11px; margin: 35px 0 15px; color: #143e42; font-weight: 800; }
+#workGuideModal .ql-view-content h2:first-child { margin-top: 8px; }
+#workGuideModal .ql-view-content h3 { font-size: 14px; color: #1b5553; font-weight: 750; margin: 23px 0 11px; }
+#workGuideModal .ql-view-content p { color: #4a6268; line-height: 1.9; margin: 0 0 16px; }
+#workGuideModal .ql-view-content ul, #workGuideModal .ql-view-content ol { padding-left: 1.6em; margin: 11px 0 23px; }
+#workGuideModal .ql-view-content li { margin: 0 0 8px; line-height: 1.75; padding-left: 4px; }
+#workGuideModal .ql-view-content li::marker { color: #12836f; font-weight: 800; }
+#workGuideModal .ql-view-content img { width: 100%; max-width: 780px; height: auto; border-radius: 16px; background: #f6f9f8; border: 1px solid #e6eeea; box-shadow: none; margin: 10px auto 22px; display: block; }
+#workGuideModal .ql-view-content blockquote { margin: 23px 0 9px; border: 1px solid #cae6dc; border-left: 4px solid #188771; background: #f1faf6; border-radius: 11px; padding: 16px 18px; color: #275c51; }
+#workGuideModal .ql-view-content blockquote p { color: #39675f; margin: 7px 0 0; }
+#workGuideModal .ql-view-content a { color: #087f6d; text-decoration: underline; text-underline-offset: 3px; }
+#workGuideModal .wg-navigation { display: flex; gap: 12px; justify-content: space-between; padding: 13px 36px 15px; border-top: 1px solid #e8f0ed; background: #fff; }
+#workGuideModal .wg-nav-btn { background: #f7faf8; border: 1px solid #dceae5; padding: 10px 14px; border-radius: 10px; color: #2f6860; font-weight: 700; font-size: 11px; max-width: 48%; min-height: 43px; }
+#workGuideModal .wg-nav-btn:disabled { visibility: hidden; }
+#workGuideModal .wg-nav-btn:hover:not(:disabled) { background: #e7f7ef; border-color: #aadfce; }
+#workGuideModal #guideEditor { min-height: 0; }
+#workGuideModal #wg-content-editor { white-space: normal !important; line-height: 1.85; }
+#workGuideModal :is(button,a,input,select,[role="button"]):focus-visible { outline: 3px solid #20b18e; outline-offset: 2px; }
+@media (min-width: 768px) {
+  body[data-page="work-guide"] #workGuideModal { padding: 18px; }
+  body[data-page="work-guide"] #workGuideModal > div { height: min(92dvh, 920px); }
+}
+@media (max-width: 767px) {
+  body[data-page="work-guide"] #workGuideModal { padding: 0; }
+  #workGuideModal > div { max-width: none; width: 100%; height: 100dvh; border: 0; border-radius: 0; box-shadow: none; }
+  #workGuideModal #sidebarArea { width: 100%; min-width: 0; border-right: 0; }
+  #workGuideModal #contentArea { width: 100%; }
+  #workGuideModal .wg-sidebar-heading { padding: 20px 20px 13px; }
+  #workGuideModal .wg-filter-list { padding: 0 14px 15px; }
+  #workGuideModal #guideList { padding: 0 9px 18px; }
+  #workGuideModal .wg-topbar { display: none; }
+  #workGuideModal .wg-view-heading { padding: 25px 22px 20px; }
+  #workGuideModal #viewContent { padding: 20px 22px 42px; font-size: 13px; }
+  #workGuideModal .ql-view-content h2 { font-size: 16px; }
+  #workGuideModal .wg-navigation { padding: 10px 16px max(12px,env(safe-area-inset-bottom)); }
+  #workGuideModal .wg-nav-btn { font-size: 10px; padding: 8px 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #workGuideModal .wg-guide-item, #workGuideModal #guideSearch, #workGuideModal .wg-filter-btn { transition: none; }
+}
