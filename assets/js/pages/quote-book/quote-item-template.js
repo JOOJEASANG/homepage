@@ -55,6 +55,7 @@ export function renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPri
                         </label>
                     </div>
                 </div>
+                <p class="no-binding-cover-notice hidden mt-2 text-xs text-slate-500" role="status">제본 안함 선택 시 표지 용지와 표지 인쇄는 자동으로 제외됩니다.</p>
             </div>
 
             <div class="order-stage" data-order-stage="inner">

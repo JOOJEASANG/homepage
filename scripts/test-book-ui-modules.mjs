@@ -34,6 +34,61 @@ const innerHtml = templates.renderInnerSectionTemplate({ sectionCount: 1 });
 assert.ok(innerHtml.includes('remove-inner-section-btn'));
 assert.ok(innerHtml.includes('innerPaperType'));
 
+const noBindingCover = await mod('no-binding-cover.js');
+{
+  const binding = { value: 'wire' };
+  const coverPaper = { value: 'snow200', disabled: false };
+  const coverPrint = { value: 'color_duplex', disabled: false };
+  const coverDesign = { checked: true, disabled: false };
+  const coverOshi = { checked: true, disabled: false };
+  const preview = { disabled: false };
+  const wireFront = { checked: true };
+  const wireBack = { checked: true };
+  const status = { hidden: true };
+  const stage = { dimmed: false };
+  const controls = {
+    '.bindingType': binding,
+    '.coverPaperType': coverPaper,
+    '.coverPrintType': coverPrint,
+    '.coverDesign': coverDesign,
+    '.coverOshi': coverOshi,
+    '.cover-paper-preview-btn': preview,
+    '[data-order-stage="cover"]': { classList: { toggle: (_, value) => { stage.dimmed = value; } } },
+    '.no-binding-cover-notice': { classList: { toggle: (_, value) => { status.hidden = value; } } },
+  };
+  const item = {
+    dataset: { wireCoverFront: '1', wireCoverBack: '1' },
+    querySelector: selector => controls[selector] || null,
+    querySelectorAll: () => [wireFront, wireBack],
+  };
+  noBindingCover.syncNoBindingCoverState(item);
+  assert.equal(coverPaper.value, 'snow200');
+  assert.equal(coverPrint.value, 'color_duplex');
+  binding.value = 'none';
+  noBindingCover.syncNoBindingCoverState(item);
+  assert.equal(coverPaper.value, 'none');
+  assert.equal(coverPrint.value, 'none');
+  assert.equal(coverDesign.checked, false);
+  assert.equal(coverOshi.checked, false);
+  assert.equal(wireFront.checked, false);
+  assert.equal(wireBack.checked, false);
+  assert.equal(item.dataset.wireCoverFront, '0');
+  assert.equal(coverPaper.disabled, true);
+  assert.equal(coverPrint.disabled, true);
+  assert.equal(preview.disabled, true);
+  assert.equal(stage.dimmed, true);
+  assert.equal(status.hidden, false);
+  binding.value = 'perfect';
+  noBindingCover.syncNoBindingCoverState(item);
+  assert.equal(coverPaper.disabled, false);
+  assert.equal(coverPrint.disabled, false);
+  assert.equal(coverDesign.disabled, false);
+  assert.equal(coverOshi.disabled, false);
+  assert.equal(preview.disabled, false);
+  assert.equal(status.hidden, true);
+  assert.equal(stage.dimmed, false);
+}
+
 const storageSource = fs.readFileSync(path.join(root, 'assets/js/pages/quote-book/quote-storage.js'), 'utf8');
 assert.match(storageSource, /export function getBookTempStorageKey/);
 assert.match(storageSource, /export function readLastQuoteCache/);

@@ -36,6 +36,7 @@ import { isAdminEditSearch, parseQuoteReloadPayload } from "./quote-book/page-st
 import { readGuestSubmitSession, readGuestMenuSession, getGuestMyPageLookupKey, restoreGuestSessionFromReload, persistGuestSessionAfterSubmit } from "./quote-book/guest-session.js";
 import { acquireBookSubmitLock, releaseBookSubmitLock } from "./quote-book/submit-lock.js";
 import { renderQuoteItemTemplate, renderInnerSectionTemplate } from "./quote-book/quote-item-template.js?v=20261030-a5-impressions";
+import { syncNoBindingCoverState } from "./quote-book/no-binding-cover.js";
 import "../session.js?v=20261102-wire-cover-paper";
 
 // 페이지 로드 시 공통 헤더 렌더링
@@ -765,6 +766,7 @@ function applyImagePreviewsToUI(root=document) {
             addInnerSection(newItem.querySelector('.inner-sections-container'));
         }
         setupItemEventListeners(newItem);
+        syncNoBindingCoverState(newItem);
     }
     
     function addInnerSection(container, data = {}) {
@@ -802,6 +804,7 @@ function applyImagePreviewsToUI(root=document) {
             bindingOptionsContainer.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected'));
             selectedCard.classList.add('selected');
             itemEl.querySelector('.bindingType').value = selectedCard.dataset.value;
+            syncNoBindingCoverState(itemEl);
             itemEl.querySelector('.binding-direction-section')?.classList.toggle('hidden', selectedCard.dataset.value === 'none');
             if (selectedCard.dataset.value !== 'none') {
                 itemEl.querySelector('.stapleEnabled').checked = false;
@@ -886,6 +889,7 @@ function applyImagePreviewsToUI(root=document) {
 
         document.querySelectorAll('.quote-item').forEach((itemEl, index) => {
             updateBindingOptions(itemEl);
+            syncNoBindingCoverState(itemEl);
             refreshStapleAvailability(itemEl);
 
             const orderName = itemEl.querySelector('.orderName').value;
