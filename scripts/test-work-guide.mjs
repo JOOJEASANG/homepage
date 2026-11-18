@@ -38,7 +38,7 @@ assert.match(styles, /@media \(max-width: 767px\)/);
 assert.match(styles, /height: calc\(100dvh - 36px\)/, 'desktop dialog should fill remaining viewport height');
 assert.doesNotMatch(styles, /min\(92dvh, 920px\)/, 'fixed 920px cap must not leave a large bottom gap');
 assert.doesNotMatch(guidePage, /md:h-\[85vh\]/, 'legacy modal height limit should be removed');
-assert.match(styles, /#workGuideModal #guideViewer \\{ min-height: 0;/, 'viewer must shrink to allow internal scrolling');
+assert.ok(styles.includes('#workGuideModal #guideViewer { min-height: 0;'), 'viewer must shrink to allow internal scrolling');
 assert.match(styles, /\.admin-guide-panel #sidebarArea,[\s\S]*?max-height: 100%;/, 'mobile admin sidebar must fit available height');
 assert.match(styles, /\.admin-guide-panel #guideList \{[\s\S]*?overflow-y: auto;/, 'guide list must scroll independently from admin actions');
 assert.match(styles, /\.admin-guide-panel #adminSidebarAction \{[\s\S]*?flex: 0 0 auto;/, 'admin add guide action must remain visible');
