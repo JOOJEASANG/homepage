@@ -542,6 +542,30 @@ test('maintenance, notice and image saves still work in the workspace', async ({
   expect(JSON.stringify((await writes(page, 'settings/imagePreviews'))[0].data)).toContain('/favicon.ico');
 });
 
+test('admin notification preference persists and the toggle displays its current state', async ({ page }) => {
+  await fixture(page);
+  await page.addInitScript(() => {
+    if (localStorage.getItem('adminNotifsEnabled') === null)
+      localStorage.setItem('adminNotifsEnabled', '0');
+  });
+  await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#main-content')).toBeVisible();
+  const button = page.locator('#enable-notifs-btn');
+  await expect(page.locator('#notif-label')).toHaveText('알림 꺼짐');
+  await expect(button).toHaveAttribute('aria-pressed', 'false');
+  await page.evaluate(() => {
+    localStorage.setItem('adminNotifsEnabled', '1');
+    window.dispatchEvent(new StorageEvent('storage', { key: 'adminNotifsEnabled', newValue: '1' }));
+  });
+  await expect(page.locator('#notif-label')).toHaveText('알림 켜짐');
+  await expect(button).toHaveAttribute('aria-pressed', 'true');
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#notif-label')).toHaveText('알림 켜짐');
+  await button.click();
+  await expect(page.locator('#notif-label')).toHaveText('알림 꺼짐');
+  expect(await page.evaluate(() => localStorage.getItem('adminNotifsEnabled'))).toBe('0');
+});
+
 test('guide shares the main admin document and preserves and saves its editor', async ({ page }) => {
   await openAdmin(page);
   await choose(page, 'work-guide-management-btn');

@@ -42,6 +42,7 @@ assert.ok(styles.includes('#workGuideModal #guideViewer { min-height: 0;'), 'vie
 assert.match(styles, /\.admin-guide-panel #sidebarArea,[\s\S]*?max-height: 100%;/, 'mobile admin sidebar must fit available height');
 assert.match(styles, /\.admin-guide-panel #guideList \{[\s\S]*?overflow-y: auto;/, 'guide list must scroll independently from admin actions');
 assert.match(styles, /\.admin-guide-panel #adminSidebarAction \{[\s\S]*?flex: 0 0 auto;/, 'admin add guide action must remain visible');
+assert.match(styles, /\.admin-guide-panel #adminSidebarAction \{[\s\S]*?order: 1;/, 'admin mobile guide create action should be ordered before the list');
 assert.match(script, /renderGuideDetails\(guide\.title\)/);
 assert.match(script, /guideVersion: 3/);
 assert.match(script, /filteredGuides\(\)/);

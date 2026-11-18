@@ -23,6 +23,7 @@ import "../session.js";
 import { validateUploadFiles } from "../file-upload-policy.js";
 import { activateAdminWorkspace, initAdminWorkspaceNavigation } from "./admin/price-workspace.js";
 import { isPendingCancellation, canAdminDirectCancel, cancellationResolution } from "./admin/cancellation.js";
+import { ADMIN_NOTIFICATION_KEY, readAdminNotificationPreference, notificationToggleText } from "./admin/notification-preference.js";
 
 // 페이지 로드 시 헤더 렌더링 (관리자 페이지는 활성 메뉴 없음)
 document.addEventListener("DOMContentLoaded", () => initHeader(""));
@@ -153,9 +154,10 @@ await setPersistence(auth, browserLocalPersistence);
         //   - 첫 클릭 발생 시 unlockSoundsOnce() 로 오디오 잠금 해제
         //   - 쿨다운(cooldown) 으로 같은 소리가 연속 재생되는 것 방지
         //   - window.__notifsEnabled 로 소리 ON/OFF 전역 제어
-        window.__notifsEnabled = true
-        let __notifsEnabled = window.__notifsEnabled; // 알림(소리) on/off
-        try{ const v = localStorage.getItem('adminNotifsEnabled'); if(v !== null) __notifsEnabled = (v === '1'); }catch(e){}
+        // Saved value must control the real global state (not an unused local variable).
+        let initialEnabled = true;
+        try { initialEnabled = readAdminNotificationPreference(window.localStorage); } catch (_) {}
+        window.__notifsEnabled = initialEnabled;
         let __soundsUnlocked = false;
         const __soundCooldown = new Map(); // key -> lastTime(ms)
         function safePlay(audioEl, key, cooldownMs = 1800){
@@ -198,13 +200,14 @@ await setPersistence(auth, browserLocalPersistence);
                     try{
                         a.muted = true;
                         const p = a.play();
-                        if (p && p.then) await p.catch(()=>{});
+                        if (p && p.then) await p;
                         a.pause();
                         try { a.currentTime = 0; } catch(e) {}
-                        a.muted = false;
                         anyUnlocked = true;
                     }catch(e){
-                        // 브라우저 autoplay 정책 - 무시
+                        // Sound remains locked until a real user gesture succeeds.
+                    }finally{
+                        a.muted = false;
                     }
                 }
                 if (anyUnlocked) {
@@ -222,12 +225,19 @@ await setPersistence(auth, browserLocalPersistence);
         // window에 등록해 admin.html 인라인 스크립트에서도 호출 가능
         function __updateNotifUIButton(){
             const on = (window.__notifsEnabled !== false);
+            const text = notificationToggleText(on);
             const label = document.getElementById('notif-label');
+            const button = document.getElementById('enable-notifs-btn');
             const track = document.getElementById('notif-track');
             const thumb = document.getElementById('notif-thumb');
             const icon  = document.getElementById('notif-icon');
-            if(label) label.textContent = on ? '알림 끄기' : '알림 켜기';
-            if(icon)  icon.textContent  = on ? '🔔' : '🔕';
+            if(label) label.textContent = text.state;
+            if(button) {
+                button.setAttribute('aria-pressed', String(on));
+                button.setAttribute('aria-label', text.action);
+                button.title = text.action;
+            }
+            if(icon) icon.textContent = on ? '🔔' : '🔕';
             if(track) track.style.background = on ? '#22c55e' : '#374151';
             if(thumb) thumb.style.left = on ? '18px' : '2px';
         }
@@ -235,10 +245,23 @@ await setPersistence(auth, browserLocalPersistence);
         window.__updateNotifToggleUI = __updateNotifUIButton;
         function __setNotifsEnabled(v){
             window.__notifsEnabled = !!v;
-            try{ localStorage.setItem('adminNotifsEnabled', window.__notifsEnabled ? '1' : '0'); }catch(e){}
+            try{ localStorage.setItem(ADMIN_NOTIFICATION_KEY, window.__notifsEnabled ? '1' : '0'); }catch(e){}
+            if (!window.__notifsEnabled) stopTitleBlink();
             __updateNotifUIButton();
             try{ updateNotifStatus(); }catch(e){}
         }
+        // Keep other administrator tabs in sync with the same browser preference.
+        window.addEventListener('storage', event => {
+            if (event.key !== ADMIN_NOTIFICATION_KEY && event.key !== null) return;
+            let current = window.__notifsEnabled !== false;
+            try { current = readAdminNotificationPreference(window.localStorage, current); } catch (_) {}
+            window.__notifsEnabled = current;
+            if (!current) stopTitleBlink();
+            __updateNotifUIButton();
+            updateNotifStatus();
+        });
+        __updateNotifUIButton();
+
         // 글로벌 토글(버튼 인라인/이벤트 둘 다 사용)
         window.__toggleAdminNotifs = async function(){
             const on = (window.__notifsEnabled !== false);
@@ -262,7 +285,7 @@ function updateNotifStatus(){
             const on = (window.__notifsEnabled !== false);
             const permTxt = perm === 'granted' ? '브라우저 알림 허용' : perm === 'denied' ? '브라우저 알림 차단' : '브라우저 알림 미설정';
             const soundTxt = __soundsUnlocked ? '소리 준비됨' : '소리 잠김';
-            el.textContent = `${permTxt} · ${soundTxt}`;
+            el.textContent = `${notificationToggleText(on).state} · ${permTxt} · ${soundTxt}`;
             // 토글 UI도 동기화
             try { __updateNotifUIButton(); } catch(e) {}
         }
@@ -273,7 +296,7 @@ function updateNotifStatus(){
         async function fireNewIntakeAlert(count, firstQuote) {
             try {
                 const n = Number(count) || 0;
-                if (n <= 0) return;
+                if (n <= 0 || window.__notifsEnabled === false) return;
 
                 // 1) 소리
                 const audioEl = document.getElementById('notification-sound');
@@ -284,7 +307,8 @@ function updateNotifStatus(){
                 startTitleBlink(titleMsg);
 
                 // 3) 데스크탑 알림
-                const granted = await ensureNotificationPermission();
+                // Permission prompts are restricted to a user click on the toggle.
+                const granted = window.Notification?.permission === 'granted';
                 if (!granted) return;
 
                 const orderName = firstQuote?.orderName || firstQuote?.ordererName || firstQuote?.guestName || "새 접수";
@@ -905,8 +929,7 @@ async function listenToQuotes() {
             userDocs.forEach(doc => { usersCache[doc.id] = doc.data(); });
 
             onSnapshot(q, async (snapshot) => {
-                // 알림 권한(최초 1회) 요청
-                if (isInitialQuotesSnapshot) { ensureNotificationPermission(); }
+                // Do not ask for browser permission during automatic data loading.
                 let hasNewUnread = false;
                 let newIntakeCount = 0;
                 let firstNewIntake = null;

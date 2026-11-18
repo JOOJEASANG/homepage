@@ -94,7 +94,7 @@
 @media (max-width: 767px) {
   .admin-guide-panel .admin-guide-shell {
     min-height: 0;
-    height: calc(100dvh - 160px);
+    height: calc(100dvh - 210px);
   }
   .admin-guide-panel #sidebarArea,
   .admin-guide-panel #contentArea {
@@ -114,4 +114,19 @@
     position: relative;
     z-index: 1;
   }
+}
+
+/* On mobile, the administrator create action appears directly below the
+   guide search so a tall/short viewport cannot bury it after the list. */
+@media (max-width: 767px) {
+  .admin-guide-panel .wg-sidebar-heading { order: 0; }
+  .admin-guide-panel #adminSidebarAction {
+    order: 1;
+    border-top: 0;
+    background: transparent;
+    padding: 0 20px 14px;
+  }
+  .admin-guide-panel #guideFilters { order: 2; }
+  .admin-guide-panel .wg-list-heading { order: 3; }
+  .admin-guide-panel #guideList { order: 4; }
 }

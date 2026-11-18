@@ -682,7 +682,7 @@
     </style>
     <script src="assets/js/responsive-ui.js?v=20261013-estimate" defer></script>
     <link rel="stylesheet" href="assets/css/admin-price-workspace.css?v=20261006-customer-center">
-    <link rel="stylesheet" href="assets/css/work-guide-v3.css?v=20261118-admin-mobile-fix">
+    <link rel="stylesheet" href="assets/css/work-guide-v3.css?v=20261118-mobile-actions">
 </head>
 <body data-page="admin" class="antialiased selection:bg-brand-100 selection:text-brand-900">
     <!-- ── 알림음 토글 (화면 우측 하단 고정) ─────────────────────────
@@ -789,12 +789,12 @@
         <!-- 상태 텍스트 (작게) -->
         <span id="notif-status" style="font-size:10px; font-weight:600; padding:4px 8px; border-radius:999px; background:rgba(17,24,39,0.8); color:rgba(255,255,255,0.7); backdrop-filter:blur(4px); white-space:nowrap;">알림 확인중…</span>
         <!-- 토글 버튼 -->
-        <button id="enable-notifs-btn" onclick="(window.__toggleAdminNotifs && window.__toggleAdminNotifs()); return false;" type="button"
+        <button id="enable-notifs-btn" onclick="(window.__toggleAdminNotifs && window.__toggleAdminNotifs()); return false;" type="button" aria-label="알림 설정" aria-pressed="false"
             style="display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:40px; border:none; cursor:pointer;
                    background:#1a2332; color:#fff; font-size:12px; font-weight:700; font-family:inherit;
                    box-shadow:0 4px 20px rgba(0,0,0,0.25); transition:all 0.2s;">
             <span id="notif-icon" style="font-size:14px;">🔔</span>
-            <span id="notif-label">알림 켜기</span>
+            <span id="notif-label">알림 확인 중…</span>
             <!-- 토글 트랙 -->
             <span id="notif-track" style="display:inline-flex; width:36px; height:20px; border-radius:10px; background:#374151; position:relative; transition:background 0.2s;">
                 <span id="notif-thumb" style="width:16px; height:16px; border-radius:50%; background:#fff; position:absolute; top:2px; left:2px; transition:left 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.3);"></span>
@@ -1616,7 +1616,7 @@ async function hardLogout(redirectUrl = 'index.html') {
 
 
 
-<script type="module" src="assets/js/pages/admin.js?v=20261020-mobile-contact-fix"></script>
+<script type="module" src="assets/js/pages/admin.js?v=20261118-notification-preference"></script>
 <script>
 /* 연락처 진단: ?contactDebug=1 일 때만 표시, 고객 개인정보는 노출하지 않습니다. */
 (function () {
