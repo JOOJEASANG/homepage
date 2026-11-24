@@ -141,6 +141,14 @@ body[data-page="admin"] .reception-order-table .reception-col-price { width: 9%;
 body[data-page="admin"] .reception-order-table .reception-col-status { width: 8%; }
 body[data-page="admin"] .reception-order-table .reception-col-actions { width: 10%; }
 body[data-page="admin"] .reception-order-table :is(th,td) { padding-left: 10px; padding-right: 10px; }
+/* 주문 접수 관리: 표의 각 열을 얇은 세로 점선으로 구분합니다.
+   전체 폭을 사용하는 로딩/빈 목록 행과 카드형 모바일 레이아웃에는 적용하지 않습니다. */
+@media (min-width: 768px) {
+  body[data-page="admin"] .reception-order-table thead th:not(:last-child),
+  body[data-page="admin"] .reception-order-table tbody td:not(:last-child):not([colspan]) {
+    border-right: 1px dashed #bdcbc3;
+  }
+}
 body[data-page="admin"] .reception-order-table tbody td:nth-child(3) > div { min-width: 0; }
 body[data-page="admin"] .reception-order-table tbody td:nth-child(3) > div > span.font-bold[title] {
   flex: 1 1 auto;

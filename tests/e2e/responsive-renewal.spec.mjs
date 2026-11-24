@@ -49,6 +49,19 @@ test.describe('responsive renewal', () => {
           return ids.filter((id,i) => ids.indexOf(id) !== i);
         });
         expect(duplicates).toEqual([]);
+        if (url === 'admin.html') {
+          const columns = page.locator('.reception-order-table thead th');
+          const cells = page.locator('#quote-list-body tr').first().locator('td');
+          if (width >= 768) {
+            await expect(columns.first()).toHaveCSS('border-right-style', 'dashed');
+            await expect(columns.last()).toHaveCSS('border-right-style', 'none');
+            await expect(cells.first()).toHaveCSS('border-right-style', 'dashed');
+            await expect(cells.nth(5)).toHaveCSS('border-right-style', 'dashed');
+            await expect(cells.last()).toHaveCSS('border-right-style', 'none');
+          } else {
+            await expect(cells.first()).toHaveCSS('border-right-style', 'none');
+          }
+        }
         if (url === 'admin.html' && width < 768) {
           await expect(page.locator('#quote-list-body tr').first()).toHaveCSS('display','grid');
           await page.locator('.status-select').selectOption({ label: '작업중' });
