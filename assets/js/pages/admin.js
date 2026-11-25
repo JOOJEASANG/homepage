@@ -3371,22 +3371,26 @@ async function handleNoticeSave(e) {
             };
 
 
-            // [추가] 월별 매출 현황 접기/펼치기 기능
-            const revHeader = document.getElementById('revenue-stats-header');
-            if(revHeader) {
-                revHeader.addEventListener('click', () => {
-                    const content = document.getElementById('revenue-stats-content');
-                    const chevron = document.getElementById('revenue-chevron');
-                    const isHidden = content.classList.contains('hidden');
-                    revHeader.setAttribute('aria-expanded', String(isHidden));
-                    
-                    if(isHidden) {
-                        content.classList.remove('hidden');
-                        chevron.style.transform = 'rotate(180deg)'; // 화살표 위로
-                    } else {
-                        content.classList.add('hidden');
-                        chevron.style.transform = 'rotate(0deg)'; // 화살표 아래로
-                    }
+            // Native modal: traps focus, supports Escape and keeps the order list intact.
+            const revenueOpen = document.getElementById('revenue-open-btn');
+            const revenueDialog = document.getElementById('revenue-dialog');
+            const revenueClose = document.getElementById('revenue-close-btn');
+            if (revenueOpen && revenueDialog && revenueClose) {
+                revenueOpen.addEventListener('click', () => {
+                    if (revenueDialog.open) return;
+                    updateRevenueStats();
+                    revenueDialog.showModal();
+                    revenueOpen.setAttribute('aria-expanded','true');
+                    document.body.classList.add('revenue-modal-open');
+                });
+                revenueClose.addEventListener('click', () => revenueDialog.close());
+                revenueDialog.addEventListener('click', event => {
+                    if (event.target === revenueDialog) revenueDialog.close();
+                });
+                revenueDialog.addEventListener('close', () => {
+                    document.body.classList.remove('revenue-modal-open');
+                    revenueOpen.setAttribute('aria-expanded','false');
+                    revenueOpen.focus();
                 });
             }
 

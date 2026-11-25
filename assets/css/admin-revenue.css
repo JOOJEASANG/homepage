@@ -44,3 +44,24 @@
 #revenue-stats-content #revenue-stats-total td { text-align:right; }
 #revenue-stats-content #revenue-stats-body th,#revenue-stats-content #revenue-stats-total th { text-align:left; font-weight:700; }
 #revenue-stats-content .revenue-details .order-table { font-variant-numeric:tabular-nums; }
+
+/* Revenue layer is independent of the admin workspace layout. */
+.admin-heading .revenue-open-btn { flex:none; gap:8px; white-space:nowrap; }
+body.revenue-modal-open { overflow:hidden; }
+#revenue-dialog { position:fixed; inset:0; margin:auto; padding:0; border:1px solid #dce7e2; border-radius:16px; width:min(1280px,calc(100% - 40px)); max-width:none; height:min(920px,calc(100dvh - 40px)); max-height:none; background:#fff; color:#173c32; box-shadow:0 24px 70px rgba(15,23,42,.25); overflow:hidden; }
+#revenue-dialog:not([open]) { display:none; }
+#revenue-dialog::backdrop { background:rgba(15,23,42,.58); }
+#revenue-dialog .revenue-dialog-shell { display:flex; flex-direction:column; height:100%; min-height:0; }
+#revenue-dialog .revenue-dialog-header { flex:none; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 22px; background:#f7faf8; border-bottom:1px solid #dce7e2; }
+#revenue-dialog .revenue-dialog-heading { min-width:0; }
+#revenue-dialog #revenue-title { font-size:20px; font-weight:800; line-height:1.35; }
+#revenue-dialog #revenue-period { margin-top:4px; color:#64748b; font-size:13px; }
+#revenue-dialog .revenue-close-btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; flex:none; padding:9px 14px; border:1px solid #d1ddd6; border-radius:8px; background:white; font-size:13px; font-weight:700; color:#334155; cursor:pointer; }
+#revenue-dialog .revenue-close-btn:hover { background:#eef4f0; }
+#revenue-dialog .revenue-dialog-content { flex:1 1 auto; min-height:0; min-width:0; overflow:auto; overscroll-behavior:contain; }
+@media(max-width:767px) {
+  .admin-heading .revenue-open-btn { font-size:12px; gap:5px; padding:9px 10px; }
+  #revenue-dialog { width:calc(100% - 16px); height:calc(100dvh - 16px); border-radius:12px; }
+  #revenue-dialog .revenue-dialog-header { padding:12px; }
+  #revenue-dialog #revenue-title { font-size:17px; }
+}

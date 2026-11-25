@@ -683,7 +683,7 @@
     <script src="assets/js/responsive-ui.js?v=20261013-estimate" defer></script>
     <link rel="stylesheet" href="assets/css/admin-price-workspace.css?v=20261006-customer-center">
     <link rel="stylesheet" href="assets/css/work-guide-v3.css?v=20261118-mobile-actions">
-    <link rel="stylesheet" href="assets/css/admin-revenue.css?v=20261125-monthly-totals">
+    <link rel="stylesheet" href="assets/css/admin-revenue.css?v=20261125-revenue-dialog">
 </head>
 <body data-page="admin" class="antialiased selection:bg-brand-100 selection:text-brand-900">
     <!-- ── 알림음 토글 (화면 우측 하단 고정) ─────────────────────────
@@ -899,7 +899,7 @@
 
 
         <main class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div id="reception-management-content" class="main-tab-content active"><div class="admin-heading"><div><p class="eyebrow">WORKSPACE</p><h2>주문 접수 관리</h2><p>접수부터 제작, 상담과 결제까지 한눈에 확인하세요.</p></div></div>
+            <div id="reception-management-content" class="main-tab-content active"><div class="admin-heading"><div><p class="eyebrow">WORKSPACE</p><h2>주문 접수 관리</h2><p>접수부터 제작, 상담과 결제까지 한눈에 확인하세요.</p></div><button type="button" id="revenue-open-btn" class="renew-button primary revenue-open-btn" aria-haspopup="dialog" aria-controls="revenue-dialog" aria-expanded="false"><i class="fas fa-chart-column" aria-hidden="true"></i><span>매출현황 보기</span></button></div>
                 <div class="admin-stats grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
     <div class="group relative bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_2px_10px_-4px_rgba(59,130,246,0.1)] hover:shadow-[0_8px_20px_-6px_rgba(59,130,246,0.2)] hover:-translate-y-1 transition-all duration-300 overflow-hidden">
         <div class="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
@@ -970,47 +970,6 @@
     </div>
 </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 mb-6 overflow-hidden animate-fade-in">
-    <button type="button" id="revenue-stats-header" aria-expanded="true" aria-controls="revenue-stats-content" class="w-full text-left p-3 md:p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center cursor-pointer hover:bg-slate-100 transition-colors">
-        <span class="text-base md:text-lg font-bold text-slate-700 flex items-center">
-            <i class="fas fa-chart-line mr-2 text-brand-500" aria-hidden="true"></i>
-            <span id="revenue-title">월별 매출 현황 (올해)</span>
-            <i id="revenue-chevron" style="transform:rotate(180deg)" class="fas fa-chevron-down ml-2 text-slate-400 text-xs transition-transform" aria-hidden="true"></i>
-        </span>
-        <span id="revenue-period" class="text-xs font-bold text-slate-500"></span>
-    </button>
-    <div id="revenue-stats-content" class="bg-white">
-        <div class="revenue-panel">
-            <div class="revenue-summary">
-                <div class="revenue-metric"><span>올해 총 접수 금액</span><strong id="revenue-total">—</strong></div>
-                <div class="revenue-metric revenue-metric-confirmed"><span>올해 총 매출액 (확정)</span><strong id="revenue-confirmed">—</strong></div>
-                <div class="revenue-metric"><span>올해 주문 접수 건수</span><strong id="revenue-count">—</strong></div>
-            </div>
-            <div class="revenue-legend"><span><i class="revenue-swatch revenue-bar-total"></i>총 접수 금액</span><span><i class="revenue-swatch revenue-bar-confirmed"></i>확정 매출액</span><span class="text-slate-500">단위: 만원</span></div>
-            <div class="revenue-chart-scroll" tabindex="0" aria-label="월별 매출 그래프, 좁은 화면에서 좌우 스크롤 가능">
-                <div class="revenue-chart">
-                    <div id="revenue-axis" class="revenue-axis" aria-hidden="true"></div>
-                    <div class="revenue-plot">
-                        <div class="revenue-grid" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-                        <div id="revenue-chart-bars" class="revenue-bars" role="group" aria-label="월별 접수 금액 및 확정 매출액"></div>
-                    </div>
-                </div>
-            </div>
-            <p id="revenue-month-detail" class="revenue-month-detail" aria-live="polite">데이터 분석 중…</p>
-            <p class="text-xs text-slate-500 leading-relaxed">접수일 기준 · 견적만 요청 및 주문취소 제외 · 확정 매출은 작업완료/결제완료 기준입니다. 그래프 아래에는 월별 확정 매출액(원)을 표시하며, 월을 선택하면 접수 금액과 건수도 확인할 수 있습니다.</p>
-            <details class="revenue-details mt-2" open>
-                <summary>월별 매출 집계 및 연간 합계</summary>
-                <div class="overflow-x-auto"><table class="order-table whitespace-nowrap">
-                    <thead class="text-xs text-slate-500 bg-slate-50 border-b border-slate-200 font-bold"><tr>
-                        <th class="px-4 py-3 text-left">기간</th><th class="px-4 py-3 text-right">건수</th><th class="px-4 py-3 text-right">총 접수 금액</th><th class="px-4 py-3 text-right">확정 매출액</th><th class="px-4 py-3 text-right">확정 비율</th>
-                    </tr></thead>
-                    <tbody id="revenue-stats-body" class="divide-y divide-slate-100"></tbody>
-                    <tfoot id="revenue-stats-total"></tfoot>
-                </table></div>
-            </details>
-        </div>
-    </div>
-</div>
 
 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
     <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-3 bg-slate-50/50 items-center">
@@ -1339,6 +1298,49 @@
         </main>
     </div>
 
+    <dialog id="revenue-dialog" aria-labelledby="revenue-title" class="revenue-dialog">
+        <div class="revenue-dialog-shell">
+            <header class="revenue-dialog-header">
+                <div class="revenue-dialog-heading">
+                    <h2 id="revenue-title">월별 매출 현황 (올해)</h2>
+                    <p id="revenue-period"></p>
+                </div>
+                <button type="button" id="revenue-close-btn" class="revenue-close-btn" aria-label="매출현황 닫기" autofocus><i class="fas fa-times" aria-hidden="true"></i><span>닫기</span></button>
+            </header>
+    <div id="revenue-stats-content" class="bg-white revenue-dialog-content">
+        <div class="revenue-panel">
+            <div class="revenue-summary">
+                <div class="revenue-metric"><span>올해 총 접수 금액</span><strong id="revenue-total">—</strong></div>
+                <div class="revenue-metric revenue-metric-confirmed"><span>올해 총 매출액 (확정)</span><strong id="revenue-confirmed">—</strong></div>
+                <div class="revenue-metric"><span>올해 주문 접수 건수</span><strong id="revenue-count">—</strong></div>
+            </div>
+            <div class="revenue-legend"><span><i class="revenue-swatch revenue-bar-total"></i>총 접수 금액</span><span><i class="revenue-swatch revenue-bar-confirmed"></i>확정 매출액</span><span class="text-slate-500">단위: 만원</span></div>
+            <div class="revenue-chart-scroll" tabindex="0" aria-label="월별 매출 그래프, 좁은 화면에서 좌우 스크롤 가능">
+                <div class="revenue-chart">
+                    <div id="revenue-axis" class="revenue-axis" aria-hidden="true"></div>
+                    <div class="revenue-plot">
+                        <div class="revenue-grid" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+                        <div id="revenue-chart-bars" class="revenue-bars" role="group" aria-label="월별 접수 금액 및 확정 매출액"></div>
+                    </div>
+                </div>
+            </div>
+            <p id="revenue-month-detail" class="revenue-month-detail" aria-live="polite">데이터 분석 중…</p>
+            <p class="text-xs text-slate-500 leading-relaxed">접수일 기준 · 견적만 요청 및 주문취소 제외 · 확정 매출은 작업완료/결제완료 기준입니다. 그래프 아래에는 월별 확정 매출액(원)을 표시하며, 월을 선택하면 접수 금액과 건수도 확인할 수 있습니다.</p>
+            <details class="revenue-details mt-2" open>
+                <summary>월별 매출 집계 및 연간 합계</summary>
+                <div class="overflow-x-auto"><table class="order-table whitespace-nowrap">
+                    <thead class="text-xs text-slate-500 bg-slate-50 border-b border-slate-200 font-bold"><tr>
+                        <th class="px-4 py-3 text-left">기간</th><th class="px-4 py-3 text-right">건수</th><th class="px-4 py-3 text-right">총 접수 금액</th><th class="px-4 py-3 text-right">확정 매출액</th><th class="px-4 py-3 text-right">확정 비율</th>
+                    </tr></thead>
+                    <tbody id="revenue-stats-body" class="divide-y divide-slate-100"></tbody>
+                    <tfoot id="revenue-stats-total"></tfoot>
+                </table></div>
+            </details>
+        </div>
+    </div>
+        </div>
+    </dialog>
+
     <div id="detailsModal" class="fixed inset-0 modal-bg flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col rounded-2xl overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
@@ -1626,7 +1628,7 @@ async function hardLogout(redirectUrl = 'index.html') {
 
 
 
-<script type="module" src="assets/js/pages/admin.js?v=20261125-calendar-year"></script>
+<script type="module" src="assets/js/pages/admin.js?v=20261125-revenue-dialog"></script>
 <script>
 /* 연락처 진단: ?contactDebug=1 일 때만 표시, 고객 개인정보는 노출하지 않습니다. */
 (function () {
