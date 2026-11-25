@@ -67,7 +67,7 @@ async function fixture(page, role = 'admin', realSession = true) {
         const data = path.startsWith('users/') ? { role: ${JSON.stringify(role)} } : path === 'settings/site' ? { maintenance: false } : null;
         return { exists: () => !!data, data: () => data || {} };
       }
-      let items = path === 'quotes' ? (window.__fixtureQuotes || []) : path === 'qna' ? (window.__fixtureQna || []) : [];
+      let items = path === 'quotes' ? (window.__fixtureQuotes || []) : path === 'qna' ? (window.__fixtureQna || []) : path === 'work_guides' ? (window.__fixtureWorkGuides || []) : [];
       for (const filter of source.filters || []) if (filter.field) items = items.filter(item => item[filter.field] === filter.value);
       const docs = items.map(data => ({ id: data.id, data: () => path === 'qna' ? qnaData(data) : ({ ...data }) }));
       return { docs, size: docs.length, empty: !docs.length, forEach: fn => docs.forEach(fn), docChanges: () => docs.map(doc => ({ type: 'added', doc })) };
@@ -1047,4 +1047,23 @@ test('admin distinguishes a customer email report from confirmed receipt',async(
   await page.locator('#confirmActionBtn').click();
   await expect(row).toContainText('이메일 파일 확인완료');
   await expect(row.locator('.email-file-confirm-btn')).toHaveCount(0);
+});
+
+test('homepage binding guide opens item five in the layer and direct navigation', async ({ page }) => {
+  await fixture(page, 'user', false);
+  await page.addInitScript(() => {
+    window.__fixtureWorkGuides = Array.from({ length: 6 }, (_, i) => ({
+      id: 'guide-' + (i + 1), order: i + 1,
+      title: i === 4 ? '책자·제본 기본 안내' : '작업가이드 ' + (i + 1),
+      content: '작업 안내'
+    })).reverse();
+  });
+  await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('.home-help-grid a[href="work-guide.html?guide=5"]').click();
+  const frame = page.frameLocator('#wg-layer-overlay iframe');
+  await expect(frame.locator('#viewTitle')).toHaveText('책자·제본 기본 안내');
+  await expect(frame.locator('#viewIndex')).toHaveText('5 / 6');
+  await page.goto('/work-guide.html?guide=5', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#viewTitle')).toHaveText('책자·제본 기본 안내');
+  await expect(page.locator('#viewIndex')).toHaveText('5 / 6');
 });

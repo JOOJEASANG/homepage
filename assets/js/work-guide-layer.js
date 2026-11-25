@@ -12,7 +12,16 @@ export function openWorkGuideLayer(trigger = document.activeElement) {
   const panel = document.createElement('div');
   panel.style.cssText = 'position:relative;width:100%;max-width:1152px;height:90dvh;background:white;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px #0004';
   const frame = document.createElement('iframe');
-  frame.src = 'work-guide.html?embed=1';
+  const frameUrl = new URL('work-guide.html?embed=1', location.href);
+  const requested = trigger?.getAttribute?.('href');
+  if (requested) {
+    const target = new URL(requested, location.href);
+    const number = target.searchParams.get('guide');
+    if (target.origin === location.origin && target.pathname.endsWith('/work-guide.html') && /^[1-9]\d{0,3}$/.test(number || '')) {
+      frameUrl.searchParams.set('guide', number);
+    }
+  }
+  frame.src = frameUrl.href;
   frame.title = '작업가이드 내용';
   frame.style.cssText = 'display:block;width:100%;height:100%;border:0';
   const close = document.createElement('button');
