@@ -683,6 +683,7 @@
     <script src="assets/js/responsive-ui.js?v=20261013-estimate" defer></script>
     <link rel="stylesheet" href="assets/css/admin-price-workspace.css?v=20261006-customer-center">
     <link rel="stylesheet" href="assets/css/work-guide-v3.css?v=20261118-mobile-actions">
+    <link rel="stylesheet" href="assets/css/admin-revenue.css?v=20261125-annual">
 </head>
 <body data-page="admin" class="antialiased selection:bg-brand-100 selection:text-brand-900">
     <!-- ── 알림음 토글 (화면 우측 하단 고정) ─────────────────────────
@@ -970,35 +971,42 @@
 </div>
 
 <div class="bg-white rounded-xl shadow-sm border border-slate-200 mb-6 overflow-hidden animate-fade-in">
-    <div id="revenue-stats-header" class="p-3 md:p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center cursor-pointer hover:bg-slate-100 transition-colors select-none">
-        <h2 class="text-base md:text-lg font-bold text-slate-700 flex items-center">
-            <i class="fas fa-chart-line mr-2 text-brand-500"></i>
-            <span class="truncate">월별 매출 현황 (최근 6개월)</span>
-            <i id="revenue-chevron" class="fas fa-chevron-down ml-2 md:ml-3 text-slate-400 text-xs md:text-sm transition-transform duration-300"></i>
-        </h2>
-        <span class="hidden md:inline-block text-xs text-slate-400 bg-white px-2 py-1 rounded border border-slate-200 shadow-sm">
-            <i class="fas fa-info-circle mr-1"></i>클릭하여 펼치기
+    <button type="button" id="revenue-stats-header" aria-expanded="true" aria-controls="revenue-stats-content" class="w-full text-left p-3 md:p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center cursor-pointer hover:bg-slate-100 transition-colors">
+        <span class="text-base md:text-lg font-bold text-slate-700 flex items-center">
+            <i class="fas fa-chart-line mr-2 text-brand-500" aria-hidden="true"></i>
+            <span>월별 매출 현황 (최근 1년)</span>
+            <i id="revenue-chevron" style="transform:rotate(180deg)" class="fas fa-chevron-down ml-2 text-slate-400 text-xs transition-transform" aria-hidden="true"></i>
         </span>
-    </div>
-    
-    <div id="revenue-stats-content" class="hidden bg-white border-t border-slate-100 transition-all">
-        <div class="p-0 md:p-6">
-            <div class="overflow-x-auto">
-                <table class="order-table whitespace-nowrap">
-                    <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200 font-bold">
-                        <tr>
-                            <th class="px-4 py-3 text-center w-24">기간</th>
-                            <th class="px-4 py-3 text-center w-20">건수</th>
-                            <th class="px-4 py-3 text-right">총 접수 금액 (예상)</th>
-                            <th class="px-4 py-3 text-right text-brand-700">확정 매출액 (결제/작업완료)</th>
-                            <th class="px-4 py-3 min-w-[150px] w-1/3">확정 비율</th>
-                        </tr>
-                    </thead>
-                    <tbody id="revenue-stats-body" class="divide-y divide-slate-100">
-                        <tr><td colspan="5" class="text-center py-8 text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i>데이터 분석 중...</td></tr>
-                    </tbody>
-                </table>
+        <span id="revenue-period" class="text-xs font-bold text-slate-500"></span>
+    </button>
+    <div id="revenue-stats-content" class="bg-white">
+        <div class="revenue-panel">
+            <div class="revenue-summary">
+                <div class="revenue-metric"><span>12개월 총 접수 금액</span><strong id="revenue-total">—</strong></div>
+                <div class="revenue-metric"><span>12개월 확정 매출액</span><strong id="revenue-confirmed">—</strong></div>
+                <div class="revenue-metric"><span>12개월 주문 접수 건수</span><strong id="revenue-count">—</strong></div>
             </div>
+            <div class="revenue-legend"><span><i class="revenue-swatch revenue-bar-total"></i>총 접수 금액</span><span><i class="revenue-swatch revenue-bar-confirmed"></i>확정 매출액</span><span class="text-slate-500">단위: 만원</span></div>
+            <div class="revenue-chart-scroll" tabindex="0" aria-label="월별 매출 그래프, 좁은 화면에서 좌우 스크롤 가능">
+                <div class="revenue-chart">
+                    <div id="revenue-axis" class="revenue-axis" aria-hidden="true"></div>
+                    <div class="revenue-plot">
+                        <div class="revenue-grid" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+                        <div id="revenue-chart-bars" class="revenue-bars" role="group" aria-label="월별 접수 금액 및 확정 매출액"></div>
+                    </div>
+                </div>
+            </div>
+            <p id="revenue-month-detail" class="revenue-month-detail" aria-live="polite">데이터 분석 중…</p>
+            <p class="text-xs text-slate-500 leading-relaxed">접수일 기준 · 견적만 요청 및 주문취소 제외 · 확정 매출은 작업완료/결제완료 기준입니다. 월을 선택하면 정확한 금액과 건수를 확인할 수 있습니다.</p>
+            <details class="revenue-details mt-2">
+                <summary>월별 상세 금액 및 확정 비율 보기</summary>
+                <div class="overflow-x-auto"><table class="order-table whitespace-nowrap">
+                    <thead class="text-xs text-slate-500 bg-slate-50 border-b border-slate-200 font-bold"><tr>
+                        <th class="px-4 py-3 text-left">기간</th><th class="px-4 py-3 text-right">건수</th><th class="px-4 py-3 text-right">총 접수 금액</th><th class="px-4 py-3 text-right">확정 매출액</th><th class="px-4 py-3 text-right">확정 비율</th>
+                    </tr></thead>
+                    <tbody id="revenue-stats-body" class="divide-y divide-slate-100"></tbody>
+                </table></div>
+            </details>
         </div>
     </div>
 </div>
@@ -1617,7 +1625,7 @@ async function hardLogout(redirectUrl = 'index.html') {
 
 
 
-<script type="module" src="assets/js/pages/admin.js?v=20261125-order-hold"></script>
+<script type="module" src="assets/js/pages/admin.js?v=20261125-annual-revenue"></script>
 <script>
 /* 연락처 진단: ?contactDebug=1 일 때만 표시, 고객 개인정보는 노출하지 않습니다. */
 (function () {

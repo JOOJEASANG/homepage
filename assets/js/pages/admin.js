@@ -26,6 +26,7 @@ import { isPendingCancellation, canAdminDirectCancel, cancellationResolution } f
 import { canAdminConvertEstimate, adminEstimatePrice, normalizeCustomerOrderRequestNote, convertEstimateToOrderByAdmin } from "./admin/estimate-conversion.js";
 import { ADMIN_NOTIFICATION_KEY, readAdminNotificationPreference, notificationToggleText } from "./admin/notification-preference.js";
 import { canHold, canResume, changeOrderHold } from "./shared/order-hold.js";
+import { monthlyRevenue, renderMonthlyRevenue } from "./admin/monthly-revenue.js";
 
 // 페이지 로드 시 헤더 렌더링 (관리자 페이지는 활성 메뉴 없음)
 document.addEventListener("DOMContentLoaded", () => initHeader(""));
@@ -1271,72 +1272,12 @@ async function listenToQuotes() {
             }
         }
 
-        // [새로 추가된 함수] 월별 매출 현황 계산 및 렌더링
+        // Rolling 12-month chart; updates on the existing real-time quote snapshot.
         function updateRevenueStats() {
-            const stats = {};
-            const today = new Date();
-            
-            // 1. 최근 6개월치 키 생성
-            for(let i=0; i<6; i++) {
-                const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                stats[key] = { count: 0, total: 0, confirmed: 0 };
-            }
-
-            // 2. 캐시된 견적 데이터 순회하며 집계
-            quotesCache.forEach(q => {
-                if (!q.createdAt || q.status === '주문취소' || q.requestType === 'estimate') return;
-
-                const d = q.createdAt.toDate();
-                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                const price = Number(q.finalPrice || q.totalPrice || 0);
-
-                if (stats[key]) {
-                    stats[key].count++;
-                    stats[key].total += price;
-                    if (['결제완료', '작업완료'].includes(q.status)) {
-                        stats[key].confirmed += price;
-                    }
-                }
-            });
-
-            // 3. HTML 렌더링
-            const tbody = document.getElementById('revenue-stats-body');
-            if(!tbody) return;
-            tbody.innerHTML = '';
-
-            const sortedKeys = Object.keys(stats).sort().reverse();
-            
-            sortedKeys.forEach(key => {
-                const data = stats[key];
-                const percent = data.total > 0 ? (data.confirmed / data.total) * 100 : 0;
-                
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 transition-colors";
-                
-                // [수정] 각 td에 whitespace-nowrap 적용하여 줄바꿈 방지 -> 가로 스크롤 유도
-                tr.innerHTML = `
-                    <td class="px-4 py-4 font-bold text-slate-700 text-center bg-slate-50/30 whitespace-nowrap">${key}</td>
-                    <td class="px-4 py-4 text-center text-slate-600 whitespace-nowrap">
-                        <span class="bg-white border border-slate-200 px-2 py-1 rounded-full text-xs font-bold shadow-sm">${data.count}건</span>
-                    </td>
-                    <td class="px-4 py-4 text-right whitespace-nowrap">
-                        <span class="text-slate-500 font-medium">${data.total.toLocaleString()}원</span>
-                    </td>
-                    <td class="px-4 py-4 text-right whitespace-nowrap">
-                        <span class="text-brand-600 font-bold text-base">${data.confirmed.toLocaleString()}원</span>
-                    </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <div class="flex items-center gap-3">
-                            <div class="w-full min-w-[80px] bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                                <div class="bg-brand-500 h-2.5 rounded-full shadow-sm transition-all duration-1000" style="width: ${percent}%"></div>
-                            </div>
-                            <span class="text-xs font-bold text-slate-500 w-10 text-right">${Math.round(percent)}%</span>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
+            const months = monthlyRevenue(quotesCache);
+            renderMonthlyRevenue(document.getElementById('revenue-stats-content'), months);
+            const period = document.getElementById('revenue-period');
+            if (period) period.textContent = months[0].key + ' ~ ' + months.at(-1).key;
         }
 // ── 대시보드 통계 갱신 ─────────────────────────────────────────
 // 전체/대기/진행중/완료 접수 건수를 계산해 상단 카운터에 표시
@@ -3434,6 +3375,7 @@ async function handleNoticeSave(e) {
                     const content = document.getElementById('revenue-stats-content');
                     const chevron = document.getElementById('revenue-chevron');
                     const isHidden = content.classList.contains('hidden');
+                    revHeader.setAttribute('aria-expanded', String(isHidden));
                     
                     if(isHidden) {
                         content.classList.remove('hidden');

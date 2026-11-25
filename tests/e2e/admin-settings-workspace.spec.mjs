@@ -973,3 +973,32 @@ test('administrator direct cancellation warns on paid orders and can be aborted'
   expect((await writes(page, 'quotes/paid-telephone-order')).length).toBe(0);
   await expect(page.locator('#quote-list-body .direct-cancel-btn')).toBeVisible();
 });
+
+test('admin rolling annual revenue displays twelve months and accurate selected totals', async ({ page }) => {
+  await fixture(page);
+  await page.addInitScript(() => {
+    const now = new Date();
+    const d = new Date(now.getFullYear(),now.getMonth(),1);
+    const createdAt = {toDate:()=>d};
+    window.__fixtureQuotes = [
+      {id:'paid',orderName:'완료',createdAt,status:'결제완료',totalPrice:25000},
+      {id:'held',orderName:'보류',createdAt,status:'보류',totalPrice:5000},
+      {id:'estimate',orderName:'견적',createdAt,status:'접수완료',requestType:'estimate',totalPrice:99999}
+    ];
+  });
+  await page.goto('/admin.html',{waitUntil:'domcontentloaded'});
+  const content=page.locator('#revenue-stats-content');
+  await expect(content).toBeVisible();
+  const months=content.locator('.revenue-month');
+  await expect(months).toHaveCount(12);
+  await expect(content.locator('#revenue-total')).toHaveText('30,000원');
+  await expect(content.locator('#revenue-confirmed')).toHaveText('25,000원');
+  await expect(content.locator('#revenue-count')).toHaveText('2건');
+  await expect(content.locator('#revenue-month-detail')).toContainText('25,000원');
+  await months.first().click();
+  await expect(content.locator('#revenue-month-detail')).toContainText('0건');
+  await page.locator('#revenue-stats-header').click();
+  await expect(content).toBeHidden();
+  await page.locator('#revenue-stats-header').click();
+  await expect(content).toBeVisible();
+});
