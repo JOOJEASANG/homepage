@@ -54,12 +54,12 @@ test.describe('responsive renewal', () => {
           const cells = page.locator('#quote-list-body tr').first().locator('td');
           if (width >= 768) {
             await expect(columns.first()).toHaveCSS('border-right-style', 'dashed');
-            await expect(columns.last()).toHaveCSS('border-right-style', 'none');
+            await expect(columns.last()).toHaveCSS('border-right-width', '0px');
             await expect(cells.first()).toHaveCSS('border-right-style', 'dashed');
             await expect(cells.nth(5)).toHaveCSS('border-right-style', 'dashed');
-            await expect(cells.last()).toHaveCSS('border-right-style', 'none');
+            await expect(cells.last()).toHaveCSS('border-right-width', '0px');
           } else {
-            await expect(cells.first()).toHaveCSS('border-right-style', 'none');
+            await expect(cells.first()).toHaveCSS('border-right-width', '0px');
           }
         }
         if (url === 'admin.html' && width < 768) {
