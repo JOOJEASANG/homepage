@@ -17,6 +17,8 @@ import { initHeader } from "../header.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
 import { requestGuestAccess } from "../guest-access-v2.js";
 import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer, confirmEstimateIntent } from "./shared/estimate-quick-order.js?v=20261125-estimate-guide";
+import { initEmailFileInput } from "./shared/email-file-notice.js";
+const emailFileInput = initEmailFileInput("print");
 import "../overlays.js";
 import "../session.js?v=20261028-subcontract-choice";
 import { loadPrintGuide } from "../print-guide-recovery.js";
@@ -1315,6 +1317,7 @@ async function submitQuoteRequest(user, ordererName, ordererContact, ordererComp
         const oshiLines = oshiEnabled ? Number((document.querySelector('input[name="oshiLines"]:checked')||{}).value || 0) : 0;
 
         const quoteDoc = {
+          ...(!editState.enabled && emailFileInput.value() ? {emailFileStatus:emailFileInput.value()} : {}),
           type: 'digital_print',
           product: '디지털 인쇄',
           productType: 'print',
@@ -1576,6 +1579,7 @@ payload.lastEditedBy = editState.adminEdit ? 'admin' : 'customer';
            }catch(e){}
          }
 closeSignupModal();
+        emailFileInput.clear();
         try{ localStorage.removeItem('pendingRequestTypePrint'); }catch(e){}
         const returnToAdmin = editState.enabled && !!editState.quoteId && editState.adminEdit;
         const destination = resolveQuoteSaveDestination({
@@ -1772,6 +1776,7 @@ openSignupModal();
       fillWeightOptions();
       if (el.paperWeight?.querySelector('option[value="200"]')) el.paperWeight.value = '200';
       setSubmissionIntent('order');
+      emailFileInput.clear();
       // 초기화 뒤에는 접수유형 복구 데이터도 남기지 않습니다.
       try { localStorage.removeItem('pendingRequestTypePrint'); } catch (_) {}
       toggleCustom();

@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {emailFileLabel,canReportEmailFile,isEmailFileNotice} from '../assets/js/pages/shared/email-file-notice.js';
+assert.equal(emailFileLabel({}),'');
+assert.equal(emailFileLabel({emailFileStatus:'planned'}),'이메일 발송 예정');
+assert.equal(emailFileLabel({emailFileStatus:'sent'}),'이메일 발송 · 미확인');
+assert.equal(emailFileLabel({emailFileStatus:'sent',emailFileConfirmedAt:'now'}),'이메일 파일 확인완료');
+assert.equal(canReportEmailFile({status:'보류',emailFileStatus:'planned'}),true);
+assert.equal(canReportEmailFile({status:'주문취소'}),false);
+assert.equal(canReportEmailFile({status:'접수완료',emailFileStatus:'sent'}),false);
+assert.equal(isEmailFileNotice({emailFileStatus:'sent'}),true);
+console.log('Email file notice: OK');

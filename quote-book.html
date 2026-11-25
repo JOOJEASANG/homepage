@@ -269,7 +269,16 @@ function __displayNameForHeader(currentUser) {
                                 여러 파일일 경우 압축해서 하나로 업로드 해주세요.
                             </p>
                             <ul id="attachments-list" class="mt-2 text-xs text-slate-500 space-y-1 pl-1"></ul>
-                            <div class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 leading-relaxed"><i class="fas fa-envelope text-emerald-600 mr-2" aria-hidden="true"></i>파일을 이메일로 보내실 경우 <strong class="ml-1 text-emerald-800">winwork@hanmail.net</strong></div>
+                            <div class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 leading-relaxed">
+                                <p><i class="fas fa-envelope text-emerald-600 mr-2" aria-hidden="true"></i>이메일 파일 접수: <a class="font-extrabold underline break-all" href="mailto:winwork@hanmail.net">winwork@hanmail.net</a></p>
+                                <div data-email-file-input class="mt-3">
+                                    <label for="email-file-status" class="block font-bold mb-1">파일을 이메일로 보내시나요? (선택)</label>
+                                    <select id="email-file-status" class="form-select w-full text-sm bg-white">
+                                        <option value="">선택 안 함</option><option value="planned">이메일로 보낼 예정</option><option value="sent">이미 이메일로 보냈습니다</option>
+                                    </select>
+                                    <p class="mt-2 text-xs leading-relaxed">이메일 제목에 고객명과 품명을 적어 주세요. 접수 후에는 마이페이지의 더보기에서 이메일 발송을 알릴 수 있습니다. 실제 수신 여부는 관리자가 확인합니다.</p>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- 액션 버튼 -->
@@ -923,7 +932,7 @@ function __displayNameForHeader(currentUser) {
 
 <script src="assets/js/header-shell.js"></script>
 <script type="module" src="assets/js/maintenance-check.js"></script>
-<script type="module" src="assets/js/pages/quote-book.js?v=20261125-estimate-guide"></script>
+<script type="module" src="assets/js/pages/quote-book.js?v=20261125-email-files"></script>
 <script>
   // bfcache(뒤로가기 캐시)로 복원되면 JS 초기화가 꼬일 수 있어 강제 새로고침
   window.addEventListener('pageshow', function (e) {

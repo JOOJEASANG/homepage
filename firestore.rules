@@ -121,8 +121,9 @@ service cloud.firestore {
           'adminFinalPrice', 'adminPrice', 'confirmedPrice', 'paymentStatus',
           'paidAt', 'adminMemo', 'internalMemo', 'approvedBy', 'completedBy',
           'cancelApprovedAt', 'cancelRejectedAt', 'cancelHandledAt',
-          'holdBy', 'holdPreviousStatus', 'holdAt'
+          'holdBy', 'holdPreviousStatus', 'holdAt', 'emailFileConfirmedAt', 'emailFileReportedAt'
         ])
+        && (!('emailFileStatus' in request.resource.data) || request.resource.data.emailFileStatus in ['planned', 'sent'])
         && (!('lastEditedBy' in request.resource.data) || request.resource.data.lastEditedBy != 'admin');
     }
 
@@ -131,7 +132,7 @@ service cloud.firestore {
         'adminFinalPrice', 'adminPrice', 'confirmedPrice', 'paymentStatus',
         'paidAt', 'adminMemo', 'internalMemo', 'approvedBy', 'completedBy',
         'cancelApprovedAt', 'cancelRejectedAt', 'cancelHandledAt',
-        'holdBy', 'holdPreviousStatus', 'holdAt'
+        'holdBy', 'holdPreviousStatus', 'holdAt', 'emailFileStatus', 'emailFileConfirmedAt', 'emailFileReportedAt'
       ])
       && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastEditedBy'])
           || request.resource.data.lastEditedBy == 'customer');
@@ -167,6 +168,18 @@ service cloud.firestore {
             && request.resource.data.holdPreviousStatus == null
             && request.resource.data.holdAt == null)
         );
+    }
+
+    function customerEmailFileReportIsSafe() {
+      return !(resource.data.status in ['주문취소','취소요청','작업완료','결제완료'])
+        && (!('cancelRequestState' in resource.data) || !(resource.data.cancelRequestState in ['requested','approved','admin_cancelled']))
+        && (!('emailFileConfirmedAt' in resource.data) || resource.data.emailFileConfirmedAt == null)
+        && (!('emailFileStatus' in resource.data) || resource.data.emailFileStatus != 'sent')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emailFileStatus','emailFileReportedAt','updatedAt','hasUnreadAdminMessage'])
+        && request.resource.data.emailFileStatus == 'sent'
+        && request.resource.data.emailFileReportedAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.hasUnreadAdminMessage == true;
     }
 
     function isChatMetaOnlyUpdate() {
@@ -210,6 +223,7 @@ service cloud.firestore {
       allow update: if isAdmin()
         || isGuestClaimToMember()
         || ((isMemberQuoteOwner(resource) || isGuestOwnerUpdate()) && customerHoldIsSafe())
+        || ((isMemberQuoteOwner(resource) || isGuestOwnerUpdate()) && customerEmailFileReportIsSafe())
         || (
           isMemberQuoteOwner(resource)
           && isEditableByCustomer()
