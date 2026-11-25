@@ -1041,7 +1041,7 @@ test('admin distinguishes a customer email report from confirmed receipt',async(
   await page.addInitScript(()=>{window.__fixtureQuotes=[{id:'email-order',orderName:'이메일 주문',createdAt:{toDate:()=>new Date()},status:'접수완료',emailFileStatus:'sent',totalPrice:10000}];});
   await page.goto('/admin.html',{waitUntil:'domcontentloaded'});
   const row=page.locator('#quote-list-body tr[data-quote-id="email-order"]');
-  await expect(row).toContainText('이메일 발송 · 미확인');
+  await expect(row).toContainText('이메일 접수 · 미확인');
   await row.locator('.email-file-confirm-btn').click();
   await expect(page.locator('#confirmationMessage')).toContainText('실제 이메일 접수함');
   await page.locator('#confirmActionBtn').click();
@@ -1066,4 +1066,29 @@ test('homepage binding guide opens item five in the layer and direct navigation'
   await page.goto('/work-guide.html?guide=5', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#viewTitle')).toHaveText('책자·제본 기본 안내');
   await expect(page.locator('#viewIndex')).toHaveText('5 / 6');
+});
+
+test('admin downloads multiple order attachments in one ZIP', async ({ page }) => {
+  await fixture(page);
+  await page.route('https://firebasestorage.googleapis.com/v0/b/worklist-1e83a.firebasestorage.app/o/fixture-*', route => route.fulfill({
+    contentType:'application/octet-stream', headers:{'access-control-allow-origin':'*'}, body:'sample file'
+  }));
+  await page.addInitScript(() => {
+    const prefix='https://firebasestorage.googleapis.com/v0/b/worklist-1e83a.firebasestorage.app/o/fixture-';
+    window.__fixtureQuotes=[{id:'zip-order',receiptNo:'Q-ZIP',orderName:'자료집',createdAt:{toDate:()=>new Date()},status:'접수완료',totalPrice:10000,
+      attachments:[{name:'표지.pdf',url:prefix+'1?alt=media',size:11},{name:'내지.pdf',url:prefix+'2?alt=media',size:11}]}];
+  });
+  await page.goto('/admin.html',{waitUntil:'domcontentloaded'});
+  await page.locator('#quote-list-body tr[data-quote-id="zip-order"] td').first().click();
+  const section=page.locator('#quote-attachments-section');
+  await expect(section.locator('.quote-attachment-download')).toHaveCount(2);
+  const downloaded=page.waitForEvent('download');
+  await section.getByRole('button',{name:'전체 다운로드 (ZIP)'}).click();
+  const download=await downloaded;
+  expect(download.suggestedFilename()).toBe('Q-ZIP_첨부파일.zip');
+  const zip=readFileSync(await download.path());
+  expect(zip.readUInt32LE(0)).toBe(0x04034b50);
+  expect(zip.readUInt16LE(zip.length-12)).toBe(2);
+  expect(zip.includes(Buffer.from('표지.pdf'))).toBe(true);
+  expect(zip.includes(Buffer.from('내지.pdf'))).toBe(true);
 });
