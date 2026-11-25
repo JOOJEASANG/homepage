@@ -91,7 +91,7 @@
     const bar = document.createElement('div');
     bar.className = 'mobile-order-bar';
     const quoteOnly = document.getElementById('quoteOnlyBtn');
-    bar.innerHTML = '<button type="button" class="mobile-price" aria-haspopup="dialog"><small>예상금액 · 부가세 포함</small><strong>계산 대기</strong><span class="price-details">상세 ⌃</span></button><div class="mobile-order-actions"><button type="button" class="mobile-quote-only" aria-label="견적만 요청 (제작 미진행)">견적만 (미주문)</button><button type="button" class="mobile-order-submit">주문 접수</button></div>';
+    bar.innerHTML = '<button type="button" class="mobile-price" aria-haspopup="dialog"><small>예상금액 · 부가세 포함</small><strong>계산 대기</strong><span class="price-details">상세 ⌃</span></button><div class="mobile-order-actions"><button type="button" class="mobile-quote-only" aria-label="견적만 요청" aria-describedby="estimate-request-guide">견적만 요청</button><button type="button" class="mobile-order-submit">주문 접수</button></div>';
     form.after(bar);
     const mobileSubmit = bar.querySelector('.mobile-order-submit');
     const mobileQuoteOnly = bar.querySelector('.mobile-quote-only');

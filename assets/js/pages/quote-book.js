@@ -19,7 +19,7 @@ import { app, auth, db, storage,
 } from "../firebase.js";
 import { initHeader } from "../header.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
-import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer, confirmEstimateIntent } from "./shared/estimate-quick-order.js?v=20261125-estimate-notice";
+import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer, confirmEstimateIntent } from "./shared/estimate-quick-order.js?v=20261125-estimate-guide";
 import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
 import { getPerfectInnerPricingMultiplier, getPerfectBindingMetrics } from "./quote-book/perfect-calculator.js";
 import { getWireCoverCost, getWireCoverPrintedSides, getWireCoverPrintImpressions, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js?v=20261021-wire-duplex-cover-v2";
@@ -248,7 +248,7 @@ const editState = { enabled: false, quoteId: null, adminEdit: isAdminEditSearch(
         if (modalTitle) modalTitle.innerHTML = pendingRequestType === 'estimate'
             ? '<i class="fas fa-file-invoice-dollar text-base mr-2"></i>견적 요청자 정보 입력'
             : '<i class="fas fa-user-circle text-base mr-2"></i>주문자 정보 입력';
-        if (guestButtonText) guestButtonText.textContent = pendingRequestType === 'estimate' ? '견적만 요청 (제작 미진행)' : '내용 확인 후 주문 접수';
+        if (guestButtonText) guestButtonText.textContent = pendingRequestType === 'estimate' ? '견적만 요청' : '내용 확인 후 주문 접수';
         if (memberButtonText) memberButtonText.textContent = pendingRequestType === 'estimate' ? '회원으로 견적만 요청' : '회원으로 주문 접수';
     }
     

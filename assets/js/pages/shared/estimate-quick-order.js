@@ -60,11 +60,11 @@ export function confirmEstimateIntent() {
         <p id="estimate-intent-description" class="mt-2 text-base font-bold text-amber-900">견적 요청만으로는 작업이 진행되지 않습니다.</p>
       </div>
       <div class="space-y-4 px-5 py-5">
-        <p class="text-sm leading-relaxed text-slate-700">견적만 요청하면 금액 확인용으로 저장되며, 파일을 첨부하더라도 실제 제작은 시작되지 않습니다. 제작을 원하시면 주문 접수 및 작업 요청을 선택해 주세요.</p>
-        <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm font-bold leading-relaxed text-slate-800"><input id="estimate-intent-check" type="checkbox" class="mt-1 h-5 w-5 shrink-0 accent-amber-700">견적만 요청하면 제작이 진행되지 않는다는 내용을 확인했습니다.</label>
+        <p class="text-sm leading-relaxed text-slate-700">견적만 요청하면 금액만 확인합니다. 파일을 첨부해도 제작하지 않습니다. 실제 작업을 원하시면 아래의 ‘주문 접수 및 작업 요청’ 버튼을 선택해 주세요.</p>
+        <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm font-bold leading-relaxed text-slate-800"><input id="estimate-intent-check" type="checkbox" class="mt-1 h-5 w-5 shrink-0 accent-amber-700">견적만 요청하면 실제 제작이 진행되지 않는다는 점을 확인했습니다.</label>
         <div class="grid gap-2">
           <button id="estimate-intent-order" type="button" class="rounded-xl bg-brand-600 px-4 py-3 text-sm font-bold text-white">주문 접수 및 작업 요청</button>
-          <button id="estimate-intent-only" type="button" disabled class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">견적만 요청하기 (미주문)</button>
+          <button id="estimate-intent-only" type="button" disabled class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">견적만 요청하기</button>
           <button id="estimate-intent-cancel" type="button" class="px-3 py-2 text-sm text-slate-600">돌아가기</button>
         </div>
       </div>`;
@@ -103,7 +103,7 @@ export function showEstimateCompletedLayer({
       aria-describedby="estimate-completed-description"
       class="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
       <div class="bg-brand-50 border-b border-brand-100 px-6 py-5">
-        <h2 id="estimate-completed-title" class="text-xl font-extrabold text-slate-900">견적 요청 완료 · 아직 미주문</h2>
+        <h2 id="estimate-completed-title" class="text-xl font-extrabold text-slate-900">견적 요청 완료</h2>
         <p id="estimate-completed-description" class="mt-2 text-sm text-slate-600 leading-relaxed"></p>
       </div>
       <div class="px-6 py-5 space-y-4">
