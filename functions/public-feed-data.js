@@ -16,9 +16,9 @@ function publicQuotePayload(docSnap) {
   const data = docSnap.data() || {};
   const createdMs = data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now();
   return {
-    id: docSnap.id,
     displayName: maskName(data.ordererName || data.guestName || data.userName || data.name || '고객'),
-    orderName: text(data.orderName || '인쇄/제본 접수', 80),
+    // Order names are customer-provided and may contain personal or confidential details.
+    orderName: data.productType === 'book' ? '책자·제본 접수' : '디지털 출력 접수',
     productType: ['book', 'print'].includes(String(data.productType || '')) ? data.productType : 'print',
     status: text(data.status || '접수완료', 24),
     createdMs,

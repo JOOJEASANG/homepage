@@ -432,3 +432,36 @@ test('guest quote and customer forms link to privacy information', async ({ page
   await page.goto('/qna.html', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#qna-compose a[href="personal-info.html"]')).toHaveCount(1);
 });
+
+
+test('homepage exposes direct quote, order lookup and preparation paths on narrow screens', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.hero-actions a[href="quote-book.html"]')).toBeVisible();
+  await expect(page.locator('.hero-actions a[href="quote-print.html"]')).toBeVisible();
+  await expect(page.locator('.home-quick-links a[href="login.html"]')).toBeVisible();
+  await expect(page.locator('.home-help-grid article')).toHaveCount(3);
+  await expect(page.locator('#loading-overlay')).toBeHidden();
+  await assertNoHorizontalOverflow(page);
+});
+
+test('notice publication dates use the Korean calendar and inclusive date boundaries', async () => {
+  const { noticeDayKey, isActiveNotice } = await import('../../assets/js/notice-period-utils.js');
+  expect(noticeDayKey(new Date('2026-11-24T15:00:00Z'))).toBe('2026-11-25');
+  expect(isActiveNotice({ publishStartDate: '2026-11-26' }, '2026-11-25')).toBe(false);
+  expect(isActiveNotice({ publishEndDate: '2026-11-24' }, '2026-11-25')).toBe(false);
+  expect(isActiveNotice({ publishStartDate: '2026-11-25', publishEndDate: '2026-11-25' }, '2026-11-25')).toBe(true);
+  expect(isActiveNotice({}, '2026-11-25')).toBe(true);
+});
+
+test('shared rich text sanitizer removes unsafe notice links and attributes', async ({ page }) => {
+  await page.goto('/404.html', { waitUntil: 'domcontentloaded' });
+  const result = await page.evaluate(async () => {
+    const { sanitizeRichText } = await import('/assets/js/rich-text-sanitizer.js');
+    const template = document.createElement('template');
+    template.innerHTML = sanitizeRichText('<p onclick="alert(1)">안내</p><a href=" javascript:alert(1)">위험</a><a href="https://example.com/">안전</a>');
+    const links = template.content.querySelectorAll('a');
+    return { onclick: template.content.querySelector('p').hasAttribute('onclick'), unsafe: links[0].hasAttribute('href'), safe: links[1].getAttribute('href'), rel: links[1].getAttribute('rel') };
+  });
+  expect(result).toEqual({ onclick: false, unsafe: false, safe: 'https://example.com/', rel: 'noopener noreferrer' });
+});

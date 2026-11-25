@@ -36,7 +36,7 @@ function renderQuoteItems(items) {
       <div class="col-span-3 md:col-span-2 text-slate-700 font-medium truncate">${escapeHtml(data.displayName || '고객')}</div>
       <div class="col-span-6 md:col-span-7 flex items-center gap-2 min-w-0">
         <span class="inline-flex shrink-0 whitespace-nowrap min-w-8 items-center justify-center h-5 px-1.5 text-[10px] leading-none rounded font-bold border border-slate-300">${typeLabel}</span>
-        <span class="flex-1 min-w-0 text-slate-700 truncate">${escapeHtml(data.orderName || '접수')}</span>
+        <span class="flex-1 min-w-0 text-slate-700 truncate">${data.productType === 'book' ? '책자·제본 접수' : '디지털 출력 접수'}</span>
       </div>
       <div class="col-span-3 text-right text-xs text-slate-500">${escapeHtml(data.status || '접수완료')}</div>`;
     container.appendChild(row);
@@ -78,6 +78,7 @@ function renderLoadError() {
 }
 
 async function requestRefresh() {
+  if (document.hidden) return;
   try {
     await fetch(REFRESH_ENDPOINT, { method: 'GET', cache: 'no-store' });
   } catch (_) {}
@@ -94,6 +95,7 @@ function init() {
   } catch (_) { renderLoadError(); }
   requestRefresh();
   setInterval(requestRefresh, REFRESH_INTERVAL_MS);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) requestRefresh(); });
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });

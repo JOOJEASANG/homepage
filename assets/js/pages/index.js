@@ -2,8 +2,7 @@ import {
   auth, db,
   onAuthStateChanged, signOut, signInAnonymously,
   setPersistence, browserLocalPersistence,
-  doc, getDoc, collection, query, where,
-  orderBy, limit, getDocs,
+  doc, getDoc,
 } from "../firebase.js";
 import { initHeader } from "../header.js";
 import "../overlays.js";
@@ -57,30 +56,6 @@ function sanitizeHTML(str) {
   if (!str) return '';
   const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
   return str.replace(/[&<>"']/g, m => map[m]);
-}
-
-function sanitizeNoticeHtml(html) {
-  try {
-    const allowedTags = new Set(['B','STRONG','I','EM','U','BR','P','DIV','SPAN','UL','OL','LI','A','HR','BLOCKQUOTE']);
-    const docx = new DOMParser().parseFromString(`<div>${html || ''}</div>`, 'text/html');
-    // Reverse order: process deepest nodes first to avoid ancestor removal skipping children
-    Array.from(docx.body.querySelectorAll('*')).reverse().forEach(el => {
-      if (!allowedTags.has(el.tagName)) { el.replaceWith(...el.childNodes); return; }
-      Array.from(el.attributes).forEach(attr => {
-        const name = attr.name.toLowerCase();
-        if (name.startsWith('on') || name === 'style' || (name === 'href' && /^javascript:/i.test(attr.value)))
-          el.removeAttribute(attr.name);
-      });
-      if (el.tagName === 'A') { el.setAttribute('target', '_blank'); el.setAttribute('rel', 'noopener noreferrer'); }
-    });
-    return docx.body.firstElementChild?.innerHTML || '';
-  } catch { return ''; }
-}
-
-function renderNoticeContent(data) {
-  const html = data?.contentHtml ? sanitizeNoticeHtml(data.contentHtml) : '';
-  if (html) return html;
-  return sanitizeHTML(data?.content || '').replace(/\n/g, '<br>');
 }
 
 function normalizePhone(input) {
@@ -223,85 +198,6 @@ onAuthStateChanged(auth, async user => {
 
 btnLogout?.addEventListener('click', () => window.hardLogout?.('index.html'));
 
-// ── 공지사항 (병렬 쿼리) ─────────────────────────────────────
-async function loadNotices() {
-  const container = document.getElementById('notice-list-container');
-  const modal = document.getElementById('notice-modal');
-  try {
-    const [snap, popupSnap] = await Promise.all([
-      getDocs(query(collection(db,'notices'), orderBy('createdAt','desc'), limit(8))),
-      getDocs(query(collection(db,'notices'), where('isPopup','==',true), orderBy('createdAt','desc'), limit(1))),
-    ]);
-
-    if (snap.empty) {
-      if (container) container.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400 text-sm gap-2 mt-10"><p>등록된 공지사항이 없습니다.</p></div>';
-    } else if (container) {
-      const notices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      notices.sort((a, b) => (b.isImportant ? 1 : 0) - (a.isImportant ? 1 : 0));
-      container.innerHTML = '';
-      notices.forEach(data => {
-        let dateStr = '-';
-        if (data.createdAt?.toDate) {
-          const d = data.createdAt.toDate();
-          dateStr = `${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
-        }
-        const div = document.createElement('div');
-        div.className = 'grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-100 items-center hover:bg-slate-50 transition-colors cursor-pointer group text-sm';
-        div.innerHTML = `
-          <div class="col-span-2 text-center">
-            ${data.isImportant
-              ? '<span class="inline-block w-10 py-0.5 rounded text-[10px] font-bold bg-red-50 text-red-600 border border-red-200">중요</span>'
-              : '<span class="inline-block w-10 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200">공지</span>'}
-          </div>
-          <div class="col-span-7 min-w-0">
-            <div class="truncate text-slate-700 group-hover:text-brand-700 group-hover:underline decoration-brand-200 underline-offset-2 transition-all">${sanitizeHTML(data.title || '제목 없음')}</div>
-          </div>
-          <div class="col-span-3 text-right text-xs text-slate-400 font-mono">${dateStr}</div>
-        `;
-        div.onclick = () => openNoticeModal(data);
-        container.appendChild(div);
-      });
-    }
-
-    function openNoticeModal(data) {
-      document.getElementById('notice-modal-title').textContent = data.title || '';
-      document.getElementById('notice-modal-date').textContent = data.createdAt?.toDate?.().toLocaleDateString() ?? '';
-      document.getElementById('notice-modal-content').innerHTML = renderNoticeContent(data);
-      document.getElementById('notice-badge').classList.toggle('hidden', !data.isImportant);
-      modal.classList.remove('hidden'); modal.classList.add('flex');
-    }
-    const closeNoticeModal = () => { modal.classList.add('hidden'); modal.classList.remove('flex'); };
-    document.getElementById('close-notice-modal-btn').onclick = closeNoticeModal;
-    modal.onclick = e => { if (e.target === modal) closeNoticeModal(); };
-
-    if (!popupSnap.empty) {
-      const popupDoc  = popupSnap.docs[0];
-      const popupNotice = { id: popupDoc.id, ...popupDoc.data() };
-      const modal2  = document.getElementById('notice-popup-modal');
-      const todayKey = () => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; };
-      const shouldSkip = () => {
-        try { const o = JSON.parse(localStorage.getItem('notice_popup_hide') || 'null'); return o?.date === todayKey() && o?.id === popupNotice.id; } catch { return false; }
-      };
-      if (!shouldSkip()) {
-        document.getElementById('notice-popup-title').textContent = popupNotice.title || '';
-        document.getElementById('notice-popup-content').innerHTML = renderNoticeContent(popupNotice);
-        modal2.classList.remove('hidden'); modal2.classList.add('flex');
-        const hideToday = document.getElementById('notice-popup-hide-today');
-        const closePopup = () => {
-          if (hideToday.checked) {
-            try { localStorage.setItem('notice_popup_hide', JSON.stringify({ date: todayKey(), id: popupNotice.id })); } catch {}
-          }
-          modal2.classList.add('hidden'); modal2.classList.remove('flex');
-          hideToday.checked = false;
-        };
-        document.getElementById('notice-popup-close-btn').onclick = closePopup;
-        document.getElementById('notice-popup-confirm-btn').onclick = closePopup;
-        modal2.onclick = e => { if (e.target === modal2) closePopup(); };
-      }
-    }
-  } catch(err) { console.error('공지사항 로드 오류:', err); }
-}
-
 // ── 비회원 조회 폼 ─────────────────────────────────────────────
 const guestModal        = document.getElementById('guest-lookup-overlay');
 const guestForm         = document.getElementById('guest-lookup-form');
@@ -371,7 +267,7 @@ document.getElementById('userMenuEditInfoBtn')?.addEventListener('click', () => 
 // ── 페이지 초기화 ────────────────────────────────────────────
 function initializeHomepage() {
   initHeader('index');
-  loadNotices().catch(e => console.error('[index] loadNotices:', e));
+
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initializeHomepage, { once: true });
 else initializeHomepage();

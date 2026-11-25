@@ -33,3 +33,9 @@ assert.ok(client.includes('shrink-0 whitespace-nowrap min-w-8'), 'quote type bad
 assert.ok(client.includes('flex-1 min-w-0 text-slate-700 truncate'), 'long quote titles must truncate instead of compressing the type badge');
 
 console.log('Public feed privacy contract checks passed');
+
+// Never expose customer-entered order titles or internal quote IDs in the public feed.
+const quotePayload = data.slice(data.indexOf('function publicQuotePayload'), data.indexOf('function publicQnaPayload'));
+assert.doesNotMatch(quotePayload, /data\.orderName|docSnap\.id/);
+assert.match(quotePayload, /책자·제본 접수/);
+assert.doesNotMatch(client, /data\.orderName/);
