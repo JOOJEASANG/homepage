@@ -28,8 +28,7 @@ assert.match(await ids.generateBookReceiptNo(), /^Q\d{8}-\d{9}$/);
 const templates = await mod('quote-item-template.js');
 const itemHtml = templates.renderQuoteItemTemplate({ quoteItemCounter: 2, designPrice: 10000, oshiPrice: 500 });
 assert.ok(itemHtml.includes('quote-item-header'));
-assert.ok(itemHtml.includes('10,000원'));
-assert.ok(itemHtml.includes('500원/부'));
+assert.doesNotMatch(itemHtml, /coverDesign|coverOshi|표지 디자인 의뢰|표지 오시/);
 const innerHtml = templates.renderInnerSectionTemplate({ sectionCount: 1 });
 assert.ok(innerHtml.includes('remove-inner-section-btn'));
 assert.ok(innerHtml.includes('innerPaperType'));
@@ -39,8 +38,6 @@ const noBindingCover = await mod('no-binding-cover.js');
   const binding = { value: 'wire' };
   const coverPaper = { value: 'snow200', disabled: false };
   const coverPrint = { value: 'color_duplex', disabled: false };
-  const coverDesign = { checked: true, disabled: false };
-  const coverOshi = { checked: true, disabled: false };
   const preview = { disabled: false };
   const wireFront = { checked: true };
   const wireBack = { checked: true };
@@ -50,14 +47,12 @@ const noBindingCover = await mod('no-binding-cover.js');
     '.bindingType': binding,
     '.coverPaperType': coverPaper,
     '.coverPrintType': coverPrint,
-    '.coverDesign': coverDesign,
-    '.coverOshi': coverOshi,
     '.cover-paper-preview-btn': preview,
     '[data-order-stage="cover"]': { classList: { toggle: (_, value) => { stage.dimmed = value; } } },
     '.no-binding-cover-notice': { classList: { toggle: (_, value) => { status.hidden = value; } } },
   };
   const item = {
-    dataset: { wireCoverFront: '1', wireCoverBack: '1' },
+    dataset: { wireCoverFront: '1', wireCoverBack: '1', legacyCoverDesign: '1', legacyCoverOshi: '1' },
     querySelector: selector => controls[selector] || null,
     querySelectorAll: () => [wireFront, wireBack],
   };
@@ -68,8 +63,8 @@ const noBindingCover = await mod('no-binding-cover.js');
   noBindingCover.syncNoBindingCoverState(item);
   assert.equal(coverPaper.value, 'none');
   assert.equal(coverPrint.value, 'none');
-  assert.equal(coverDesign.checked, false);
-  assert.equal(coverOshi.checked, false);
+  assert.equal(item.dataset.legacyCoverDesign, '0');
+  assert.equal(item.dataset.legacyCoverOshi, '0');
   assert.equal(wireFront.checked, false);
   assert.equal(wireBack.checked, false);
   assert.equal(item.dataset.wireCoverFront, '0');
@@ -82,8 +77,6 @@ const noBindingCover = await mod('no-binding-cover.js');
   noBindingCover.syncNoBindingCoverState(item);
   assert.equal(coverPaper.disabled, false);
   assert.equal(coverPrint.disabled, false);
-  assert.equal(coverDesign.disabled, false);
-  assert.equal(coverOshi.disabled, false);
   assert.equal(preview.disabled, false);
   assert.equal(status.hidden, true);
   assert.equal(stage.dimmed, false);
@@ -103,7 +96,7 @@ for (const removed of ['function getPreviewUrl(val)', 'function sha256HexSync(st
 for (const critical of ['function calculateQuote()', 'async function submitQuoteRequest(', 'async function initializePage(']) {
   assert.ok(quoteSource.includes(critical), `critical orchestration missing: ${critical}`);
 }
-assert.ok(quoteSource.includes('renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPrice })'));
+assert.ok(quoteSource.includes('renderQuoteItemTemplate({ quoteItemCounter })'));
 assert.ok(quoteSource.includes('renderInnerSectionTemplate({ sectionCount })'));
 
 // A5는 내지 인쇄비에만 A4 대비 70%를 적용합니다.

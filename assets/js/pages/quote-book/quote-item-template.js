@@ -1,7 +1,7 @@
 // 견적 항목/내지 섹션 HTML 템플릿 전용 모듈
 // 마크업은 기존 quote-book.js에서 그대로 이동하며 계산/이벤트 로직은 포함하지 않습니다.
 
-export function renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPrice }) {
+export function renderQuoteItemTemplate({ quoteItemCounter }) {
     return `
             <div class="quote-item-header">
                 <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -43,16 +43,6 @@ export function renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPri
                             <option value="color_simplex" selected>컬러 단면</option>
                             <option value="color_duplex">컬러 양면</option>
                         </select>
-                    </div>
-                    <div class="md:col-span-2 pt-2 flex flex-wrap gap-4 border-t border-slate-200 mt-2">
-                        <label class="flex items-center cursor-pointer gap-2">
-                            <input type="checkbox" name="coverDesign" class="coverDesign rounded text-brand-600 focus:ring-brand-500">
-                            <span class="text-sm text-slate-700">표지 디자인 의뢰 (+${designPrice.toLocaleString()}원)</span>
-                        </label>
-                        <label class="flex items-center cursor-pointer gap-2">
-                            <input type="checkbox" name="coverOshi" class="coverOshi rounded text-brand-600 focus:ring-brand-500">
-                            <span class="text-sm text-slate-700">표지 오시 1줄 (+${oshiPrice.toLocaleString()}원/부)</span>
-                        </label>
                     </div>
                 </div>
                 <p class="no-binding-cover-notice hidden mt-2 text-xs text-slate-500" role="status">제본 안함 선택 시 표지 용지와 표지 인쇄는 자동으로 제외됩니다.</p>

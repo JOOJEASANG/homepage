@@ -16,8 +16,8 @@ function readCommonQuoteItem(itemEl) {
         orderName: itemEl.querySelector('.orderName').value,
         coverPaperType: itemEl.querySelector('.coverPaperType').value,
         coverPrintType: itemEl.querySelector('.coverPrintType').value,
-        coverDesign: itemEl.querySelector('.coverDesign').checked,
-        coverOshi: itemEl.querySelector('.coverOshi').checked,
+        coverDesign: itemEl.dataset?.legacyCoverDesign === '1',
+        coverOshi: itemEl.dataset?.legacyCoverOshi === '1',
         bindingType: itemEl.querySelector('.bindingType').value,
         bindingDirection: itemEl.querySelector('.bindingDirection')?.value || 'portrait-left',
         // 스테플은 제본안함일 때만 별도 후가공 요청으로 저장합니다.

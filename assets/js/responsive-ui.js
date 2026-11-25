@@ -121,6 +121,7 @@
       const number = Number(String(amount || '').replace(/[^0-9.]/g, ''));
       bar.querySelector('strong').textContent = /주문 불가/.test(amount || '') ? '사양 확인 필요' : number > 0 ? `${number.toLocaleString('ko-KR')}원` : '계산 대기';
       bar.hidden = submit.hidden || getComputedStyle(submit).display === 'none' || Boolean(document.getElementById('admin-pricing-mode-banner'));
+      form.classList.toggle('mobile-summary-active', !bar.hidden);
       mobileSubmit.disabled = submit.disabled;
       mobileQuoteOnly.hidden = !quoteOnly || quoteOnly.hidden || getComputedStyle(quoteOnly).display === 'none';
       mobileQuoteOnly.disabled = Boolean(quoteOnly?.disabled || submit.disabled);

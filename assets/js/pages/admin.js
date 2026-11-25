@@ -27,6 +27,7 @@ import { canAdminConvertEstimate, adminEstimatePrice, normalizeCustomerOrderRequ
 import { ADMIN_NOTIFICATION_KEY, readAdminNotificationPreference, notificationToggleText } from "./admin/notification-preference.js";
 import { canHold, canResume, changeOrderHold } from "./shared/order-hold.js";
 import { isEmailFileNotice, emailFileLabel } from "./shared/email-file-notice.js?v=20261125-checkbox";
+import { downloadAttachmentZip } from "./admin/attachment-zip.js";
 import { monthlyRevenue, renderMonthlyRevenue } from "./admin/monthly-revenue.js?v=20261125-calendar-year";
 
 // 페이지 로드 시 헤더 렌더링 (관리자 페이지는 활성 메뉴 없음)
@@ -393,6 +394,27 @@ function updateNotifStatus(){
 
      
 // 파일 다운로드 함수
+// Admin order attachment ZIP: download each file once, keep individual links available.
+document.addEventListener('click', async event => {
+    const button = event.target.closest('[data-download-attachment-zip]');
+    if (!button || button.disabled) return;
+    const section = button.closest('#quote-attachments-section');
+    if (!section) return;
+    const status = section.querySelector('[data-attachment-zip-status]');
+    const files = [...section.querySelectorAll('a.quote-attachment-download')].map(link => ({
+        name: link.getAttribute('download'), url: link.href, size: Number(link.dataset.attachmentSize) || 0
+    }));
+    button.disabled = true;
+    try {
+        await downloadAttachmentZip(files, button.dataset.receipt, message => { status.textContent = message; });
+        status.textContent = 'ZIP 다운로드를 시작했습니다.';
+    } catch (error) {
+        status.textContent = error.message || '전체 다운로드에 실패했습니다. 개별 다운로드를 이용해 주세요.';
+    } finally {
+        button.disabled = false;
+    }
+});
+
 async function forceDownload(url, filename = 'download') {
     // [수정 1] URL이 없는 경우 방어 코드
     if (!url) return;
@@ -1672,9 +1694,9 @@ try {
                 if (atts.length > 0) {
                     html += `
                     <div id="quote-attachments-section" class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 mb-6">
-                        <div class="flex items-center justify-between mb-3">
-                            <h4 class="font-bold text-slate-800 flex items-center gap-2"><i class="fas fa-paperclip text-slate-400"></i>접수 첨부파일</h4>
-                            <span class="text-xs text-slate-400">${atts.length}개</span>
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <h4 class="font-bold text-slate-800 flex items-center gap-2"><i class="fas fa-paperclip text-slate-400"></i>접수 첨부파일 <span class="text-xs text-slate-400">${atts.length}개</span></h4>
+                            ${atts.filter(a => a?.url).length > 1 ? `<button type="button" data-download-attachment-zip data-receipt="${s(quote.receiptNo || "접수")}" class="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800 hover:bg-emerald-100"><i class="fas fa-file-archive" aria-hidden="true"></i><span>전체 다운로드 (ZIP)</span></button>` : ""}
                         </div>
                         <div class="space-y-2">
                             ${atts.map((a, i) => {
@@ -1689,13 +1711,14 @@ try {
                                       <p class="text-[11px] text-slate-400">${size}</p>
                                     </div>
                                     <div class="quote-attachment-actions shrink-0 flex gap-2">
-                                      <a href="${url}" data-force-download="1" download="${name}" target="_blank" rel="noopener" class="quote-attachment-download px-3 py-1.5 rounded-md text-xs font-bold border border-slate-300 bg-white hover:bg-slate-50 text-slate-700"><i class="fas fa-download" aria-hidden="true"></i><span>다운로드</span></a>
+                                      <a href="${url}" data-force-download="1" data-attachment-size="${Number(a?.size) || 0}" download="${name}" target="_blank" rel="noopener" class="quote-attachment-download px-3 py-1.5 rounded-md text-xs font-bold border border-slate-300 bg-white hover:bg-slate-50 text-slate-700"><i class="fas fa-download" aria-hidden="true"></i><span>다운로드</span></a>
                                       <button type="button" class="quote-attachment-delete delete-attachment-btn px-3 py-1.5 rounded-md text-xs font-bold bg-red-500 hover:bg-red-600 text-white" data-path="${s(a?.path || '')}" data-url="${url}">삭제</button>
                                     </div>
                                   </div>`;
                             }).join('')}
                         </div>
-                        <p class="mt-3 text-[11px] text-slate-400">※ ‘다운로드’를 누르면 PC 또는 휴대폰의 다운로드 폴더에 저장됩니다.</p>
+                        <p data-attachment-zip-status role="status" class="mt-2 text-xs text-slate-600"></p>
+                        <p class="mt-3 text-[11px] text-slate-400">※ 전체 다운로드는 첨부파일을 하나의 ZIP으로 저장합니다. 개별 다운로드도 가능합니다.</p>
                     </div>`;
                 }
             } catch(e) { logger.warn('attachments render failed', e); }
