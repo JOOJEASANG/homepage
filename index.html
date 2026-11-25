@@ -135,7 +135,7 @@
         .animate-pulse { animation: pulse-green 2s ease infinite; }
     </style>
     <script src="assets/js/naver-analytics.js" defer></script>
-    <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261002">
+    <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261125-footer-contact">
     <script src="assets/js/responsive-ui.js?v=20261002" defer></script>
 </head>
 <body data-page="index" class="antialiased flex flex-col min-h-screen">
@@ -317,46 +317,50 @@
             </div>
         </section>
 
-        <section class="contact-strip"><div class="renew-container"><div><p class="eyebrow">NEED A HAND?</p><h2>인쇄가 고민될 땐, 그린오피스.</h2><p>충남 천안시 서북구 쌍용14길 29 1층</p></div><div class="contact-actions"><a class="contact-phone" href="tel:041-571-4370">041-571-4370</a><p>평일 09:00–18:00 · 점심 12:00–13:00</p><p class="contact-email"><i class="fas fa-envelope" aria-hidden="true"></i> 이메일 안내: winwork@hanmail.net</p><a href="https://map.naver.com/p/entry/place/13194482" target="_blank" rel="noopener noreferrer">오시는 길 ↗</a></div></div></section>
     </main>
 
     <!-- ===== FOOTER ===== -->
-    <footer class="site-footer py-12">
+    <footer class="site-footer home-footer">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-col md:flex-row justify-between items-center md:items-start gap-10">
-                <div class="flex flex-col items-center md:items-start">
-                    <a href="index.html" class="flex items-center gap-3 group mb-5">
-                        <div class="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white group-hover:bg-emerald-500 group-hover:rotate-6 transition-all duration-300 shadow-lg shadow-emerald-900/40">
-                            <i class="fas fa-print"></i>
+            <div class="home-footer-grid">
+                <div class="home-footer-brand">
+                    <a href="index.html" class="flex items-center gap-3 group mb-4">
+                        <div class="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white group-hover:bg-emerald-500 transition-colors">
+                            <i class="fas fa-print" aria-hidden="true"></i>
                         </div>
                         <div>
                             <div class="text-xl font-black text-white tracking-tight leading-none">그린오피스</div>
-                            <div class="text-[10px] text-emerald-500 font-bold tracking-widest uppercase mt-0.5">Professional Printing</div>
+                            <div class="text-[10px] text-emerald-400 font-bold tracking-widest uppercase mt-1">Professional Printing</div>
                         </div>
                     </a>
-                    <p class="text-slate-500 text-xs leading-relaxed max-w-xs text-center md:text-left">
-                        최고의 기술과 정성으로 비즈니스의 가치를 출력합니다.<br>디지털 인쇄 및 책자 제본 전문 파트너.
-                    </p>
+                    <p>최고의 기술과 정성으로 비즈니스의 가치를 출력합니다.<br>디지털 인쇄 및 책자 제본 전문 파트너.</p>
                 </div>
-
-                <div class="flex flex-col items-center md:items-end gap-3 text-xs text-slate-500">
-                    <div class="flex flex-wrap justify-center md:justify-end gap-x-5 gap-y-1.5">
-                        <span><b class="text-slate-400">대표</b> 주재상</span>
-                        <span><b class="text-slate-400">사업자번호</b> 312-22-73242</span>
-                    </div>
-                    <p class="flex items-center gap-1.5">
-                        <i class="fas fa-map-marker-alt text-emerald-600 text-[10px]"></i>
-                        충남 천안시 서북구 쌍용14길 29 1층
-                    </p>
-                    <nav aria-label="이용 및 법적 안내" class="flex flex-wrap justify-center md:justify-end gap-x-4 gap-y-2 mt-2 text-[12px]">
-                        <a href="guide.html" data-legal="guide" class="text-slate-300 hover:text-white">이용안내</a>
-                        <a href="personal-info.html" data-legal="privacy" class="text-slate-300 hover:text-white font-bold">개인정보처리방침</a>
-                        <a href="terms.html" data-legal="terms" class="text-slate-300 hover:text-white">이용약관</a>
-                    </nav>
-                    <p class="text-slate-600 text-[11px] pt-3 border-t border-white/05 text-center md:text-right">
-                        Copyright © 2026 <span class="text-emerald-500 font-bold">Green Office</span>. All rights reserved.
-                    </p>
-                </div>
+                <section class="home-footer-contact" aria-label="고객 문의 및 파일 접수">
+                    <h2>고객 문의 및 파일 접수</h2>
+                    <a class="home-footer-phone" href="tel:041-571-4370"><i class="fas fa-phone" aria-hidden="true"></i> 041-571-4370</a>
+                    <dl class="home-footer-info">
+                        <div><dt>영업시간</dt><dd>평일 09:00–18:00</dd></div>
+                        <div><dt>점심시간</dt><dd>12:00–13:00</dd></div>
+                        <div><dt>이메일</dt><dd><a class="home-footer-email" href="mailto:winwork@hanmail.net">winwork@hanmail.net</a></dd></div>
+                    </dl>
+                </section>
+                <section class="home-footer-business" aria-label="사업자 정보">
+                    <h2>사업자 정보</h2>
+                    <dl class="home-footer-info">
+                        <div><dt>대표</dt><dd>주재상</dd></div>
+                        <div><dt>사업자번호</dt><dd>312-22-73242</dd></div>
+                        <div><dt>주소</dt><dd>충남 천안시 서북구 쌍용14길 29 1층</dd></div>
+                    </dl>
+                    <a class="home-footer-map" href="https://map.naver.com/p/entry/place/13194482" target="_blank" rel="noopener noreferrer"><i class="fas fa-map-marker-alt" aria-hidden="true"></i> 오시는 길 <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+                </section>
+            </div>
+            <div class="home-footer-bottom">
+                <nav aria-label="이용 및 법적 안내" class="flex flex-wrap gap-x-5 gap-y-2">
+                    <a href="guide.html" data-legal="guide">이용안내</a>
+                    <a href="personal-info.html" data-legal="privacy" class="font-bold">개인정보처리방침</a>
+                    <a href="terms.html" data-legal="terms">이용약관</a>
+                </nav>
+                <p>Copyright © 2026 <span class="text-emerald-400 font-bold">Green Office</span>. All rights reserved.</p>
             </div>
         </div>
     </footer>

@@ -49,6 +49,17 @@ test.describe('responsive renewal', () => {
           return ids.filter((id,i) => ids.indexOf(id) !== i);
         });
         expect(duplicates).toEqual([]);
+        if (url === 'index.html') {
+          await expect(page.locator('.contact-strip')).toHaveCount(0);
+          const footer=page.locator('footer.home-footer');
+          await expect(footer.locator('a[href="tel:041-571-4370"]')).toBeVisible();
+          await expect(footer.locator('a[href="mailto:winwork@hanmail.net"]')).toBeVisible();
+          await expect(footer).toContainText('평일 09:00–18:00');
+          await expect(footer).toContainText('12:00–13:00');
+          await expect(footer.locator('.home-footer-map')).toHaveAttribute('href','https://map.naver.com/p/entry/place/13194482');
+          await expect(footer).toContainText('충남 천안시 서북구 쌍용14길 29 1층');
+          await expect(footer.locator('[data-legal]')).toHaveCount(3);
+        }
         if (url === 'admin.html') {
           const columns = page.locator('.reception-order-table thead th');
           const cells = page.locator('#quote-list-body tr').first().locator('td');
