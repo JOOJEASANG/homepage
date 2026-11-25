@@ -468,9 +468,10 @@ test('shared rich text sanitizer removes unsafe notice links and attributes', as
 
 
 test('homepage replaces public activity boards with compact notices and FAQ', async ({ page }) => {
+  await page.route('**/assets/js/notice-publish-period-public.js*', route => route.fulfill({contentType:'application/javascript',body:'// Isolate live notices for the layout/navigation test.'}));
   const activityRequests = [];
   page.on('request', request => {
-    if (/public-feed-v2\\.js|refreshPublicFeed/.test(request.url())) activityRequests.push(request.url());
+    if (/public-feed-v2\.js|refreshPublicFeed/.test(request.url())) activityRequests.push(request.url());
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/', { waitUntil: 'domcontentloaded' });
@@ -484,7 +485,7 @@ test('homepage replaces public activity boards with compact notices and FAQ', as
   await assertNoHorizontalOverflow(page);
   expect(activityRequests).toEqual([]);
   await page.locator('.home-faq-section a[href="qna.html#faq"]').click();
-  await expect(page).toHaveURL(/qna\\.html#faq$/);
+  await expect(page).toHaveURL(/qna\.html#faq$/);
   await expect(page.locator('#content-faq')).toBeVisible();
 });
 

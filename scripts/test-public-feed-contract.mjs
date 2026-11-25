@@ -43,6 +43,6 @@ assert.doesNotMatch(client, /data\.orderName/);
 // Homepage no longer subscribes to public activity data; retain the legacy backend contract.
 const session = fs.readFileSync(path.join(root, 'assets/js/session.js'), 'utf8');
 const home = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-assert.doesNotMatch(session, /public-feed-v2\\.js/);
+assert.doesNotMatch(session, /public-feed-v2\.js/);
 assert.doesNotMatch(home, /recent-quotes-container|recent-qna-container/);
 assert.match(home, /id="home-notice-section"/);
