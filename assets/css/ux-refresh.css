@@ -393,8 +393,6 @@ html[data-ui-refresh="1"] .home-footer .home-footer-logo { width:32px; height:32
 }
 
 /* Homepage: direct paths for returning customers and practical pre-order help. */
-body[data-page="index"] .home-quick-links { display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:16px; }
-body[data-page="index"] .home-quick-links a { display:inline-flex; align-items:center; min-height:44px; color:#285b48; font-size:14px; font-weight:650; text-decoration:underline; text-underline-offset:4px; }
 body[data-page="index"] .hero-caption { color:#52665b; font-size:13px; }
 body[data-page="index"] .home-help-section { padding:44px 0; background:#fff; }
 body[data-page="index"] .home-help-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
@@ -408,7 +406,6 @@ body[data-page="index"] #notice-list-container button:hover { background:#f8fafc
   body[data-page="index"] .home-help-section { padding:30px 0; }
   body[data-page="index"] .home-help-grid { grid-template-columns:1fr; gap:10px; }
   body[data-page="index"] .home-help-grid article { padding:16px; }
-  body[data-page="index"] .home-quick-links { gap:4px 14px; }
   body[data-page="index"] .hero-caption { font-size:12px; }
 }
 @media(max-width:360px) {

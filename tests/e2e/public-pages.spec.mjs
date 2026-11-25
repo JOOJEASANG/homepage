@@ -439,7 +439,8 @@ test('homepage exposes direct quote, order lookup and preparation paths on narro
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.hero-actions a[href="quote-book.html"]')).toBeVisible();
   await expect(page.locator('.hero-actions a[href="quote-print.html"]')).toBeVisible();
-  await expect(page.locator('.home-quick-links a[href="login.html"]')).toBeVisible();
+  await expect(page.locator('.home-quick-links')).toHaveCount(0);
+  await expect(page.locator('.hero-copy a[href="login.html"], .hero-copy a[href="work-guide.html"], .hero-copy a[href="qna.html"]')).toHaveCount(0);
   await expect(page.locator('.home-help-grid article')).toHaveCount(3);
   await expect(page.locator('#loading-overlay')).toBeHidden();
   await assertNoHorizontalOverflow(page);
