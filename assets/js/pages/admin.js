@@ -25,6 +25,7 @@ import { activateAdminWorkspace, initAdminWorkspaceNavigation } from "./admin/pr
 import { isPendingCancellation, canAdminDirectCancel, cancellationResolution } from "./admin/cancellation.js";
 import { canAdminConvertEstimate, adminEstimatePrice, normalizeCustomerOrderRequestNote, convertEstimateToOrderByAdmin } from "./admin/estimate-conversion.js";
 import { ADMIN_NOTIFICATION_KEY, readAdminNotificationPreference, notificationToggleText } from "./admin/notification-preference.js";
+import { canHold, canResume, changeOrderHold } from "./shared/order-hold.js";
 
 // 페이지 로드 시 헤더 렌더링 (관리자 페이지는 활성 메뉴 없음)
 document.addEventListener("DOMContentLoaded", () => initHeader(""));
@@ -1059,7 +1060,7 @@ async function listenToQuotes() {
                 return Number.isFinite(Number(v)) ? Number(v) : 0;
             };
             const isEstimateRequest = (q) => q?.requestType === 'estimate';
-            const getEstimateDisplayStatus = (q) => q?.estimateStatus === 'completed' ? '견적완료' : '견적요청';
+            const getEstimateDisplayStatus = (q) => q?.status === '보류' ? '보류' : q?.estimateStatus === 'completed' ? '견적완료' : '견적요청';
 
             // 1. 필터링 및 정렬 (기존 로직 유지)
             const filteredQuotes = quotesCache
@@ -1181,17 +1182,25 @@ async function listenToQuotes() {
                             </div>
                         ` : isCanceled ? `
                             <span class="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-700">주문취소</span>
+                        ` : q.status === '보류' ? `
+                            <select aria-label="보류 상태 변경" class="status-select text-xs font-bold px-2 py-1 rounded border bg-amber-50 text-amber-800 border-amber-300 cursor-pointer" data-id="${q.id}">
+                                <option value="보류" selected>보류</option>
+                                <option value="보류해제">보류 해제</option>
+                            </select>
+                            <div class="text-[10px] text-amber-700 mt-1">${q.holdBy === 'customer' ? '고객 보류' : '관리자 보류'}</div>
                         ` : isCancelRejected ? `
                             <span class="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-slate-200 text-slate-600">취소거절</span>
                         ` : isEstimate ? `
                             <select aria-label="견적 상태 변경" class="estimate-status-select text-xs font-bold px-2 py-1 rounded border bg-violet-50 text-violet-800 border-violet-200 cursor-pointer outline-none focus:border-violet-500" data-id="${q.id}">
                                 <option value="requested" ${q.estimateStatus!=='completed'?'selected':''}>견적요청</option>
                                 <option value="completed" ${q.estimateStatus==='completed'?'selected':''}>견적완료</option>
+                                ${canHold(q,'admin') ? '<option value="보류">보류</option>' : ''}
                             </select>
                         ` : `
                             <select aria-label="주문 상태 변경" class="status-select text-xs font-bold px-2 py-1 rounded border bg-white border-slate-200 cursor-pointer outline-none focus:border-brand-500" data-id="${q.id}">
                                 <option value="접수완료" ${q.status==='접수완료'?'selected':''}>접수완료</option>
                                 <option value="작업중" ${q.status==='작업중'?'selected':''}>작업중</option>
+                                ${canHold(q,'admin') ? '<option value="보류">보류</option>' : ''}
                                 <option value="작업완료" ${q.status==='작업완료'?'selected':''}>작업완료</option>
                                 <option value="결제완료" ${q.status==='결제완료'?'selected':''}>결제완료</option>
                             </select>
@@ -1360,11 +1369,40 @@ function updateDashboard() {
             }
         }
 
+        const changingHoldIds = new Set();
         async function updateStatus(quoteId, newStatus) {
+            if (newStatus === '보류' || newStatus === '보류해제') {
+                if (changingHoldIds.has(quoteId)) return;
+                changingHoldIds.add(quoteId);
+                try {
+                    const action = newStatus === '보류' ? 'hold' : 'resume';
+                    const current = quotesCache.find(q => q.id === quoteId);
+                    if (!(action === 'hold' ? canHold(current,'admin') : canResume(current,'admin'))) {
+                        showToast('현재 상태에서는 변경할 수 없습니다.', 'info'); return;
+                    }
+                    if (!await showConfirmation(action === 'hold' ? '주문 보류' : '보류 해제',
+                        action === 'hold' ? '해당 접수를 보류하고 작업을 중단합니다. 고객에게도 보류 상태가 표시됩니다. 계속하시겠습니까?' :
+                        '보류를 해제하고 보류 전 상태로 복귀합니다. 계속하시겠습니까?')) return;
+                    await changeOrderHold({db,doc,runTransaction,serverTimestamp,quoteId,actor:'admin',action});
+                    showToast(action === 'hold' ? '보류 처리되었습니다.' : '보류가 해제되었습니다.', 'success');
+                } catch(error) {
+                    logger.error('order hold failed',error);
+                    showToast('보류 상태 변경에 실패했습니다. 최신 상태를 확인해 주세요.', 'error');
+                } finally {
+                    changingHoldIds.delete(quoteId);
+                    renderQuotes();
+                }
+                return;
+            }
             try {
-                await updateDoc(doc(db, "quotes", quoteId), { status: newStatus });
+                await runTransaction(db, async tx => {
+                    const ref = doc(db, 'quotes', quoteId);
+                    const latest = await tx.get(ref);
+                    if (!latest.exists() || latest.data().status === '보류' || isPendingCancellation(latest.data()) || latest.data().status === '주문취소') throw new Error('ORDER_STATE_CHANGED');
+                    tx.update(ref, {status:newStatus});
+                });
                 showToast("상태가 변경되었습니다.", "success");
-            } catch (error) { showToast("상태 변경 중 오류 발생", "error"); }
+            } catch (error) { showToast("상태 변경 중 오류 발생", "error"); renderQuotes(); }
         }
 
         async function updateEstimateStatus(quoteId, newStatus) {
@@ -3460,7 +3498,8 @@ async function handleNoticeSave(e) {
                     updateStatus(e.target.dataset.id, e.target.value);
                 }
                 if (e.target.classList.contains('estimate-status-select')) {
-                    updateEstimateStatus(e.target.dataset.id, e.target.value);
+                    if (e.target.value === '보류') updateStatus(e.target.dataset.id, '보류');
+                    else updateEstimateStatus(e.target.dataset.id, e.target.value);
                 }
             });
 

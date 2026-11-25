@@ -2,7 +2,7 @@ import { before, after, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, getDoc, getDocs, collection, query, where, setDoc, updateDoc, deleteField } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, query, where, setDoc, updateDoc, deleteField, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getBytes } from 'firebase/storage';
 
 // Never run these write tests against production services.
@@ -123,4 +123,29 @@ test('quote attachment MIME types permit design files only for the quote owner',
   await assertFails(upload('customer', 'script.html', 'text/html'));
   await assertSucceeds(getBytes(ref(env.authenticatedContext('customer').storage(), 'quotes/order/attachments/design.ai')));
   await assertFails(getBytes(ref(env.authenticatedContext('stranger').storage(), 'quotes/order/attachments/design.ai')));
+});
+
+test('owners can hold before production and release only their own hold; admins can manage holds', async () => {
+  const hold = {status:'보류',holdBy:'customer',holdPreviousStatus:'접수완료',holdAt:serverTimestamp(),updatedAt:serverTimestamp(),hasUnreadAdminMessage:true};
+  const resume = {status:'접수완료',holdBy:null,holdPreviousStatus:null,holdAt:null,updatedAt:serverTimestamp(),hasUnreadAdminMessage:true};
+  const own = doc(db('customer'),'quotes/order');
+  await assertFails(updateDoc(doc(db('stranger'),'quotes/order'),hold));
+  await assertFails(updateDoc(own,{...hold,totalPrice:1}));
+  await assertFails(updateDoc(own,{...hold,holdBy:'admin'}));
+  await assertFails(updateDoc(own,{holdBy:'customer'}));
+  await assertSucceeds(updateDoc(own,hold));
+  await assertFails(updateDoc(own,{status:'작업중'}));
+  await assertSucceeds(updateDoc(own,resume));
+  await seed({'quotes/order':quote({status:'작업중'})});
+  await assertFails(updateDoc(own,hold));
+  await assertSucceeds(updateDoc(doc(db('admin'),'quotes/order'),{...hold,holdBy:'admin',holdPreviousStatus:'작업중'}));
+  await assertFails(updateDoc(own,resume));
+  await assertSucceeds(updateDoc(doc(db('admin'),'quotes/order'),{...resume,status:'작업중'}));
+  await seed({'quotes/order':quote({cancelRequestState:'requested'})});
+  await assertFails(updateDoc(own,hold));
+  await seed({'quotes/guest':quote({userId:'guest',isGuest:true,guestUid:'guest-owner',guestLookupKey:'key'})});
+  const guest=doc(db('guest-owner'),'quotes/guest');
+  await assertSucceeds(updateDoc(guest,hold));
+  await assertSucceeds(updateDoc(guest,resume));
+  await assertSucceeds(updateDoc(doc(db('verified-guest',{guestLookupKey:'key'}),'quotes/guest'),hold));
 });

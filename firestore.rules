@@ -120,7 +120,8 @@ service cloud.firestore {
         && !request.resource.data.keys().hasAny([
           'adminFinalPrice', 'adminPrice', 'confirmedPrice', 'paymentStatus',
           'paidAt', 'adminMemo', 'internalMemo', 'approvedBy', 'completedBy',
-          'cancelApprovedAt', 'cancelRejectedAt', 'cancelHandledAt'
+          'cancelApprovedAt', 'cancelRejectedAt', 'cancelHandledAt',
+          'holdBy', 'holdPreviousStatus', 'holdAt'
         ])
         && (!('lastEditedBy' in request.resource.data) || request.resource.data.lastEditedBy != 'admin');
     }
@@ -129,7 +130,8 @@ service cloud.firestore {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
         'adminFinalPrice', 'adminPrice', 'confirmedPrice', 'paymentStatus',
         'paidAt', 'adminMemo', 'internalMemo', 'approvedBy', 'completedBy',
-        'cancelApprovedAt', 'cancelRejectedAt', 'cancelHandledAt'
+        'cancelApprovedAt', 'cancelRejectedAt', 'cancelHandledAt',
+        'holdBy', 'holdPreviousStatus', 'holdAt'
       ])
       && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastEditedBy'])
           || request.resource.data.lastEditedBy == 'customer');
@@ -141,6 +143,29 @@ service cloud.firestore {
           resource.data.status == '접수완료'
           && request.resource.data.status == resource.data.status
           && request.resource.data.cancelRequestState == 'requested'
+        );
+    }
+
+    function customerHoldIsSafe() {
+      return (!('cancelRequestState' in resource.data) || !(resource.data.cancelRequestState in ['requested', 'approved', 'admin_cancelled']))
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'holdBy', 'holdPreviousStatus', 'holdAt', 'updatedAt', 'hasUnreadAdminMessage'
+        ])
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.hasUnreadAdminMessage == true
+        && (
+          (resource.data.status == '접수완료'
+            && request.resource.data.status == '보류'
+            && request.resource.data.holdBy == 'customer'
+            && request.resource.data.holdPreviousStatus == '접수완료'
+            && request.resource.data.holdAt == request.time)
+          || (resource.data.status == '보류'
+            && resource.data.holdBy == 'customer'
+            && resource.data.holdPreviousStatus == '접수완료'
+            && request.resource.data.status == '접수완료'
+            && request.resource.data.holdBy == null
+            && request.resource.data.holdPreviousStatus == null
+            && request.resource.data.holdAt == null)
         );
     }
 
@@ -184,6 +209,7 @@ service cloud.firestore {
 
       allow update: if isAdmin()
         || isGuestClaimToMember()
+        || ((isMemberQuoteOwner(resource) || isGuestOwnerUpdate()) && customerHoldIsSafe())
         || (
           isMemberQuoteOwner(resource)
           && isEditableByCustomer()

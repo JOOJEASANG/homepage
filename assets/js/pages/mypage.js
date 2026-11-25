@@ -15,7 +15,7 @@ import { app, auth, db, storage,
          deleteUser, updateProfile, signInAnonymously,
          setPersistence, browserSessionPersistence, browserLocalPersistence,
          collection, onSnapshot, query, where, doc, getDoc, updateDoc,
-         addDoc, serverTimestamp, orderBy, deleteDoc, setDoc, writeBatch,
+         addDoc, serverTimestamp, orderBy, deleteDoc, setDoc, writeBatch, runTransaction,
          Timestamp, getDocs, limit, ref, uploadBytesResumable,
          getDownloadURL, deleteObject,
 } from "../firebase.js";
@@ -24,6 +24,7 @@ import { requestGuestAccess } from "../guest-access-v2.js";
 import "../overlays.js";
 import "../session.js";
 import { validateUploadFiles } from "../file-upload-policy.js";
+import { canHold, canResume, changeOrderHold } from "./shared/order-hold.js";
 
 // 페이지 로드 시 공통 헤더 렌더링
 // NOTE: mypage.js는 top-level await(아래) 및 session.js(모듈 그래프에 top-level await)를
@@ -617,6 +618,7 @@ try { window.auth = auth; } catch(e) {}
         }
 
         function getCustomerDisplayStatus(quote) {
+            if (quote?.status === '보류') return '보류';
             if (quote?.requestType === 'estimate') {
                 return quote.estimateStatus === 'completed' ? '견적완료' : '견적요청';
             }
@@ -660,6 +662,7 @@ try { window.auth = auth; } catch(e) {}
                 // 상태 뱃지(확실히 구분되도록 색상/테두리 강화)
                 const statusRaw = (q.cancelRequestState === 'approved' || q.cancelApprovedAt) ? '취소확정'
                                 : (q.cancelRequestState === 'requested') ? '취소요청'
+                                : (q.status === '보류') ? '보류'
                                 : (q.cancelRequestState === 'rejected') ? '취소거절'
                                 : getCustomerDisplayStatus(q);
 
@@ -668,6 +671,7 @@ try { window.auth = auth; } catch(e) {}
                     '접수대기':   'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
                     '접수완료':   'bg-slate-200 text-slate-800 ring-1 ring-slate-300',
                     '접수확인':   'bg-slate-200 text-slate-800 ring-1 ring-slate-300',
+                    '보류':       'bg-amber-100 text-amber-900 ring-1 ring-amber-300',
 
                     // 진행/작업: 파랑(파스텔)
                     '작업중':     'bg-blue-200/70 text-blue-900 ring-1 ring-blue-300',
@@ -741,6 +745,12 @@ const primaryButtons = `
 `;
 
 let extraButtons = '';
+if (canHold(q,'customer') || canResume(q,'customer')) {
+    const resume = q.status === '보류';
+    extraButtons += `<button type="button" class="customer-order-hold-btn menu-btn w-full flex items-center gap-2 px-3 py-2 text-sm font-bold text-amber-800 hover:bg-amber-50 rounded-md" data-id="${q.id}" data-action="${resume ? 'resume' : 'hold'}"><i class="fas ${resume ? 'fa-play' : 'fa-pause'}"></i><span>${resume ? '보류 해제' : '보류'}</span></button>`;
+} else if (q.status === '보류') {
+    extraButtons += '<p class="px-3 py-2 text-xs text-amber-800">관리자 보류 중 · 작업 재개는 관리자에게 문의</p>';
+}
 
 // 상태별 취소 버튼 처리 (더보기로 이동)
 if (q.requestType === 'estimate' && q.estimateStatus !== 'completed') {
@@ -942,6 +952,24 @@ let buttonsHtml = `
             if (s.includes('결제완료')) return '결제가 완료되었습니다.';
             return '현재 상태에서는 주문취소가 불가합니다.';
         }
+const customerHoldBusy = new Set();
+async function changeCustomerHold(quote, action) {
+    if (!quote?.id || customerHoldBusy.has(quote.id)) return;
+    customerHoldBusy.add(quote.id);
+    try {
+        const resume = action === 'resume';
+        if (!(resume ? canResume(quote,'customer') : canHold(quote,'customer'))) {
+            showToast('현재 상태에서는 보류 설정을 변경할 수 없습니다.', 'info'); return;
+        }
+        if (!await showConfirmation(resume ? '보류 해제' : '주문 보류',
+            resume ? '보류를 해제하고 이전 접수 상태로 돌아갑니다. 계속하시겠습니까?' : '제작 시작 전 접수를 보류합니다. 관리자에게도 보류 상태가 표시됩니다. 계속하시겠습니까?')) return;
+        await changeOrderHold({db,doc,runTransaction,serverTimestamp,quoteId:quote.id,actor:'customer',action});
+        showToast(resume ? '보류가 해제되었습니다.' : '보류 처리되었습니다.', 'success');
+    } catch(error) {
+        console.warn('customer hold failed',error);
+        showToast('보류 상태 변경에 실패했습니다. 접수 상태를 확인해 주세요.', 'error');
+    } finally { customerHoldBusy.delete(quote.id); }
+}
 // ── 주문 취소 요청 ──────────────────────────────────────────
 // 고객이 취소 요청 시 Firestore status 를 '취소요청' 으로 업데이트합니다.
 async function requestCancelOrder(quote) {
@@ -1420,6 +1448,8 @@ const clickedInsideMoreMenu = !!e.target.closest('.more-actions-menu');
                 
                 // 주문 취소 요청
                 if (e.target.closest('.request-cancel-btn')) { requestCancelOrder(quote); }
+                const holdButton = e.target.closest('.customer-order-hold-btn');
+                if (holdButton) changeCustomerHold(quote, holdButton.dataset.action);
                 if (e.target.closest('.convert-estimate-btn')) { convertEstimateToOrder(quote); }
                 
                 // 세금계산서 신청
