@@ -514,3 +514,23 @@ test('compact notice list keeps important notices first and older notices expand
   });
   expect(result).toEqual({emptyHidden:true, visible:true, main:['중요 공지','최근 공지'], more:['이전 공지'], moreVisible:true});
 });
+
+test('both quote pages copy the email address without a mailto link', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', { configurable:true, value:{
+      writeText: async value => { window.__copiedQuoteEmail = value; }
+    }});
+  });
+  for (const path of ['/quote-book.html', '/quote-print.html']) {
+    await page.goto(path, { waitUntil:'domcontentloaded' });
+    const group = page.locator('[data-email-copy]');
+    await expect(group).toHaveCount(1);
+    await expect(group.locator('[data-email-address]')).toHaveText('winwork@hanmail.net');
+    await expect(group.locator('a[href^="mailto:"]')).toHaveCount(0);
+    await group.getByRole('button', {name:'주소 복사'}).click();
+    await expect(group.getByRole('button')).toHaveText('복사 완료');
+    expect(await page.evaluate(() => window.__copiedQuoteEmail)).toBe('winwork@hanmail.net');
+    await expect(page).toHaveURL(new RegExp(path.replace('.', '\\.')));
+    await assertNoHorizontalOverflow(page);
+  }
+});
