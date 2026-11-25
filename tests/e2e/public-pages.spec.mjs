@@ -465,3 +465,51 @@ test('shared rich text sanitizer removes unsafe notice links and attributes', as
   });
   expect(result).toEqual({ onclick: false, unsafe: false, safe: 'https://example.com/', rel: 'noopener noreferrer' });
 });
+
+
+test('homepage replaces public activity boards with compact notices and FAQ', async ({ page }) => {
+  await page.route('**/assets/js/notice-publish-period-public.js*', route => route.fulfill({contentType:'application/javascript',body:'// Isolate live notices for the layout/navigation test.'}));
+  const activityRequests = [];
+  page.on('request', request => {
+    if (/public-feed-v2\.js|refreshPublicFeed/.test(request.url())) activityRequests.push(request.url());
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#recent-quotes-container, #recent-qna-container, .realtime-section')).toHaveCount(0);
+  await expect(page.locator('#home-notice-section')).toHaveCount(1);
+  await expect(page.locator('.home-faq-list details')).toHaveCount(3);
+  const first = page.locator('.home-faq-list details').first();
+  await first.locator('summary').click();
+  await expect(first).toHaveAttribute('open', '');
+  await expect(first.locator('p')).toBeVisible();
+  await assertNoHorizontalOverflow(page);
+  expect(activityRequests).toEqual([]);
+  await page.locator('.home-faq-section a[href="qna.html#faq"]').click();
+  await expect(page).toHaveURL(/qna\.html#faq$/);
+  await expect(page.locator('#content-faq')).toBeVisible();
+});
+
+test('compact notice list keeps important notices first and older notices expandable', async ({ page }) => {
+  await page.route('**/assets/js/firebase.js', route => route.fulfill({
+    contentType: 'application/javascript',
+    body: 'export const db={}; export const collection=()=>({}); export const onSnapshot=()=>()=>{};'
+  }));
+  await page.goto('/404.html', { waitUntil: 'domcontentloaded' });
+  const result = await page.evaluate(async () => {
+    const { renderNoticeList } = await import('/assets/js/notice-publish-period-public.js');
+    const section = document.createElement('section');
+    section.id = 'home-notice-section';
+    section.innerHTML = '<div id="notice-list-container"></div><details id="home-notice-more"><summary>더보기</summary><div id="notice-more-list"></div></details>';
+    document.body.append(section);
+    renderNoticeList([]);
+    const emptyHidden = section.hidden;
+    renderNoticeList([
+      {id:'1',title:'최근 공지',createdAt:{seconds:30}},
+      {id:'2',title:'중요 공지',isImportant:true,createdAt:{seconds:10}},
+      {id:'3',title:'이전 공지',createdAt:{seconds:20}}
+    ]);
+    const titles = id => [...document.querySelectorAll('#'+id+' .home-notice-title-text')].map(node => node.textContent);
+    return {emptyHidden, visible:!section.hidden, main:titles('notice-list-container'), more:titles('notice-more-list'), moreVisible:!document.getElementById('home-notice-more').hidden};
+  });
+  expect(result).toEqual({emptyHidden:true, visible:true, main:['중요 공지','최근 공지'], more:['이전 공지'], moreVisible:true});
+});

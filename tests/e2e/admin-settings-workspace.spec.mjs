@@ -171,7 +171,7 @@ async function chooseInquiryManagement(page) {
 
 test('homepage guide opens a layer even when the Firebase page module is unavailable', async ({ page }) => {
   await fixture(page, 'user', false);
-  await page.route('**/assets/js/pages/index.js', route => route.fulfill({ contentType: 'application/javascript', body: '' }));
+  await page.route('**/assets/js/pages/index.js*', route => route.fulfill({ contentType: 'application/javascript', body: '' }));
   await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
   if ((page.viewportSize()?.width || 0) < 1024) await page.locator('#btn-mobile-menu-shell').click();
   await page.locator('#site-header a[href="work-guide.html"]:visible').click();
@@ -184,7 +184,8 @@ test('homepage guide opens a layer even when the Firebase page module is unavail
   await page.keyboard.press('Escape');
   await expect(page.locator('#wg-layer-overlay')).toHaveCount(0);
   expect(await page.evaluate(() => document.body.style.overflow)).toBe('');
-  await page.locator('a[href="work-guide.html"]').last().click();
+  // The last guide link can now be inside a collapsed FAQ; use the visible preparation card.
+  await page.locator('.home-help-grid a[href="work-guide.html"]:visible').last().click();
   await expect(page.locator('#wg-layer-overlay')).toHaveCount(1);
   await page.getByRole('button', { name: '작업가이드 닫기', exact: true }).click();
   await expect(page.locator('#wg-layer-overlay')).toHaveCount(0);
