@@ -16,7 +16,7 @@ import { app, auth, db, storage, doc, getDoc, collection, addDoc, updateDoc,
 import { initHeader } from "../header.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
 import { requestGuestAccess } from "../guest-access-v2.js";
-import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer } from "./shared/estimate-quick-order.js?v=20261030-estimate-direct";
+import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer, confirmEstimateIntent } from "./shared/estimate-quick-order.js?v=20261125-estimate-notice";
 import "../overlays.js";
 import "../session.js?v=20261028-subcontract-choice";
 import { loadPrintGuide } from "../print-guide-recovery.js";
@@ -588,8 +588,8 @@ const el = {
       if(modalTitle) modalTitle.innerHTML = pendingRequestType === 'estimate'
         ? '<i class="fas fa-file-invoice-dollar text-base mr-2"></i>견적 요청자 정보 입력'
         : '<i class="fas fa-user-circle text-base mr-2"></i>주문자 정보 입력';
-      if(guestButtonText) guestButtonText.textContent = pendingRequestType === 'estimate' ? '내용 확인 후 견적 요청' : '내용 확인 후 접수하기';
-      if(memberButtonText) memberButtonText.textContent = pendingRequestType === 'estimate' ? '회원으로 견적 요청' : '회원으로 접수하기';
+      if(guestButtonText) guestButtonText.textContent = pendingRequestType === 'estimate' ? '견적만 요청 (제작 미진행)' : '내용 확인 후 주문 접수';
+      if(memberButtonText) memberButtonText.textContent = pendingRequestType === 'estimate' ? '회원으로 견적만 요청' : '회원으로 주문 접수';
     }
 
 loadEditPayloadIfAny();
@@ -1617,7 +1617,7 @@ closeSignupModal();
       } finally {
         // 견적 완료 레이어가 열린 뒤에도 기존 제출 버튼이 로딩으로 남지 않게 합니다.
         el.submitBtn.disabled = false;
-        el.submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>주문 접수';
+        el.submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>주문 접수 및 작업 요청';
       }
     }
 
@@ -1782,7 +1782,11 @@ openSignupModal();
       showToast(result.ok ? '기본 사양과 견적금액이 초기화되었습니다.' : '기본 사양으로 초기화되었습니다. 단가 정보를 확인해 주세요.', result.ok ? 'success' : 'error');
     });
     el.form.addEventListener('submit', (event) => submitQuote(event, 'order'));
-    el.quoteOnlyBtn?.addEventListener('click', () => submitQuote({ preventDefault(){} }, 'estimate'));
+    el.quoteOnlyBtn?.addEventListener('click', async () => {
+      if (__QUOTE_SUBMIT_LOCK) return;
+      const choice = editState.enabled ? 'estimate' : await confirmEstimateIntent();
+      if (choice) await submitQuote({ preventDefault(){} }, choice);
+    });
 
     el.logoutBtn?.addEventListener('click', async ()=>{
       try{ await signOut(auth); } catch(e){}

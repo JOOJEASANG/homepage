@@ -740,7 +740,7 @@ const primaryButtons = `
      </button>
      ${q.requestType === 'estimate' && q.estimateStatus === 'completed' && canEdit ? `
      <button type="button" class="convert-estimate-btn action-btn inline-flex items-center justify-center gap-1 px-3 py-2 text-xs font-extrabold text-white bg-violet-600 border border-violet-700 rounded-lg hover:bg-violet-700" data-id="${q.id}" title="관리자 승인 없이 견적금액을 확인하고 주문으로 전환">
-         <i class="fas fa-cart-plus"></i><span>바로 주문 접수</span>
+         <i class="fas fa-cart-plus"></i><span>바로 주문 접수 (작업 요청)</span>
      </button>` : ''}
 `;
 
@@ -828,7 +828,7 @@ let buttonsHtml = `
                                 : 'bg-indigo-50 text-indigo-700 border-indigo-200';
                             return `<span class="inline-flex items-center px-2 py-0.5 mr-2 rounded border text-[11px] font-extrabold ${cls}">${t}</span>`;
                         })()}
-                        ${q.requestType === 'estimate' ? '<span class="inline-flex items-center px-2 py-0.5 mr-2 rounded border text-[11px] font-extrabold bg-violet-50 text-violet-700 border-violet-200">견적만</span>' : ''}
+                        ${q.requestType === 'estimate' ? '<span class="inline-flex items-center px-2 py-0.5 mr-2 rounded border text-[11px] font-extrabold bg-violet-50 text-violet-700 border-violet-200">견적만 · 미주문</span>' : ''}
                         ${sanitizeHTML(q.orderName)}
                         ${hasUnread ? '<span class="ml-2 text-red-500 inline-block animate-pulse" title="새 메시지"><i class="fas fa-comment-dots"></i></span>' : ''}
                     </td>
@@ -837,7 +837,7 @@ let buttonsHtml = `
                         ${priceStr}
                     </td>
 
-                    <td class="px-6 py-4 col-status">${statusBadge}</td>
+                    <td class="px-6 py-4 col-status">${statusBadge}${q.requestType === 'estimate' ? '<p class="mt-1 text-xs font-bold text-amber-800">제작 미진행</p>' : ''}</td>
                     <td class="px-6 py-4 text-right col-actions">${buttonsHtml}</td>
                 `;
                 DOMElements.quoteListBody.appendChild(tr);
@@ -858,7 +858,7 @@ let buttonsHtml = `
                                             : 'bg-indigo-50 text-indigo-700 border-indigo-200';
                                         return `<span class=\"inline-flex items-center px-2 py-0.5 mr-2 rounded border text-[11px] font-extrabold ${cls}\">${t}</span>`;
                                     })()}
-                                    ${q.requestType === 'estimate' ? '<span class="inline-flex items-center px-2 py-0.5 mr-2 rounded border text-[11px] font-extrabold bg-violet-50 text-violet-700 border-violet-200">견적만</span>' : ''}
+                                    ${q.requestType === 'estimate' ? '<span class="inline-flex items-center px-2 py-0.5 mr-2 rounded border text-[11px] font-extrabold bg-violet-50 text-violet-700 border-violet-200">견적만 · 미주문</span>' : ''}
                                     ${sanitizeHTML(q.orderName)}
                                     ${hasUnread ? '<span class="ml-2 text-red-500 inline-block animate-pulse" title="새 메시지"><i class="fas fa-comment-dots"></i></span>' : ''}
                                 </div>
@@ -868,6 +868,7 @@ let buttonsHtml = `
                                 <div class="mt-1">${statusBadge}</div>
                             </div>
                         </div>
+                        ${q.requestType === 'estimate' ? '<p class="mt-3 rounded-md bg-amber-50 p-2 text-xs font-bold text-amber-900">아직 미주문 · 제작은 진행되지 않습니다.</p>' : ''}
                         <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2 justify-end">
                             ${buttonsHtml}
                         </div>
@@ -928,6 +929,12 @@ let buttonsHtml = `
                 }
             } catch (e) { console.warn('attachments render failed', e); }
             
+            if (quote.requestType === 'estimate') {
+                const notice = document.createElement('p');
+                notice.className = 'mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900';
+                notice.textContent = '견적만 요청한 건입니다. 아직 주문은 접수되지 않았으며 실제 제작은 진행되지 않습니다. 제작을 원하시면 주문 접수로 전환해 주세요.';
+                DOMElements.modalContent.prepend(notice);
+            }
             DOMElements.detailsModal.classList.remove('hidden');
             listenToMessages(quote.id);
             if (quote.hasUnreadCustomerMessage) updateDoc(doc(db, "quotes", quote.id), { hasUnreadCustomerMessage: false });

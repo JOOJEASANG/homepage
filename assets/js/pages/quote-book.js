@@ -19,7 +19,7 @@ import { app, auth, db, storage,
 } from "../firebase.js";
 import { initHeader } from "../header.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
-import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer } from "./shared/estimate-quick-order.js?v=20261030-estimate-direct";
+import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer, confirmEstimateIntent } from "./shared/estimate-quick-order.js?v=20261125-estimate-notice";
 import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
 import { getPerfectInnerPricingMultiplier, getPerfectBindingMetrics } from "./quote-book/perfect-calculator.js";
 import { getWireCoverCost, getWireCoverPrintedSides, getWireCoverPrintImpressions, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js?v=20261021-wire-duplex-cover-v2";
@@ -248,8 +248,8 @@ const editState = { enabled: false, quoteId: null, adminEdit: isAdminEditSearch(
         if (modalTitle) modalTitle.innerHTML = pendingRequestType === 'estimate'
             ? '<i class="fas fa-file-invoice-dollar text-base mr-2"></i>견적 요청자 정보 입력'
             : '<i class="fas fa-user-circle text-base mr-2"></i>주문자 정보 입력';
-        if (guestButtonText) guestButtonText.textContent = pendingRequestType === 'estimate' ? '내용 확인 후 견적 요청' : '내용 확인 후 접수하기';
-        if (memberButtonText) memberButtonText.textContent = pendingRequestType === 'estimate' ? '회원으로 견적 요청' : '회원으로 접수하기';
+        if (guestButtonText) guestButtonText.textContent = pendingRequestType === 'estimate' ? '견적만 요청 (제작 미진행)' : '내용 확인 후 주문 접수';
+        if (memberButtonText) memberButtonText.textContent = pendingRequestType === 'estimate' ? '회원으로 견적만 요청' : '회원으로 주문 접수';
     }
     
     function getTempStorageKey() {
@@ -1667,7 +1667,7 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
             DOMElements.submitQuoteBtn.disabled = false;
             DOMElements.submitQuoteBtn.innerHTML = editState.enabled
                 ? (editState.adminEdit ? '<i class="fas fa-pen-to-square mr-2"></i>관리자 수정 저장' : '<i class="fas fa-pen-to-square mr-2"></i>견적 수정')
-                : '<i class="fas fa-paper-plane mr-2"></i>주문 접수';
+                : '<i class="fas fa-paper-plane mr-2"></i>주문 접수 및 작업 요청';
         }
     }
 
@@ -1794,7 +1794,11 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
         }
         DOMElements.addQuoteItemBtn.addEventListener('click', () => createNewQuoteItem());
         DOMElements.submitQuoteBtn.addEventListener('click', () => handleQuoteSubmit('order'));
-        DOMElements.quoteOnlyBtn?.addEventListener('click', () => handleQuoteSubmit('estimate'));
+        DOMElements.quoteOnlyBtn?.addEventListener('click', async () => {
+            if (__QUOTE_SUBMIT_LOCK) return;
+            const choice = editState.enabled ? 'estimate' : await confirmEstimateIntent();
+            if (choice) await handleQuoteSubmit(choice);
+        });
         DOMElements.resetFormBtn.addEventListener('click', async () => {
             const confirmed = await showConfirmation('새로 작성', '정말 모든 내용을 지우고 새로 작성하시겠습니까?');
             if (confirmed) { resetFormAndStorage(); }

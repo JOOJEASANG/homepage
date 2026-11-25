@@ -384,6 +384,7 @@ test.describe('responsive renewal', () => {
         showEstimateCompletedLayer({ total: 0, ready: false, mypageUrl: 'mypage.html' });
       });
       await expect(layer).toContainText('관리자 확인 필요');
+      await expect(layer.locator('#estimate-completed-warning')).toContainText('실제 제작은 진행되지 않습니다.');
       await expect(layer.locator('#estimate-completed-order')).toBeHidden();
       await expect(layer.locator('#estimate-completed-mypage')).toBeVisible();
     });
@@ -454,6 +455,13 @@ test.describe('responsive renewal', () => {
       await expect(page.locator('.mobile-quote-only')).toBeVisible();
       await page.locator('.mobile-quote-only').click();
       expect(await page.evaluate(() => window.__fixtureEstimateSubmits)).toBe(1);
+      const intent = page.locator('#estimate-intent-dialog');
+      await expect(intent).toBeVisible();
+      await expect(intent.locator('#estimate-intent-only')).toBeDisabled();
+      await intent.locator('#estimate-intent-check').check();
+      await expect(intent.locator('#estimate-intent-only')).toBeEnabled();
+      await intent.locator('#estimate-intent-cancel').click();
+      await expect(intent).toHaveCount(0);
       await page.locator('.order-step-nav button').nth(1).click();
       await expect(page.locator('.order-step-nav button').nth(1)).toHaveAttribute('aria-current','step');
       await page.evaluate(button => { document.getElementById(button).hidden = true; },button);
