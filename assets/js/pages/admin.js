@@ -26,7 +26,7 @@ import { isPendingCancellation, canAdminDirectCancel, cancellationResolution } f
 import { canAdminConvertEstimate, adminEstimatePrice, normalizeCustomerOrderRequestNote, convertEstimateToOrderByAdmin } from "./admin/estimate-conversion.js";
 import { ADMIN_NOTIFICATION_KEY, readAdminNotificationPreference, notificationToggleText } from "./admin/notification-preference.js";
 import { canHold, canResume, changeOrderHold } from "./shared/order-hold.js";
-import { monthlyRevenue, renderMonthlyRevenue } from "./admin/monthly-revenue.js?v=20261125-monthly-totals";
+import { monthlyRevenue, renderMonthlyRevenue } from "./admin/monthly-revenue.js?v=20261125-calendar-year";
 
 // 페이지 로드 시 헤더 렌더링 (관리자 페이지는 활성 메뉴 없음)
 document.addEventListener("DOMContentLoaded", () => initHeader(""));
@@ -1272,10 +1272,13 @@ async function listenToQuotes() {
             }
         }
 
-        // Rolling 12-month chart; updates on the existing real-time quote snapshot.
+        // Calendar-year chart; updates on the existing real-time quote snapshot.
         function updateRevenueStats() {
-            const months = monthlyRevenue(quotesCache);
-            renderMonthlyRevenue(document.getElementById('revenue-stats-content'), months);
+            const now = new Date();
+            const months = monthlyRevenue(quotesCache, now);
+            renderMonthlyRevenue(document.getElementById('revenue-stats-content'), months, now);
+            const title = document.getElementById('revenue-title');
+            if (title) title.textContent = now.getFullYear() + '년 월별 매출 현황';
             const period = document.getElementById('revenue-period');
             if (period) period.textContent = months[0].key + ' ~ ' + months.at(-1).key;
         }

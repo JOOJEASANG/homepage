@@ -1,7 +1,7 @@
-// Preserve the existing reception-date revenue definition, using a rolling 12-month window.
+// Preserve the reception-date revenue definition, using January–December of the current year.
 export function monthlyRevenue(quotes, now = new Date()) {
   const months = Array.from({length:12}, (_, index) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - 11 + index, 1);
+    const d = new Date(now.getFullYear(), index, 1);
     return {key: monthKey(d), count:0, total:0, confirmed:0};
   });
   const byKey = new Map(months.map(m => [m.key,m]));
@@ -30,7 +30,7 @@ export function revenueAxisMax(months) {
 }
 export const sumMonthlyRevenue = months => months.reduce((acc,m) => ({count:acc.count+m.count,total:acc.total+m.total,confirmed:acc.confirmed+m.confirmed}),{count:0,total:0,confirmed:0});
 const won = n => n.toLocaleString('ko-KR') + '원';
-export function renderMonthlyRevenue(root, months) {
+export function renderMonthlyRevenue(root, months, now = new Date()) {
   if (!root) return;
   const sum = sumMonthlyRevenue(months);
   const axisMax = revenueAxisMax(months);
@@ -62,7 +62,7 @@ export function renderMonthlyRevenue(root, months) {
       pair.appendChild(bar);
     }
     const label=document.createElement('span'); label.className='revenue-month-label';
-    label.textContent=m.key.slice(2).replace('-','.');
+    label.textContent=Number(m.key.slice(5))+'월';
     const value = document.createElement('span');
     value.className='revenue-month-amount';
     value.textContent=won(m.confirmed);
@@ -70,7 +70,7 @@ export function renderMonthlyRevenue(root, months) {
     btn.addEventListener('click',()=>select(m));
     return btn;
   }));
-  select(months.find(m=>m.key===activeKey)||months.at(-1));
+  select(months.find(m=>m.key===activeKey)||months.find(m=>m.key===monthKey(now))||months[0]);
   const makeRow = (m, label, totalRow = false) => {
     const tr=document.createElement('tr');
     for (const [index,value] of [label,m.count.toLocaleString('ko-KR')+'건',won(m.total),won(m.confirmed), (m.total>0?Math.round(m.confirmed/m.total*100):0)+'%'].entries()) {
@@ -84,5 +84,5 @@ export function renderMonthlyRevenue(root, months) {
     return tr;
   };
   root.querySelector('#revenue-stats-body').replaceChildren(...months.map(m=>makeRow(m,m.key)));
-  root.querySelector('#revenue-stats-total').replaceChildren(makeRow(sum,'12개월 합계',true));
+  root.querySelector('#revenue-stats-total').replaceChildren(makeRow(sum,months[0].key.slice(0,4)+'년 합계',true));
 }

@@ -974,7 +974,7 @@ test('administrator direct cancellation warns on paid orders and can be aborted'
   await expect(page.locator('#quote-list-body .direct-cancel-btn')).toBeVisible();
 });
 
-test('admin rolling annual revenue displays twelve months and accurate selected totals', async ({ page }) => {
+test('admin calendar-year revenue displays January to December and accurate annual totals', async ({ page }) => {
   await fixture(page);
   await page.addInitScript(() => {
     const now = new Date();
@@ -983,7 +983,9 @@ test('admin rolling annual revenue displays twelve months and accurate selected 
     window.__fixtureQuotes = [
       {id:'paid',orderName:'완료',createdAt,status:'결제완료',totalPrice:25000},
       {id:'held',orderName:'보류',createdAt,status:'보류',totalPrice:5000},
-      {id:'estimate',orderName:'견적',createdAt,status:'접수완료',requestType:'estimate',totalPrice:99999}
+      {id:'estimate',orderName:'견적',createdAt,status:'접수완료',requestType:'estimate',totalPrice:99999},
+      {id:'last-year',orderName:'작년',createdAt:{toDate:()=>new Date(now.getFullYear()-1,11,31)},status:'결제완료',totalPrice:99999},
+      {id:'next-year',orderName:'내년',createdAt:{toDate:()=>new Date(now.getFullYear()+1,0,1)},status:'결제완료',totalPrice:99999}
     ];
   });
   await page.goto('/admin.html',{waitUntil:'domcontentloaded'});
@@ -994,15 +996,21 @@ test('admin rolling annual revenue displays twelve months and accurate selected 
   await expect(content.locator('#revenue-total')).toHaveText('30,000원');
   await expect(content.locator('#revenue-confirmed')).toHaveText('25,000원');
   await expect(content.locator('#revenue-count')).toHaveText('2건');
-  await expect(months.last().locator('.revenue-month-amount')).toHaveText('25,000원');
-  await expect(months.first().locator('.revenue-month-amount')).toHaveText('0원');
+  const {year,month}=await page.evaluate(()=>({year:new Date().getFullYear(),month:new Date().getMonth()}));
+  await expect(page.locator('#revenue-title')).toHaveText(year+'년 월별 매출 현황');
+  await expect(page.locator('#revenue-period')).toHaveText(year+'-01 ~ '+year+'-12');
+  await expect(months.first()).toHaveAttribute('data-month',year+'-01');
+  await expect(months.last()).toHaveAttribute('data-month',year+'-12');
+  await expect(months.nth(month).locator('.revenue-month-amount')).toHaveText('25,000원');
+  const emptyMonth=(month+1)%12;
+  await expect(months.nth(emptyMonth).locator('.revenue-month-amount')).toHaveText('0원');
   await expect(content.locator('#revenue-stats-body tr')).toHaveCount(12);
-  await expect(content.locator('#revenue-stats-body tr').last()).toContainText('25,000원');
+  await expect(content.locator('#revenue-stats-body tr').nth(month)).toContainText('25,000원');
   await expect(content.locator('#revenue-stats-total')).toBeVisible();
-  await expect(content.locator('#revenue-stats-total')).toContainText('12개월 합계');
+  await expect(content.locator('#revenue-stats-total')).toContainText(year+'년 합계');
   await expect(content.locator('#revenue-stats-total .revenue-confirmed-cell')).toHaveText('25,000원');
   await expect(content.locator('#revenue-month-detail')).toContainText('25,000원');
-  await months.first().click();
+  await months.nth(emptyMonth).click();
   await expect(content.locator('#revenue-month-detail')).toContainText('0건');
   await page.locator('#revenue-stats-header').click();
   await expect(content).toBeHidden();
