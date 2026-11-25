@@ -566,6 +566,44 @@ test('admin notification preference persists and the toggle displays its current
   expect(await page.evaluate(() => localStorage.getItem('adminNotifsEnabled'))).toBe('0');
 });
 
+test('administrator converts a customer-requested estimate to a real order without duplicating it', async ({ page }) => {
+  await fixture(page);
+  await page.addInitScript(() => {
+    window.__fixtureQuotes = [{
+      id: 'estimate-to-convert', userId: 'fixture-admin', isGuest: false,
+      requestType: 'estimate', estimateStatus: 'requested', status: '접수완료',
+      productType: 'print', orderName: '고객 요청 전환 견적', receiptNo: 'Q20261125-100',
+      totalPrice: 27500, createdAt: {toDate: () => new Date('2026-11-25T01:00:00Z')},
+    }];
+  });
+  await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+  const body = page.locator('#quote-list-body');
+  const button = body.locator('.admin-convert-estimate-btn[data-id="estimate-to-convert"]');
+  await expect(button).toBeVisible();
+  await expect(body.locator('.estimate-status-select')).toBeVisible();
+  page.once('dialog', dialog => dialog.accept('고객이 전화로 주문 확정'));
+  await button.click();
+  const confirmation = page.locator('#confirmationModal');
+  await expect(confirmation).toBeVisible();
+  await expect(confirmation.locator('#confirmationMessage')).toContainText('27,500원');
+  await confirmation.locator('#confirmActionBtn').click();
+  await expect.poll(async () => (await writes(page, 'quotes/estimate-to-convert')).length).toBe(1);
+  const update = (await writes(page, 'quotes/estimate-to-convert'))[0].data;
+  expect(update.requestType).toBe('order');
+  expect(update.status).toBe('접수완료');
+  expect(update.estimateStatus).toBe('converted');
+  expect(update.estimateStatusBeforeConversion).toBe('requested');
+  expect(update.orderConversionSource).toBe('admin_customer_request');
+  expect(update.adminConversionReason).toBe('고객이 전화로 주문 확정');
+  const messageCount = await page.evaluate(() => (window.__fixtureWrites || [])
+    .filter(write => write.path.startsWith('quotes/estimate-to-convert/messages/')).length);
+  expect(messageCount).toBe(1);
+  expect((await page.evaluate(() => (window.__fixtureWrites || [])
+    .filter(write => write.path.startsWith('quotes/estimate-to-convert/messages/'))[0].data.text)))
+    .toContain('고객이 전화로 주문 확정');
+  await expect(confirmation).toBeHidden();
+});
+
 test('guide shares the main admin document and preserves and saves its editor', async ({ page }) => {
   await openAdmin(page);
   await choose(page, 'work-guide-management-btn');

@@ -23,6 +23,7 @@ import "../session.js";
 import { validateUploadFiles } from "../file-upload-policy.js";
 import { activateAdminWorkspace, initAdminWorkspaceNavigation } from "./admin/price-workspace.js";
 import { isPendingCancellation, canAdminDirectCancel, cancellationResolution } from "./admin/cancellation.js";
+import { canAdminConvertEstimate, adminEstimatePrice, normalizeCustomerOrderRequestNote, convertEstimateToOrderByAdmin } from "./admin/estimate-conversion.js";
 import { ADMIN_NOTIFICATION_KEY, readAdminNotificationPreference, notificationToggleText } from "./admin/notification-preference.js";
 
 // 페이지 로드 시 헤더 렌더링 (관리자 페이지는 활성 메뉴 없음)
@@ -86,6 +87,7 @@ await setPersistence(auth, browserLocalPersistence);
 	        let isInitialInquiriesSnapshot = true;
 	        const newQuoteIds = new Set();
         const handlingCancellationIds = new Set();
+        const convertingEstimateIds = new Set();
 
         // =========================
         // [추천기능] 새 접수 알림/NEW 배지 유틸
@@ -1196,7 +1198,15 @@ async function listenToQuotes() {
                         `}
                     </td>
                     <td class="px-6 py-4 text-center">
-                        <div class="flex items-center justify-center gap-2">
+                        <div class="flex flex-wrap items-center justify-center gap-1.5">
+                            ${isEstimate && canAdminConvertEstimate(q) ? `
+                                <button type="button"
+                                    class="admin-convert-estimate-btn inline-flex items-center justify-center rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-xs font-extrabold text-emerald-800 hover:bg-emerald-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-600 disabled:opacity-50"
+                                    data-id="${q.id}" title="고객 요청 확인 후 견적을 주문 접수로 전환"
+                                    aria-label="${sanitizeHTML(q.orderName || '견적')} 고객 요청으로 주문 접수 전환"
+                                    ${convertingEstimateIds.has(q.id) ? 'disabled' : ''}>
+                                    ${convertingEstimateIds.has(q.id) ? '전환 중…' : '주문 접수'}
+                                </button>` : ''}
                             <button class="admin-edit-quote-btn p-1.5 text-slate-400 hover:text-indigo-600 transition-colors" data-id="${q.id}" title="견적수정(내용 변경)"><i class="fas fa-pen-to-square"></i></button>
                             ${!isCancelRequest && canAdminDirectCancel(q) ? `
                                 <button type="button" class="direct-cancel-btn inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-lg bg-orange-50 text-red-700 border border-orange-200 hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500 disabled:opacity-60"
@@ -1359,12 +1369,20 @@ function updateDashboard() {
 
         async function updateEstimateStatus(quoteId, newStatus) {
             try {
+                if (!['requested', 'completed'].includes(newStatus)) return;
                 const completed = newStatus === 'completed';
-                await updateDoc(doc(db, "quotes", quoteId), {
-                    estimateStatus: completed ? 'completed' : 'requested',
-                    estimateCompletedAt: completed ? serverTimestamp() : null,
-                    hasUnreadCustomerMessage: true,
-                    updatedAt: serverTimestamp(),
+                await runTransaction(db, async tx => {
+                    const quoteRef = doc(db, 'quotes', quoteId);
+                    const snapshot = await tx.get(quoteRef);
+                    if (!snapshot.exists() || !canAdminConvertEstimate(snapshot.data())) {
+                        throw new Error('ESTIMATE_NOT_CONVERTIBLE');
+                    }
+                    tx.update(quoteRef, {
+                        estimateStatus: completed ? 'completed' : 'requested',
+                        estimateCompletedAt: completed ? serverTimestamp() : null,
+                        hasUnreadCustomerMessage: true,
+                        updatedAt: serverTimestamp(),
+                    });
                 });
                 try {
                     await addDoc(collection(db, `quotes/${quoteId}/messages`), {
@@ -1376,6 +1394,57 @@ function updateDashboard() {
                 } catch (messageError) { logger.warn('estimate status message failed', messageError); }
                 showToast(completed ? '견적완료로 변경되었습니다.' : '견적요청 상태로 변경되었습니다.', 'success');
             } catch (error) { showToast('견적 상태 변경 중 오류가 발생했습니다.', 'error'); }
+        }
+
+        // Customer-requested production of an estimate. Use the saved quote itself:
+        // no duplicate order, changed receipt number or lost attachments/messages.
+        async function convertCustomerRequestedEstimate(quoteId) {
+            if (!quoteId || convertingEstimateIds.has(quoteId)) return;
+            convertingEstimateIds.add(quoteId);
+            renderQuotes();
+            try {
+                const snapshot = await getDoc(doc(db, 'quotes', quoteId));
+                if (!snapshot.exists() || !canAdminConvertEstimate(snapshot.data())) {
+                    showToast('이 견적은 이미 주문으로 전환되었거나 전환할 수 없는 상태입니다.', 'info');
+                    return;
+                }
+                const original = snapshot.data();
+                const price = adminEstimatePrice(original);
+                if (price === null) {
+                    showToast('견적금액을 확인할 수 없습니다. 금액을 수정한 후 전환해 주세요.', 'error');
+                    return;
+                }
+                const noteInput = window.prompt(
+                    '고객의 작업 진행 요청 내용을 입력하세요.\n(예: 전화로 제작 요청, 채팅으로 주문 승인)\n이 내용은 고객 상담 기록에도 표시됩니다.',
+                    '전화로 작업 진행 요청'
+                );
+                if (noteInput === null) return;
+                const note = normalizeCustomerOrderRequestNote(noteInput);
+                if (!note) {
+                    showToast('고객의 요청 내용을 입력해야 주문으로 전환할 수 있습니다.', 'info');
+                    return;
+                }
+                const amount = price > 0 ? `${price.toLocaleString('ko-KR')}원` : '미확정(0원)';
+                const agreed = await showConfirmation('관리자 주문 접수 전환',
+                    `고객 요청이 확인된 견적을 주문으로 전환합니다.\n현재 견적금액: ${amount}\n접수번호와 파일·상담기록은 유지되며 상태는 접수완료가 됩니다. ${price === 0 ? '금액이 미확정이므로 작업 전 금액을 반드시 확인하세요. ' : ''}계속하시겠습니까?`);
+                if (!agreed) return;
+                await convertEstimateToOrderByAdmin({
+                    db, doc, collection, runTransaction, serverTimestamp,
+                    quoteId, expectedPrice: price, customerRequestNote: note,
+                    actorUid: auth.currentUser?.uid,
+                });
+                showToast('고객 요청에 따라 주문 접수로 전환했습니다. 기존 견적번호를 유지합니다.', 'success');
+            } catch (error) {
+                logger.error('convertCustomerRequestedEstimate failed', error);
+                const stale = ['ESTIMATE_NOT_CONVERTIBLE', 'ESTIMATE_PRICE_CHANGED'].includes(error?.message);
+                showToast(stale
+                    ? '견적 상태나 금액이 변경되었습니다. 목록을 새로 확인한 뒤 다시 진행해 주세요.'
+                    : '주문 전환에 실패했습니다. 관리자 권한과 연결 상태를 확인해 주세요.',
+                    stale ? 'info' : 'error');
+            } finally {
+                convertingEstimateIds.delete(quoteId);
+                renderQuotes();
+            }
         }
 
         // A customer only requests cancellation. The administrator makes
@@ -1532,9 +1601,13 @@ function updateDashboard() {
                             <h3 class="text-xl font-bold text-slate-800 flex items-center">
                                 <span class="bg-brand-600 text-white text-xs px-2 py-1 rounded mr-2">${quote.productType === 'book' ? '책자/제본' : '디지털인쇄'}</span>
                                 ${quote.requestType === 'estimate' ? '<span class="bg-violet-100 text-violet-800 text-xs px-2 py-1 rounded mr-2">견적만 요청</span>' : ''}
+                                ${quote.orderConversionSource === 'admin_customer_request' ? '<span class="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded mr-2">관리자 주문 접수 전환</span>' : ''}
                                 ${s(quote.orderName)}
                             </h3>
                             <p class="text-sm text-slate-500 mt-1">접수일시: ${dateStr}</p>
+                            ${quote.orderConversionSource === 'admin_customer_request'
+                                ? `<p class="text-xs text-emerald-800 mt-2">고객 요청 확인: ${s(quote.adminConversionReason || '관리자 전환')}</p>`
+                                : ''}
                         </div>
                         <div class="text-sm text-right bg-white p-3 rounded-lg border border-brand-100 shadow-sm w-full md:w-auto">
                             <p class="flex items-center justify-end mb-1">
@@ -3436,6 +3509,7 @@ async function handleNoticeSave(e) {
 DOMElements.quoteListBody.addEventListener('click', (e) => {
                 const contactAction = e.target.closest('.mobile-contact-action');
                 const editBtn = e.target.closest('.admin-edit-quote-btn');
+                const convertEstimateBtn = e.target.closest('.admin-convert-estimate-btn');
                 const approveCancelBtn = e.target.closest('.approve-cancel-btn');
                 const rejectCancelBtn = e.target.closest('.reject-cancel-btn');
                 const directCancelBtn = e.target.closest('.direct-cancel-btn');
@@ -3443,6 +3517,7 @@ DOMElements.quoteListBody.addEventListener('click', (e) => {
                 
                 // 전화/문자 링크의 기본 동작은 유지하고 목록 행 상세보기만 차단합니다.
                 if (contactAction) { e.stopPropagation(); return; }
+                if (convertEstimateBtn) { convertCustomerRequestedEstimate(convertEstimateBtn.dataset.id); return; }
                 if (approveCancelBtn) { resolveCancelRequest(approveCancelBtn.dataset.id, 'approve'); return; }
                 if (rejectCancelBtn) { resolveCancelRequest(rejectCancelBtn.dataset.id, 'reject'); return; }
                 if (directCancelBtn) { resolveCancelRequest(directCancelBtn.dataset.id, 'direct'); return; }
