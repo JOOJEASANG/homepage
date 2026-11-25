@@ -528,7 +528,10 @@ test('both quote pages copy the email address without a mailto link', async ({ p
     await expect(group.locator('[data-email-address]')).toHaveText('winwork@hanmail.net');
     await expect(group.locator('a[href^="mailto:"]')).toHaveCount(0);
     await group.getByRole('button', {name:'주소 복사'}).click();
-    await expect(group.getByRole('button')).toHaveText('복사 완료');
+    await expect(group.getByRole('button')).toHaveText('');
+    await expect(group.locator('[data-copy-icon]')).toHaveClass(/fa-check/);
+    await expect(group.getByRole('button')).toHaveAttribute('title', '복사 완료');
+    await expect(group.locator('[data-copy-status]')).toHaveText('이메일 주소가 복사되었습니다.');
     expect(await page.evaluate(() => window.__copiedQuoteEmail)).toBe('winwork@hanmail.net');
     await expect(page).toHaveURL(new RegExp(path.replace('.', '\\.')));
     await assertNoHorizontalOverflow(page);
