@@ -428,6 +428,29 @@ test.describe('responsive renewal', () => {
     await expect(options.nth(0)).toContainText('왼쪽 위 스테플 위치');
   });
 
+  test('estimate intent requires acknowledgement and supports order or cancel', async ({page}) => {
+    await page.setViewportSize({width:390,height:844});
+    await page.goto('/quote-book.html',{waitUntil:'domcontentloaded'});
+    await page.evaluate(async () => {
+      const {confirmEstimateIntent}=await import('/assets/js/pages/shared/estimate-quick-order.js');
+      window.__openEstimateIntent=()=>{window.__intentResult='pending'; confirmEstimateIntent().then(value=>{window.__intentResult=value;});};
+      window.__openEstimateIntent();
+    });
+    const intent=page.locator('#estimate-intent-dialog');
+    await expect(intent).toBeVisible();
+    await expect(intent.locator('#estimate-intent-only')).toBeDisabled();
+    await intent.locator('#estimate-intent-check').check();
+    await expect(intent.locator('#estimate-intent-only')).toBeEnabled();
+    await intent.locator('#estimate-intent-only').click();
+    await expect(intent).toHaveCount(0);
+    await expect.poll(()=>page.evaluate(()=>window.__intentResult)).toBe('estimate');
+    await page.evaluate(()=>window.__openEstimateIntent());
+    await intent.locator('#estimate-intent-order').click();
+    await expect.poll(()=>page.evaluate(()=>window.__intentResult)).toBe('order');
+    await page.evaluate(()=>window.__openEstimateIntent());
+    await intent.locator('#estimate-intent-cancel').click();
+    await expect.poll(()=>page.evaluate(()=>window.__intentResult)).toBeNull();
+  });
   test('mobile quote summary uses existing amount and original submit handler', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     for (const [url,kind,button] of [['quote-book.html','book','submitQuoteBtn'],['quote-print.html',null,'submitBtn']]) {
@@ -455,13 +478,7 @@ test.describe('responsive renewal', () => {
       await expect(page.locator('.mobile-quote-only')).toBeVisible();
       await page.locator('.mobile-quote-only').click();
       expect(await page.evaluate(() => window.__fixtureEstimateSubmits)).toBe(1);
-      const intent = page.locator('#estimate-intent-dialog');
-      await expect(intent).toBeVisible();
-      await expect(intent.locator('#estimate-intent-only')).toBeDisabled();
-      await intent.locator('#estimate-intent-check').check();
-      await expect(intent.locator('#estimate-intent-only')).toBeEnabled();
-      await intent.locator('#estimate-intent-cancel').click();
-      await expect(intent).toHaveCount(0);
+
       await page.locator('.order-step-nav button').nth(1).click();
       await expect(page.locator('.order-step-nav button').nth(1)).toHaveAttribute('aria-current','step');
       await page.evaluate(button => { document.getElementById(button).hidden = true; },button);

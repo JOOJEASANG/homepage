@@ -683,7 +683,7 @@
     <script src="assets/js/responsive-ui.js?v=20261013-estimate" defer></script>
     <link rel="stylesheet" href="assets/css/admin-price-workspace.css?v=20261006-customer-center">
     <link rel="stylesheet" href="assets/css/work-guide-v3.css?v=20261118-mobile-actions">
-    <link rel="stylesheet" href="assets/css/admin-revenue.css?v=20261125-annual">
+    <link rel="stylesheet" href="assets/css/admin-revenue.css?v=20261125-monthly-totals">
 </head>
 <body data-page="admin" class="antialiased selection:bg-brand-100 selection:text-brand-900">
     <!-- ── 알림음 토글 (화면 우측 하단 고정) ─────────────────────────
@@ -983,7 +983,7 @@
         <div class="revenue-panel">
             <div class="revenue-summary">
                 <div class="revenue-metric"><span>12개월 총 접수 금액</span><strong id="revenue-total">—</strong></div>
-                <div class="revenue-metric"><span>12개월 확정 매출액</span><strong id="revenue-confirmed">—</strong></div>
+                <div class="revenue-metric revenue-metric-confirmed"><span>최근 1년 총 매출액 (확정)</span><strong id="revenue-confirmed">—</strong></div>
                 <div class="revenue-metric"><span>12개월 주문 접수 건수</span><strong id="revenue-count">—</strong></div>
             </div>
             <div class="revenue-legend"><span><i class="revenue-swatch revenue-bar-total"></i>총 접수 금액</span><span><i class="revenue-swatch revenue-bar-confirmed"></i>확정 매출액</span><span class="text-slate-500">단위: 만원</span></div>
@@ -997,14 +997,15 @@
                 </div>
             </div>
             <p id="revenue-month-detail" class="revenue-month-detail" aria-live="polite">데이터 분석 중…</p>
-            <p class="text-xs text-slate-500 leading-relaxed">접수일 기준 · 견적만 요청 및 주문취소 제외 · 확정 매출은 작업완료/결제완료 기준입니다. 월을 선택하면 정확한 금액과 건수를 확인할 수 있습니다.</p>
-            <details class="revenue-details mt-2">
-                <summary>월별 상세 금액 및 확정 비율 보기</summary>
+            <p class="text-xs text-slate-500 leading-relaxed">접수일 기준 · 견적만 요청 및 주문취소 제외 · 확정 매출은 작업완료/결제완료 기준입니다. 그래프 아래에는 월별 확정 매출액(원)을 표시하며, 월을 선택하면 접수 금액과 건수도 확인할 수 있습니다.</p>
+            <details class="revenue-details mt-2" open>
+                <summary>월별 매출 집계 및 12개월 합계</summary>
                 <div class="overflow-x-auto"><table class="order-table whitespace-nowrap">
                     <thead class="text-xs text-slate-500 bg-slate-50 border-b border-slate-200 font-bold"><tr>
                         <th class="px-4 py-3 text-left">기간</th><th class="px-4 py-3 text-right">건수</th><th class="px-4 py-3 text-right">총 접수 금액</th><th class="px-4 py-3 text-right">확정 매출액</th><th class="px-4 py-3 text-right">확정 비율</th>
                     </tr></thead>
                     <tbody id="revenue-stats-body" class="divide-y divide-slate-100"></tbody>
+                    <tfoot id="revenue-stats-total"></tfoot>
                 </table></div>
             </details>
         </div>
@@ -1625,7 +1626,7 @@ async function hardLogout(redirectUrl = 'index.html') {
 
 
 
-<script type="module" src="assets/js/pages/admin.js?v=20261125-annual-revenue"></script>
+<script type="module" src="assets/js/pages/admin.js?v=20261125-monthly-totals"></script>
 <script>
 /* 연락처 진단: ?contactDebug=1 일 때만 표시, 고객 개인정보는 노출하지 않습니다. */
 (function () {

@@ -33,3 +33,14 @@
   #revenue-stats-content .revenue-metric:last-child { grid-column:1/-1; }
   #revenue-stats-content .revenue-chart { min-width:640px; }
 }
+
+/* Exact won amounts remain visible without selecting a bar. */
+#revenue-stats-content .revenue-chart { min-width:1000px; }
+#revenue-stats-content .revenue-month-amount { display:block; margin:0 0 6px; font-size:11px; font-weight:800; color:#146447; text-align:center; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+#revenue-stats-content .revenue-metric-confirmed { border-color:#9acfb8; background:#eaf7ef; }
+#revenue-stats-content .revenue-metric-confirmed strong { color:#136a47; font-size:clamp(19px,2.4vw,28px); }
+#revenue-stats-content .revenue-confirmed-cell { color:#146447; font-weight:800; }
+#revenue-stats-content .revenue-total-row { background:#eaf7ef; font-weight:800; border-top:2px solid #9acfb8; color:#173c32; }
+#revenue-stats-content #revenue-stats-total td { text-align:right; }
+#revenue-stats-content #revenue-stats-body th,#revenue-stats-content #revenue-stats-total th { text-align:left; font-weight:700; }
+#revenue-stats-content .revenue-details .order-table { font-variant-numeric:tabular-nums; }

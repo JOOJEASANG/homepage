@@ -28,10 +28,11 @@ export function revenueAxisMax(months) {
   const step = 10 ** Math.floor(Math.log10(max / 4));
   return Math.ceil(max / (step*4)) * step*4;
 }
+export const sumMonthlyRevenue = months => months.reduce((acc,m) => ({count:acc.count+m.count,total:acc.total+m.total,confirmed:acc.confirmed+m.confirmed}),{count:0,total:0,confirmed:0});
 const won = n => n.toLocaleString('ko-KR') + '원';
 export function renderMonthlyRevenue(root, months) {
   if (!root) return;
-  const sum = months.reduce((acc,m) => ({count:acc.count+m.count,total:acc.total+m.total,confirmed:acc.confirmed+m.confirmed}),{count:0,total:0,confirmed:0});
+  const sum = sumMonthlyRevenue(months);
   const axisMax = revenueAxisMax(months);
   root.querySelector('#revenue-total').textContent = won(sum.total);
   root.querySelector('#revenue-confirmed').textContent = won(sum.confirmed);
@@ -62,17 +63,26 @@ export function renderMonthlyRevenue(root, months) {
     }
     const label=document.createElement('span'); label.className='revenue-month-label';
     label.textContent=m.key.slice(2).replace('-','.');
-    btn.append(pair,label);
+    const value = document.createElement('span');
+    value.className='revenue-month-amount';
+    value.textContent=won(m.confirmed);
+    btn.append(pair,label,value);
     btn.addEventListener('click',()=>select(m));
     return btn;
   }));
   select(months.find(m=>m.key===activeKey)||months.at(-1));
-  const tbody=root.querySelector('#revenue-stats-body');
-  tbody.replaceChildren(...[...months].reverse().map(m => {
+  const makeRow = (m, label, totalRow = false) => {
     const tr=document.createElement('tr');
-    for (const value of [m.key,m.count.toLocaleString('ko-KR')+'건',won(m.total),won(m.confirmed), (m.total>0?Math.round(m.confirmed/m.total*100):0)+'%']) {
-      const td=document.createElement('td'); td.textContent=value; td.className='px-4 py-3 whitespace-nowrap'; tr.appendChild(td);
+    for (const [index,value] of [label,m.count.toLocaleString('ko-KR')+'건',won(m.total),won(m.confirmed), (m.total>0?Math.round(m.confirmed/m.total*100):0)+'%'].entries()) {
+      const cell=document.createElement(index===0?'th':'td');
+      if (index===0) cell.scope='row';
+      cell.textContent=value;
+      cell.className='px-4 py-3 whitespace-nowrap' + (index===3?' revenue-confirmed-cell':'');
+      tr.appendChild(cell);
     }
+    if(totalRow) tr.className='revenue-total-row';
     return tr;
-  }));
+  };
+  root.querySelector('#revenue-stats-body').replaceChildren(...months.map(m=>makeRow(m,m.key)));
+  root.querySelector('#revenue-stats-total').replaceChildren(makeRow(sum,'12개월 합계',true));
 }

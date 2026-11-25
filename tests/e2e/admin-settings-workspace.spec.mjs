@@ -994,6 +994,13 @@ test('admin rolling annual revenue displays twelve months and accurate selected 
   await expect(content.locator('#revenue-total')).toHaveText('30,000원');
   await expect(content.locator('#revenue-confirmed')).toHaveText('25,000원');
   await expect(content.locator('#revenue-count')).toHaveText('2건');
+  await expect(months.last().locator('.revenue-month-amount')).toHaveText('25,000원');
+  await expect(months.first().locator('.revenue-month-amount')).toHaveText('0원');
+  await expect(content.locator('#revenue-stats-body tr')).toHaveCount(12);
+  await expect(content.locator('#revenue-stats-body tr').last()).toContainText('25,000원');
+  await expect(content.locator('#revenue-stats-total')).toBeVisible();
+  await expect(content.locator('#revenue-stats-total')).toContainText('12개월 합계');
+  await expect(content.locator('#revenue-stats-total .revenue-confirmed-cell')).toHaveText('25,000원');
   await expect(content.locator('#revenue-month-detail')).toContainText('25,000원');
   await months.first().click();
   await expect(content.locator('#revenue-month-detail')).toContainText('0건');
