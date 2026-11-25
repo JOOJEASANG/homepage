@@ -1,61 +1,22 @@
 import {
   db,
   collection,
-  query,
-  orderBy,
   onSnapshot,
 } from './firebase.js';
+import { sanitizeRichText } from './rich-text-sanitizer.js';
+import { noticeDayKey, isActiveNotice } from './notice-period-utils.js';
 
 let cachedNotices = [];
-let applying = false;
-
-function todayKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function isActiveNotice(data) {
-  const today = todayKey();
-  const start = String(data?.publishStartDate || '').trim();
-  const end = String(data?.publishEndDate || '').trim();
-  if (start && today < start) return false;
-  if (end && today > end) return false;
-  return true;
-}
-
+let received = false;
+const dismissedPopups = new Set();
+const todayKey = noticeDayKey;
 function sanitizeHTML(str) {
   const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
   return String(str || '').replace(/[&<>"']/g, m => map[m]);
 }
 
-function sanitizeNoticeHtml(html) {
-  try {
-    const allowedTags = new Set(['B','STRONG','I','EM','U','BR','P','DIV','SPAN','UL','OL','LI','A','HR','BLOCKQUOTE']);
-    const docx = new DOMParser().parseFromString(`<div>${html || ''}</div>`, 'text/html');
-    Array.from(docx.body.querySelectorAll('*')).reverse().forEach(el => {
-      if (!allowedTags.has(el.tagName)) {
-        el.replaceWith(...el.childNodes);
-        return;
-      }
-      Array.from(el.attributes).forEach(attr => {
-        const name = attr.name.toLowerCase();
-        if (name.startsWith('on') || name === 'style' || (name === 'href' && /^javascript:/i.test(attr.value))) {
-          el.removeAttribute(attr.name);
-        }
-      });
-      if (el.tagName === 'A') {
-        el.setAttribute('target', '_blank');
-        el.setAttribute('rel', 'noopener noreferrer');
-      }
-    });
-    return docx.body.firstElementChild?.innerHTML || '';
-  } catch {
-    return '';
-  }
-}
-
 function renderContent(data) {
-  const html = data?.contentHtml ? sanitizeNoticeHtml(data.contentHtml) : '';
+  const html = data?.contentHtml ? sanitizeRichText(data.contentHtml) : '';
   if (html) return html;
   return sanitizeHTML(data?.content || '').replace(/\n/g, '<br>');
 }
@@ -117,7 +78,8 @@ function renderNoticeList(activeNotices) {
 
   container.innerHTML = '';
   notices.forEach(data => {
-    const div = document.createElement('div');
+    const div = document.createElement('button');
+    div.type = 'button';
     div.className = 'grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-100 items-center hover:bg-slate-50 transition-colors cursor-pointer group text-sm';
     div.innerHTML = `
       <div class="col-span-2 text-center">
@@ -152,7 +114,7 @@ function renderPopup(activeNotices) {
     .filter(n => n.isPopup)
     .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0] || null;
 
-  if (!popupNotice || popupHiddenToday(popupNotice.id)) {
+  if (!popupNotice || popupHiddenToday(popupNotice.id) || dismissedPopups.has(popupNotice.id)) {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     return;
@@ -165,6 +127,7 @@ function renderPopup(activeNotices) {
   if (content) content.innerHTML = renderContent(popupNotice);
 
   const close = () => {
+    dismissedPopups.add(popupNotice.id);
     if (hideToday?.checked) {
       try {
         localStorage.setItem('notice_popup_hide', JSON.stringify({ date: todayKey(), id: popupNotice.id }));
@@ -186,39 +149,33 @@ function renderPopup(activeNotices) {
 }
 
 function applyPeriodRules() {
-  if (applying) return;
-  applying = true;
-  try {
-    const active = cachedNotices.filter(isActiveNotice);
-    renderNoticeList(active);
-    renderPopup(active);
-  } finally {
-    requestAnimationFrame(() => { applying = false; });
-  }
+  if (!received) return;
+  const active = cachedNotices.filter(data => isActiveNotice(data));
+  renderNoticeList(active);
+  renderPopup(active);
 }
 
-function bindGuards() {
-  const list = document.getElementById('notice-list-container');
-  const popup = document.getElementById('notice-popup-modal');
-  const observer = new MutationObserver(() => {
-    if (applying) return;
-    setTimeout(applyPeriodRules, 0);
-  });
-  if (list) observer.observe(list, { childList: true, subtree: true });
-  if (popup) observer.observe(popup, { attributes: true, attributeFilter: ['class'] });
+function renderError() {
+  if (received) return;
+  const container = document.getElementById('notice-list-container');
+  if (container) container.textContent = '공지사항을 불러오지 못했습니다. 새로고침 후 다시 확인해 주세요.';
 }
 
 function init() {
+  if (!document.getElementById('notice-list-container')) return;
   try {
-    const q = query(collection(db, 'notices'), orderBy('createdAt', 'desc'));
-    onSnapshot(q, snap => {
-      cachedNotices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // One listener; filter by publication dates before sorting and limiting.
+    onSnapshot(collection(db, 'notices'), snap => {
+      cachedNotices = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+      received = true;
       applyPeriodRules();
-      setTimeout(applyPeriodRules, 300);
-      setTimeout(applyPeriodRules, 1200);
-    }, () => null);
-    bindGuards();
-  } catch (_) {}
+    }, renderError);
+    // Re-evaluate publication dates at midnight or when a tab becomes visible.
+    setInterval(applyPeriodRules, 60_000);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) applyPeriodRules();
+    });
+  } catch (_) { renderError(); }
 }
 
 if (document.readyState === 'loading') {

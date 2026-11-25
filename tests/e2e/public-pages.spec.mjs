@@ -432,3 +432,24 @@ test('guest quote and customer forms link to privacy information', async ({ page
   await page.goto('/qna.html', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#qna-compose a[href="personal-info.html"]')).toHaveCount(1);
 });
+
+
+test('homepage exposes direct quote, order lookup and preparation paths on narrow screens', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.hero-actions a[href="quote-book.html"]')).toBeVisible();
+  await expect(page.locator('.hero-actions a[href="quote-print.html"]')).toBeVisible();
+  await expect(page.locator('.home-quick-links a[href="login.html"]')).toBeVisible();
+  await expect(page.locator('.home-help-grid article')).toHaveCount(3);
+  await expect(page.locator('#loading-overlay')).toBeHidden();
+  await assertNoHorizontalOverflow(page);
+});
+
+test('notice publication dates use the Korean calendar and inclusive date boundaries', async () => {
+  const { noticeDayKey, isActiveNotice } = await import('../../assets/js/notice-period-utils.js');
+  expect(noticeDayKey(new Date('2026-11-24T15:00:00Z'))).toBe('2026-11-25');
+  expect(isActiveNotice({ publishStartDate: '2026-11-26' }, '2026-11-25')).toBe(false);
+  expect(isActiveNotice({ publishEndDate: '2026-11-24' }, '2026-11-25')).toBe(false);
+  expect(isActiveNotice({ publishStartDate: '2026-11-25', publishEndDate: '2026-11-25' }, '2026-11-25')).toBe(true);
+  expect(isActiveNotice({}, '2026-11-25')).toBe(true);
+});

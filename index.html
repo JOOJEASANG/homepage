@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="그린오피스 — 디지털 인쇄·출력·제본 전문. 온라인 즉시 견적, 당일 접수 15시 마감, 익일 납기 가능. 충남 천안 서북구.">
+    <meta name="description" content="천안 디지털 출력·제본 전문 그린오피스. 보고서, 교재, 자료집, 포스터, 전단 등 온라인 견적과 제작 상담. 충남 천안 서북구.">
+    <link rel="canonical" href="https://www.g-print.co.kr/">
+    <meta property="og:url" content="https://www.g-print.co.kr/">
     <meta property="og:title" content="그린오피스 | 디지털출력·제본 전문">
-    <meta property="og:description" content="온라인 즉시 견적 · 빠른 납기 · 합리적인 가격. 책자, 리플렛, 포스터, 전단지 등 모든 인쇄를 한 번에.">
+    <meta property="og:description" content="천안 디지털 출력·제본 전문. 책자, 보고서, 교재, 포스터, 전단 온라인 견적과 제작 상담.">
     <meta property="og:type" content="website">
     <meta property="og:locale" content="ko_KR">
     <title>그린오피스 | 디지털출력·제본 전문</title>
@@ -135,13 +137,13 @@
         .animate-pulse { animation: pulse-green 2s ease infinite; }
     </style>
     <script src="assets/js/naver-analytics.js" defer></script>
-    <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261125-footer-refine">
+    <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261125-home-audit">
     <script src="assets/js/responsive-ui.js?v=20261002" defer></script>
 </head>
 <body data-page="index" class="antialiased flex flex-col min-h-screen">
 
     <div id="toast-container" class="fixed top-20 right-5 z-[9999] flex flex-col gap-2.5"></div>
-    <div id="loading-overlay" style="position:fixed;inset:0;background:#f8fafc;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.5s;">
+    <div id="loading-overlay" style="position:fixed;inset:0;background:#f8fafc;z-index:100;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.5s;pointer-events:none;display:none;" aria-hidden="true">
         <div style="position:relative;width:56px;height:56px;margin-bottom:20px;">
             <div style="position:absolute;inset:0;border:3px solid #d1fae5;border-radius:50%;"></div>
             <div style="position:absolute;inset:0;border:3px solid #16a34a;border-radius:50%;border-top-color:transparent;animation:spin 1s linear infinite;"></div>
@@ -198,14 +200,15 @@
         <section class="hero-section print-hero">
             <div class="renew-container hero-layout">
                 <div class="hero-copy">
-                    <p class="eyebrow">GREEN OFFICE · PRINT STUDIO</p>
+                    <p class="eyebrow">GREEN OFFICE · 천안 출력·제본 전문</p>
                     <h1>당신의 생각을,<br><em>좋은 인쇄로.</em></h1>
-                    <p class="hero-description">한 권의 책자부터 한 장의 인쇄물까지.<br>사양을 고르고, 견적을 확인하고, 간편하게 접수하세요.</p>
+                    <p class="hero-description">책자·보고서·교재 제본부터 포스터·전단 출력까지.<br>온라인에서 견적을 확인하고 간편하게 접수하세요.</p>
                     <div class="hero-actions">
-                        <a class="renew-button primary" href="quote-book.html">책자·제본 주문 <span aria-hidden="true">↗</span></a>
-                        <a class="renew-button secondary" href="quote-print.html">디지털 인쇄 주문 <span aria-hidden="true">↗</span></a>
+                        <a class="renew-button primary" href="quote-book.html">책자·제본 견적 <span aria-hidden="true">↗</span></a>
+                        <a class="renew-button secondary" href="quote-print.html">디지털 출력 견적 <span aria-hidden="true">↗</span></a>
                     </div>
                     <p class="hero-caption">온라인 견적 · 파일 접수 · 주문 진행상태 조회</p>
+                    <div class="home-quick-links" aria-label="자주 찾는 메뉴"><a href="login.html">접수·주문 조회</a><a href="work-guide.html">파일 준비 가이드</a><a href="qna.html">제작 상담</a></div>
                 </div>
                 <div class="paper-scene" aria-hidden="true">
                     <div class="scene-caption">MAKE IT<br>MATTER.</div>
@@ -226,6 +229,17 @@
             </div>
         </section>
         <section class="order-process"><div class="renew-container"><div class="section-heading"><div><p class="eyebrow">SIMPLE ORDER</p><h2>주문은 간단하게, 제작은 꼼꼼하게.</h2></div></div><ol class="process-grid"><li><span>01</span><div><h3>사양 선택·견적 확인</h3><p>규격, 용지, 인쇄와 수량을 선택합니다.</p></div></li><li><span>02</span><div><h3>파일 첨부·주문 접수</h3><p>인쇄 파일과 요청사항을 전달합니다.</p></div></li><li><span>03</span><div><h3>상담·금액 확정·제작</h3><p>접수 내용을 확인하고 제작을 진행합니다.</p></div></li></ol></div></section>
+
+        <section class="home-help-section" aria-labelledby="home-help-title">
+            <div class="renew-container">
+                <div class="section-heading"><div><p class="eyebrow">BEFORE YOU ORDER</p><h2 id="home-help-title">주문 전 확인하세요</h2></div><a href="work-guide.html">작업가이드 전체 보기 <span aria-hidden="true">↗</span></a></div>
+                <div class="home-help-grid">
+                    <article><h3>어떤 제본을 선택할까요?</h3><p>보고서, 교재, 자료집의 용도와 페이지 수에 맞는 제본 방식을 작업가이드에서 확인하세요.</p><a href="work-guide.html">제본 방식 알아보기 <span aria-hidden="true">↗</span></a></article>
+                    <article><h3>파일은 어떻게 준비하나요?</h3><p>완성 크기, 재단 여백, 글꼴과 이미지 상태를 확인한 뒤 파일을 접수해 주세요.</p><a href="work-guide.html">파일 준비 방법 <span aria-hidden="true">↗</span></a></article>
+                    <article><h3>납기와 수령 방법이 궁금해요</h3><p>작업 사양과 수량에 따라 제작 일정이 달라집니다. 급한 작업이나 수령 방법은 접수 전에 문의해 주세요.</p><a href="qna.html">제작 일정 문의 <span aria-hidden="true">↗</span></a></article>
+                </div>
+            </div>
+        </section>
 
         <!-- ===== REALTIME SECTION ===== -->
         <section class="realtime-section py-16 border-t border-slate-100">
@@ -386,7 +400,7 @@
                     <span class="text-emerald-600 text-[10px] font-bold border border-emerald-200 px-2 py-0.5 rounded mb-1 inline-block">NOTICE</span>
                     <h3 id="notice-popup-title" class="text-lg font-bold text-slate-900 leading-snug mt-1"></h3>
                 </div>
-                <button id="notice-popup-close-btn" class="text-slate-400 hover:text-slate-600 mt-1"><i class="fas fa-times"></i></button>
+                <button id="notice-popup-close-btn" type="button" aria-label="팝업 공지 닫기" class="text-slate-400 hover:text-slate-600 mt-1"><i class="fas fa-times"></i></button>
             </div>
             <div class="px-6 py-5 max-h-[40vh] overflow-y-auto custom-scrollbar bg-slate-50">
                 <div id="notice-popup-content" class="text-sm text-slate-700 whitespace-pre-line leading-relaxed"></div>
@@ -442,7 +456,8 @@
     </script>
 
     <script type="module" src="assets/js/legal-modal.js?v=20261106"></script>
-    <script type="module" src="assets/js/maintenance-check.js?v=20261125-footer-legal"></script>
-    <script type="module" src="assets/js/pages/index.js"></script>
+    <script type="module" src="assets/js/maintenance-check.js?v=20261125-home-audit"></script>
+    <script type="module" src="assets/js/pages/index.js?v=20261125-home-audit"></script>
+    <script type="module" src="assets/js/notice-publish-period-public.js?v=20261125-home-audit"></script>
 </body>
 </html>
