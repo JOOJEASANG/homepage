@@ -58,43 +58,39 @@ function openNoticeModal(data) {
   modal.onclick = e => { if (e.target === modal) close(); };
 }
 
-function renderNoticeList(activeNotices) {
+// Two notices by default; older active notices remain accessible without a large board.
+export function renderNoticeList(activeNotices) {
   const container = document.getElementById('notice-list-container');
-  if (!container) return;
-
-  const notices = [...activeNotices]
-    .sort((a, b) => {
-      const imp = Number(!!b.isImportant) - Number(!!a.isImportant);
-      if (imp) return imp;
-      const ta = a.createdAt?.seconds || 0;
-      const tb = b.createdAt?.seconds || 0;
-      return tb - ta;
-    })
-    .slice(0, 8);
-
-  if (!notices.length) {
-    container.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400 text-sm gap-2 mt-10"><p>등록된 공지사항이 없습니다.</p></div>';
-    return;
-  }
-
-  container.innerHTML = '';
-  notices.forEach(data => {
-    const div = document.createElement('button');
-    div.type = 'button';
-    div.className = 'grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-100 items-center hover:bg-slate-50 transition-colors cursor-pointer group text-sm';
-    div.innerHTML = `
-      <div class="col-span-2 text-center">
-        ${data.isImportant
-          ? '<span class="inline-block w-10 py-0.5 rounded text-[10px] font-bold bg-red-50 text-red-600 border border-red-200">중요</span>'
-          : '<span class="inline-block w-10 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200">공지</span>'}
-      </div>
-      <div class="col-span-7 min-w-0">
-        <div class="truncate text-slate-700 group-hover:text-brand-700 group-hover:underline decoration-brand-200 underline-offset-2 transition-all">${sanitizeHTML(data.title || '제목 없음')}</div>
-      </div>
-      <div class="col-span-3 text-right text-xs text-slate-400 font-mono">${dateLabel(data)}</div>
-    `;
-    div.onclick = () => openNoticeModal(data);
-    container.appendChild(div);
+  const section = document.getElementById('home-notice-section');
+  const more = document.getElementById('home-notice-more');
+  const moreList = document.getElementById('notice-more-list');
+  if (!container || !section || !more || !moreList) return;
+  const notices = [...activeNotices].sort((a, b) =>
+    Number(!!b.isImportant) - Number(!!a.isImportant) ||
+    (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
+  );
+  section.hidden = !notices.length;
+  more.hidden = notices.length <= 2;
+  if (more.hidden) more.open = false;
+  container.replaceChildren();
+  moreList.replaceChildren();
+  notices.forEach((data, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'home-notice-row';
+    const kind = document.createElement('span');
+    kind.className = 'home-notice-kind' + (data.isImportant ? ' is-important' : '');
+    kind.textContent = data.isImportant ? '중요' : '공지';
+    const title = document.createElement('span');
+    title.className = 'home-notice-title-text';
+    title.textContent = data.title || '제목 없음';
+    title.title = title.textContent;
+    const date = document.createElement('span');
+    date.className = 'home-notice-date';
+    date.textContent = dateLabel(data);
+    button.append(kind, title, date);
+    button.addEventListener('click', () => openNoticeModal(data));
+    (index < 2 ? container : moreList).appendChild(button);
   });
 }
 
@@ -159,8 +155,9 @@ function applyPeriodRules() {
 
 function renderError() {
   if (received) return;
-  const container = document.getElementById('notice-list-container');
-  if (container) container.textContent = '공지사항을 불러오지 못했습니다. 새로고침 후 다시 확인해 주세요.';
+  const section = document.getElementById('home-notice-section');
+  if (section) section.hidden = true;
+  console.warn('[notice] 공지사항을 불러오지 못했습니다.');
 }
 
 function init() {

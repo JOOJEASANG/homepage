@@ -113,9 +113,6 @@ try {
   if (currentFile === 'quote-print.html') {
     import('./pages/quote-print/runtime.js?v=20261028-reset').catch(() => null);
   }
-  if (currentFile === 'index.html' || currentFile === '') {
-    import('./public-feed-v2.js').catch(() => null);
-  }
   if (currentFile === 'login.html') {
     import('./guest-access-v2.js').catch(() => null);
   }

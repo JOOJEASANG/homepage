@@ -137,7 +137,7 @@
         .animate-pulse { animation: pulse-green 2s ease infinite; }
     </style>
     <script src="assets/js/naver-analytics.js" defer></script>
-    <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261125-home-audit">
+    <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261125-compact-home">
     <script src="assets/js/responsive-ui.js?v=20261002" defer></script>
 </head>
 <body data-page="index" class="antialiased flex flex-col min-h-screen">
@@ -218,6 +218,15 @@
                 </div>
             </div>
         </section>
+        <section id="home-notice-section" class="home-notice-section" aria-labelledby="home-notice-title" hidden>
+            <div class="renew-container home-notice-layout">
+                <h2 id="home-notice-title"><i class="fas fa-bullhorn" aria-hidden="true"></i> 공지사항</h2>
+                <div class="home-notice-content">
+                    <div id="notice-list-container"></div>
+                    <details id="home-notice-more" hidden><summary>공지사항 더보기</summary><div id="notice-more-list"></div></details>
+                </div>
+            </div>
+        </section>
         <section class="service-section renew-services">
             <div class="renew-container">
                 <div class="section-heading"><div><p class="eyebrow">WHAT WOULD YOU LIKE TO PRINT?</p><h2>무엇을 제작하시나요?</h2></div><a href="work-guide.html">파일 준비 가이드 <span aria-hidden="true">↗</span></a></div>
@@ -241,92 +250,13 @@
             </div>
         </section>
 
-        <!-- ===== REALTIME SECTION ===== -->
-        <section class="realtime-section py-16 border-t border-slate-100">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex items-center justify-between mb-8">
-                    <div>
-                        <span class="text-xs font-bold tracking-widest text-emerald-600 uppercase">Real-time</span>
-                        <h2 class="text-2xl font-black text-slate-900 mt-1">실시간 현황</h2>
-                    </div>
-                    <div class="flex items-center gap-2 text-xs text-slate-400">
-                        <span class="relative flex h-2 w-2">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                        </span>
-                        실시간 업데이트
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                    <!-- 공지사항 -->
-                    <div class="panel-card rounded-2xl overflow-hidden flex flex-col" style="height: 380px;">
-                        <div class="panel-header px-5 py-3.5 flex items-center gap-2.5">
-                            <div class="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center">
-                                <i class="fas fa-bullhorn text-amber-500 text-xs"></i>
-                            </div>
-                            <span class="font-bold text-slate-800 text-sm">공지사항</span>
-                        </div>
-                        <div class="grid grid-cols-12 px-4 py-2 bg-slate-50 text-[10px] font-bold text-slate-400 border-b border-slate-100 text-center">
-                            <div class="col-span-2">구분</div>
-                            <div class="col-span-7">제목</div>
-                            <div class="col-span-3">날짜</div>
-                        </div>
-                        <div class="flex-grow overflow-y-auto custom-scrollbar" id="notice-list-container">
-                            <div class="flex flex-col items-center justify-center h-full text-slate-300 gap-2">
-                                <i class="fas fa-circle-notch fa-spin text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 실시간 접수 현황 -->
-                    <div class="panel-card rounded-2xl overflow-hidden flex flex-col" style="height: 380px;">
-                        <div class="panel-header px-5 py-3.5 flex items-center justify-between">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center">
-                                    <i class="fas fa-tasks text-emerald-500 text-xs"></i>
-                                </div>
-                                <span class="font-bold text-slate-800 text-sm">실시간 접수 현황</span>
-                            </div>
-                            <span class="relative flex h-2 w-2">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                            </span>
-                        </div>
-                        <div class="grid grid-cols-12 px-4 py-2 bg-slate-50 text-[10px] font-bold text-slate-400 border-b border-slate-100 text-center">
-                            <div class="col-span-3">접수자</div>
-                            <div class="col-span-6">내용</div>
-                            <div class="col-span-3">상태</div>
-                        </div>
-                        <div class="flex-grow overflow-y-auto custom-scrollbar" id="recent-quotes-container">
-                            <div class="flex flex-col items-center justify-center h-full text-slate-300 gap-2">
-                                <i class="fas fa-circle-notch fa-spin text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 문의 게시판 -->
-                    <div class="panel-card rounded-2xl overflow-hidden flex flex-col" style="height: 380px;">
-                        <div class="panel-header px-5 py-3.5 flex items-center justify-between">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
-                                    <i class="fas fa-comments text-blue-500 text-xs"></i>
-                                </div>
-                                <span class="font-bold text-slate-800 text-sm">문의 게시판</span>
-                            </div>
-                            <a href="qna.html" class="text-[11px] text-slate-400 hover:text-emerald-600 transition-colors font-medium">더보기 <i class="fas fa-chevron-right text-[9px]"></i></a>
-                        </div>
-                        <div class="grid grid-cols-12 px-4 py-2 bg-slate-50 text-[10px] font-bold text-slate-400 border-b border-slate-100 text-center">
-                            <div class="col-span-2">상태</div>
-                            <div class="col-span-8">제목</div>
-                            <div class="col-span-2">날짜</div>
-                        </div>
-                        <div class="flex-grow overflow-y-auto custom-scrollbar" id="recent-qna-container">
-                            <div class="flex flex-col items-center justify-center h-full text-slate-300 gap-2">
-                                <i class="fas fa-circle-notch fa-spin text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
+        <section class="home-faq-section" aria-labelledby="home-faq-title">
+            <div class="renew-container">
+                <div class="section-heading"><div><p class="eyebrow">FAQ</p><h2 id="home-faq-title">자주 묻는 질문</h2></div><a href="qna.html#faq">전체 질문 보기 <span aria-hidden="true">↗</span></a></div>
+                <div class="home-faq-list">
+                    <details><summary>당일 출력 및 제본이 가능한가요?</summary><p>작업량, 파일 상태, 제본 방식에 따라 달라집니다. 급한 작업은 접수 전에 <a href="qna.html#compose">제작 상담</a>을 이용해 주세요.</p></details>
+                    <details><summary>어떤 형식으로 파일을 보내야 하나요?</summary><p>글꼴과 배치가 변하지 않도록 PDF 파일을 권장합니다. 한글, 워드, PPT 파일은 PDF로 변환한 후 확인해 주세요. <a href="work-guide.html">파일 준비 가이드</a></p></details>
+                    <details><summary>소량 출력이나 한 권 제본도 가능한가요?</summary><p>한 장의 출력이나 한 권의 제본부터 가능합니다. 사양에 따라 <a href="quote-book.html">책자·제본 견적</a> 또는 <a href="quote-print.html">디지털 출력 견적</a>에서 확인하거나 문의해 주세요.</p></details>
                 </div>
             </div>
         </section>
@@ -458,6 +388,6 @@
     <script type="module" src="assets/js/legal-modal.js?v=20261106"></script>
     <script type="module" src="assets/js/maintenance-check.js?v=20261125-home-audit"></script>
     <script type="module" src="assets/js/pages/index.js?v=20261125-home-audit"></script>
-    <script type="module" src="assets/js/notice-publish-period-public.js?v=20261125-home-audit"></script>
+    <script type="module" src="assets/js/notice-publish-period-public.js?v=20261125-compact-home"></script>
 </body>
 </html>

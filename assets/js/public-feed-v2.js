@@ -85,6 +85,7 @@ async function requestRefresh() {
 }
 
 function init() {
+  if (!document.getElementById('recent-quotes-container') && !document.getElementById('recent-qna-container')) return;
   if (!/(^|\/)index\.html$/i.test(location.pathname) && location.pathname !== '/') return;
   try {
     onSnapshot(doc(db, 'settings', 'site'), snap => {
