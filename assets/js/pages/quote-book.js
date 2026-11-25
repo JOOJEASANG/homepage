@@ -32,7 +32,7 @@ import { openImagePreview, openPreviewLayer, closeImagePreview } from "./quote-b
 import { getBookTempStorageKey, writeBookDraft, readBookDraft, hasBookDraft, clearBookDraft, readLastQuoteCache, writeLastQuoteCache, clearLastQuoteCache } from "./quote-book/quote-storage.js";
 import { serializeQuoteItems } from "./quote-book/quote-form-data.js?v=20261030-staple-limit";
 import { buildQuoteRequestData, buildQuoteUpdatePayload } from "./quote-book/quote-request-data.js";
-import { initEmailFileInput } from "./shared/email-file-notice.js";
+import { initEmailFileInput } from "./shared/email-file-notice.js?v=20261125-checkbox";
 const emailFileInput = initEmailFileInput("book");
 import { isAdminEditSearch, parseQuoteReloadPayload } from "./quote-book/page-state.js";
 import { readGuestSubmitSession, readGuestMenuSession, getGuestMyPageLookupKey, restoreGuestSessionFromReload, persistGuestSessionAfterSubmit } from "./quote-book/guest-session.js";

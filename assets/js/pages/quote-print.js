@@ -17,7 +17,7 @@ import { initHeader } from "../header.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
 import { requestGuestAccess } from "../guest-access-v2.js";
 import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer, confirmEstimateIntent } from "./shared/estimate-quick-order.js?v=20261125-estimate-guide";
-import { initEmailFileInput } from "./shared/email-file-notice.js";
+import { initEmailFileInput } from "./shared/email-file-notice.js?v=20261125-checkbox";
 const emailFileInput = initEmailFileInput("print");
 import "../overlays.js";
 import "../session.js?v=20261028-subcontract-choice";
