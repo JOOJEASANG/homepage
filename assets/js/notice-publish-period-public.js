@@ -8,6 +8,7 @@ import { noticeDayKey, isActiveNotice } from './notice-period-utils.js';
 
 let cachedNotices = [];
 let received = false;
+let renderedDay = '';
 const dismissedPopups = new Set();
 const todayKey = noticeDayKey;
 function sanitizeHTML(str) {
@@ -150,7 +151,8 @@ function renderPopup(activeNotices) {
 
 function applyPeriodRules() {
   if (!received) return;
-  const active = cachedNotices.filter(data => isActiveNotice(data));
+  renderedDay = todayKey();
+  const active = cachedNotices.filter(data => isActiveNotice(data, renderedDay));
   renderNoticeList(active);
   renderPopup(active);
 }
@@ -171,9 +173,10 @@ function init() {
       applyPeriodRules();
     }, renderError);
     // Re-evaluate publication dates at midnight or when a tab becomes visible.
-    setInterval(applyPeriodRules, 60_000);
+    const refreshDate = () => { if (received && renderedDay !== todayKey()) applyPeriodRules(); };
+    setInterval(refreshDate, 60_000);
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) applyPeriodRules();
+      if (!document.hidden) refreshDate();
     });
   } catch (_) { renderError(); }
 }

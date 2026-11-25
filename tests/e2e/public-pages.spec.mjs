@@ -453,3 +453,15 @@ test('notice publication dates use the Korean calendar and inclusive date bounda
   expect(isActiveNotice({ publishStartDate: '2026-11-25', publishEndDate: '2026-11-25' }, '2026-11-25')).toBe(true);
   expect(isActiveNotice({}, '2026-11-25')).toBe(true);
 });
+
+test('shared rich text sanitizer removes unsafe notice links and attributes', async ({ page }) => {
+  await page.goto('/404.html', { waitUntil: 'domcontentloaded' });
+  const result = await page.evaluate(async () => {
+    const { sanitizeRichText } = await import('/assets/js/rich-text-sanitizer.js');
+    const template = document.createElement('template');
+    template.innerHTML = sanitizeRichText('<p onclick="alert(1)">안내</p><a href=" javascript:alert(1)">위험</a><a href="https://example.com/">안전</a>');
+    const links = template.content.querySelectorAll('a');
+    return { onclick: template.content.querySelector('p').hasAttribute('onclick'), unsafe: links[0].hasAttribute('href'), safe: links[1].getAttribute('href'), rel: links[1].getAttribute('rel') };
+  });
+  expect(result).toEqual({ onclick: false, unsafe: false, safe: 'https://example.com/', rel: 'noopener noreferrer' });
+});
