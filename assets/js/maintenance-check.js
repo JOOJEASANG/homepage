@@ -5,6 +5,7 @@ import {
   doc, getDoc, onAuthStateChanged, onSnapshot,
   collection, query, where, orderBy, limit, getDocs,
 } from './firebase.js';
+import { ensureFooterLegalLinks } from './footer-legal-links.js';
 
 const CURRENT_FILE = (() => {
   try { return (location.pathname || '').split('/').pop() || 'index.html'; }
@@ -155,17 +156,7 @@ normalizeHomeHeader();
 function initFooterLegalLinks() {
   const run = () => {
     try {
-      const footer = document.querySelector('.site-footer') || document.querySelector('footer');
-      if (!footer || footer.dataset.legalLinksReady === '1') return;
-      footer.dataset.legalLinksReady = '1';
-      const links = document.createElement('div');
-      links.className = 'flex flex-wrap justify-center md:justify-end gap-x-5 gap-y-1.5 text-xs font-bold mb-2';
-      links.innerHTML = `
-        <a href="guide.html" class="text-slate-400 hover:text-white transition">이용안내</a>
-        <a href="personal-info.html" class="text-slate-400 hover:text-white transition">개인정보처리방침</a>
-        <a href="terms.html" class="text-slate-400 hover:text-white transition">이용약관</a>`;
-      const rightCol = footer.querySelector('.flex.flex-col.items-center.md\\:items-end') || footer.querySelector('.flex.flex-col.items-center') || footer;
-      rightCol.insertBefore(links, rightCol.firstChild);
+      ensureFooterLegalLinks();
     } catch (e) { console.warn('[footer] legal links inject failed:', e); }
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once: true });

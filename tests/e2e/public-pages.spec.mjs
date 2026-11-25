@@ -205,14 +205,36 @@ test('critical page controls expose accessible names', async ({ page }) => {
   await expect(page.locator('#mobileNavModal a[href="qna.html"]')).toContainText('고객');
 });
 
-test('homepage contact details are shown once above the footer', async ({ page }) => {
+test('homepage footer contains contact details once, matches header logo and does not duplicate legal links', async ({ page }) => {
   await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
-  const contact = page.locator('.contact-strip');
   const footer = page.locator('.site-footer');
-  await expect(contact).toContainText('041-571-4370');
-  await expect(contact).toContainText('winwork@hanmail.net');
-  await expect(footer).not.toContainText('041-571-4370');
-  await expect(footer).not.toContainText('winwork@hanmail.net');
+  await expect(page.locator('.contact-strip')).toHaveCount(0);
+  await expect(footer.locator('a[href="tel:041-571-4370"]')).toHaveCount(1);
+  await expect(footer.locator('a[href="mailto:winwork@hanmail.net"]')).toHaveCount(1);
+  await expect(footer).toContainText('041-571-4370');
+  await expect(footer).toContainText('winwork@hanmail.net');
+  await page.evaluate(async()=>{
+    const {ensureFooterLegalLinks}=await import('/assets/js/footer-legal-links.js');
+    ensureFooterLegalLinks();ensureFooterLegalLinks();
+  });
+  for(const path of ['guide.html','personal-info.html','terms.html']) {
+    await expect(footer.locator('a[href="'+path+'"]')).toHaveCount(1);
+  }
+  await expect(footer.locator('[data-footer-legal-fallback]')).toHaveCount(0);
+  await expect(footer.locator('.home-footer-logo i')).toHaveClass(/fa-print/);
+  const headerLogo=page.locator('#main-header nav > a:first-child > div');
+  await expect(headerLogo.locator('i')).toHaveClass(/fa-print/);
+  const logoStyle=await headerLogo.evaluate(el=>{const s=getComputedStyle(el);return {background:s.backgroundColor,width:s.width,height:s.height,radius:s.borderRadius};});
+  const footerStyle=await footer.locator('.home-footer-logo').evaluate(el=>{const s=getComputedStyle(el);return {background:s.backgroundColor,width:s.width,height:s.height,radius:s.borderRadius};});
+  expect(footerStyle).toEqual(logoStyle);
+  const fallback=await page.evaluate(async()=>{
+    const {ensureFooterLegalLinks}=await import('/assets/js/footer-legal-links.js');
+    const footer=document.createElement('footer');
+    footer.innerHTML='<a href="guide.html">이용안내</a>';
+    ensureFooterLegalLinks(footer);ensureFooterLegalLinks(footer);
+    return Array.from(footer.querySelectorAll('a')).map(a=>a.getAttribute('href'));
+  });
+  expect(fallback).toEqual(['personal-info.html','terms.html','guide.html']);
 });
 
 test.describe('mobile responsiveness', () => {

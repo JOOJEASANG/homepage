@@ -347,31 +347,47 @@ body[data-page="admin"] .admin-stats > div > .relative:last-child { display: non
   body[data-page="mypage"] .action-btn { min-height: 42px; padding: 10px 12px; }
 }
 
-/* Homepage: consolidate contact details and company information in the footer. */
-body[data-page="index"] .home-footer { padding:32px 0 20px; color:#c3d3ca; font-size:13px; line-height:1.7; }
-.home-footer .home-footer-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.05fr) minmax(0,1.15fr); gap:32px; align-items:start; }
-.home-footer .home-footer-brand p { color:#a9beb3; font-size:12px; }
-.home-footer section h2 { margin:0 0 12px; font-size:14px; font-weight:800; color:#f1f8f4; }
-.home-footer .home-footer-phone { display:inline-flex; align-items:center; gap:8px; font-size:26px; font-weight:800; line-height:1.2; color:#fff; margin-bottom:12px; white-space:nowrap; }
-.home-footer .home-footer-phone i { color:#87d1ad; font-size:17px; }
+/* Homepage footer: compact, readable, consistent with the shared header. */
+body[data-page="index"] .home-footer { padding:36px 0 0; background:#172c25; color:#d3e0d7; font-size:13px; line-height:1.75; border-top:1px solid #31473b; }
+.home-footer .home-footer-grid { display:grid; grid-template-columns:minmax(0,.95fr) minmax(0,1fr) minmax(0,1.2fr); gap:clamp(20px,3vw,40px); align-items:start; padding-bottom:30px; }
+.home-footer .home-footer-brand-link { display:inline-flex; align-items:center; gap:8px; text-decoration:none; }
+html[data-ui-refresh="1"] .home-footer .home-footer-logo { width:32px; height:32px; flex:0 0 32px; border-radius:4px; background:var(--ux-brand); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; line-height:1; }
+.home-footer .home-footer-name { font-size:18px; font-weight:800; color:#f5faf6; }
+.home-footer .home-footer-tagline { margin-top:14px; font-size:14px; font-weight:700; color:#dce9e0; }
+.home-footer .home-footer-brand-description { margin-top:5px; max-width:235px; color:#aebfb4; font-size:12px; line-height:1.8; }
+.home-footer section { min-width:0; }
+.home-footer section h2 { margin:0 0 13px; font-size:13px; font-weight:800; color:#e8f1eb; }
+.home-footer .home-footer-phone { display:inline-block; font-size:28px; font-weight:800; letter-spacing:-.025em; line-height:1.15; color:#fff; margin-bottom:14px; white-space:nowrap; font-variant-numeric:tabular-nums; }
 .home-footer .home-footer-info { display:grid; gap:5px; margin:0; }
-.home-footer .home-footer-info > div { display:grid; grid-template-columns:76px minmax(0,1fr); gap:7px; }
-.home-footer .home-footer-info dt { font-weight:700; color:#abc6b7; }
-.home-footer .home-footer-info dd { margin:0; color:#dbe7df; overflow-wrap:anywhere; }
-.home-footer .home-footer-email { color:#a7e5c1; font-weight:700; text-decoration:underline; text-underline-offset:3px; }
-.home-footer .home-footer-map { display:inline-flex; align-items:center; gap:7px; color:#a7e5c1; border:1px solid #527463; border-radius:7px; padding:6px 11px; margin-top:12px; font-weight:700; }
+.home-footer .home-footer-info > div { display:grid; grid-template-columns:70px minmax(0,1fr); gap:9px; }
+.home-footer .home-footer-info dt { font-weight:600; color:#a6bcb0; font-size:12px; }
+.home-footer .home-footer-info dd { margin:0; color:#e1eae3; overflow-wrap:anywhere; }
+.home-footer .home-footer-email { color:#b4e6ca; font-weight:700; text-underline-offset:4px; }
+.home-footer .home-footer-email:hover { text-decoration:underline; }
+.home-footer .home-footer-map { display:inline-flex; align-items:center; gap:7px; color:#b4e6ca; border:1px solid #557165; border-radius:6px; padding:5px 10px; margin-top:12px; font-size:12px; font-weight:700; }
 .home-footer .home-footer-map i { font-size:11px; }
-.home-footer .home-footer-bottom { margin-top:24px; padding-top:16px; border-top:1px solid rgba(199,220,208,.19); display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; font-size:12px; color:#aec2b6; }
-.home-footer .home-footer-bottom a { color:#e1ece4; }
+.home-footer .home-footer-bottom { padding:17px 0 20px; border-top:1px solid #3b5145; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px 20px; font-size:12px; color:#a8bdb0; }
+.home-footer .home-footer-bottom p { margin:0; }
+.home-footer .home-footer-legal { display:flex; flex-wrap:wrap; align-items:center; gap:5px 0; }
+.home-footer .home-footer-legal a { color:#dce8df; padding:0 13px; line-height:1.5; }
+.home-footer .home-footer-legal a:first-child { padding-left:0; }
+.home-footer .home-footer-legal a + a { border-left:1px solid #52665b; }
+.home-footer .home-footer-legal a[data-legal="privacy"] { color:#b4e6ca; font-weight:800; }
 .home-footer a:hover { color:#fff; }
 .home-footer a:focus-visible { outline:2px solid #a7e5c1; outline-offset:3px; }
+@media(min-width:1024px) {
+  .home-footer .home-footer-business { border-left:1px solid #3b5145; padding-left:clamp(18px,2vw,30px); }
+}
 @media(max-width:1023px) {
-  .home-footer .home-footer-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; }
+  .home-footer .home-footer-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
   .home-footer .home-footer-brand { grid-column:1/-1; }
+  .home-footer .home-footer-brand-description { max-width:none; }
 }
 @media(max-width:639px) {
-  body[data-page="index"] .home-footer { padding:25px 0 18px; }
-  .home-footer .home-footer-grid { grid-template-columns:minmax(0,1fr); gap:20px; }
-  .home-footer .home-footer-contact,.home-footer .home-footer-business { border-top:1px solid rgba(199,220,208,.19); padding-top:18px; }
+  body[data-page="index"] .home-footer { padding:26px 0 0; }
+  .home-footer .home-footer-grid { grid-template-columns:minmax(0,1fr); gap:18px; padding-bottom:22px; }
+  .home-footer .home-footer-contact,.home-footer .home-footer-business { border-top:1px solid #3b5145; padding-top:18px; }
+  .home-footer .home-footer-phone { font-size:25px; }
   .home-footer .home-footer-bottom { align-items:flex-start; flex-direction:column; }
+  .home-footer .home-footer-legal a { padding:0 10px; }
 }
