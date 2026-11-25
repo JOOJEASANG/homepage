@@ -55,6 +55,9 @@ if (document.readyState === "loading") {
         }
     }
     let currentGuideId = null;
+    // Public deep links select the displayed guide number once, on either viewport.
+    const requestedGuideNumber = __WG_WORKSPACE__ ? 0 : Number(new URLSearchParams(location.search).get('guide'));
+    let pendingGuideNumber = Number.isSafeInteger(requestedGuideNumber) && requestedGuideNumber > 0 ? requestedGuideNumber : 0;
     let isAdmin = false;
     let sortableInstance = null; 
     let Sortable = window.Sortable;
@@ -257,6 +260,14 @@ if (document.readyState === "loading") {
             guides.sort((a, b) => a.order - b.order);
 
             renderSidebar();
+            if (pendingGuideNumber && guides.length) {
+                const requested = guides[pendingGuideNumber - 1];
+                pendingGuideNumber = 0;
+                if (requested) {
+                    window.selectGuide(requested.id);
+                    return;
+                }
+            }
             if (currentGuideId && guides.some(guide => guide.id === currentGuideId)) {
                 window.selectGuide(currentGuideId);
             }
