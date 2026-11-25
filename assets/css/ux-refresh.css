@@ -445,3 +445,9 @@ body[data-page="index"] summary:focus-visible { outline:3px solid #81b9a2; outli
   body[data-page="index"] .home-faq-section { padding:30px 0; }
   body[data-page="index"] .home-faq-list summary { font-size:15px; }
 }
+
+/* The fixed mobile bar owns the summary while active. The original DOM remains
+   available to the calculator and the detail sheet; desktop/admin fallback stays visible. */
+@media(max-width:1023px) {
+  #quoteForm.mobile-summary-active .quote-inline-summary { display:none !important; }
+}

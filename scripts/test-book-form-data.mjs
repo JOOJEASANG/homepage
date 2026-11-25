@@ -32,8 +32,6 @@ function makeItem({ interleafHidden = false, interleafSheets = '0', wireCover = 
     '.orderName': input('자료집'),
     '.coverPaperType': input('snow200'),
     '.coverPrintType': input('color_simplex'),
-    '.coverDesign': input('', true),
-    '.coverOshi': input('', false),
     '.bindingType': input(wireCover ? 'wire' : staple ? 'none' : 'perfect'),
     '.stapleEnabled': input('', staple),
     '.staplePosition': input(staple ? 'portrait-upper-left' : ''),
@@ -60,6 +58,12 @@ function makeItem({ interleafHidden = false, interleafSheets = '0', wireCover = 
 
 const visibleZero = makeItem({ interleafHidden: false, interleafSheets: '0' });
 const draftZero = formData.serializeDraftQuoteItem(visibleZero);
+assert.equal(draftZero.coverDesign, false);
+assert.equal(draftZero.coverOshi, false);
+const historical = makeItem();
+historical.dataset = {legacyCoverDesign:'1',legacyCoverOshi:'1'};
+assert.equal(formData.serializeSubmissionQuoteItem(historical).coverDesign,true);
+assert.equal(formData.serializeSubmissionQuoteItem(historical).coverOshi,true);
 assert.equal(draftZero.interleafSheets, '0', 'draft는 보이는 간지 0장을 문자열 그대로 보존');
 assert.equal(draftZero.interleafColor, 'sky', 'draft는 간지 0장이어도 색상을 보존');
 assert.equal(draftZero.includeInterleaf, true, 'draft는 간지 0장이어도 포함 체크를 보존');

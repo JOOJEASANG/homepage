@@ -30,15 +30,15 @@ import { normalizeContactDigits, formatPhoneHyphen, formatContact, pickContactFr
 import { getPreviewUrl, inferInnerGroup } from "./quote-book/preview-utils.js";
 import { openImagePreview, openPreviewLayer, closeImagePreview } from "./quote-book/preview-ui.js";
 import { getBookTempStorageKey, writeBookDraft, readBookDraft, hasBookDraft, clearBookDraft, readLastQuoteCache, writeLastQuoteCache, clearLastQuoteCache } from "./quote-book/quote-storage.js";
-import { serializeQuoteItems } from "./quote-book/quote-form-data.js?v=20261030-staple-limit";
+import { serializeQuoteItems } from "./quote-book/quote-form-data.js?v=20261125-remove-cover-extras";
 import { buildQuoteRequestData, buildQuoteUpdatePayload } from "./quote-book/quote-request-data.js";
 import { initEmailFileInput } from "./shared/email-file-notice.js?v=20261125-checkbox";
 const emailFileInput = initEmailFileInput("book");
 import { isAdminEditSearch, parseQuoteReloadPayload } from "./quote-book/page-state.js";
 import { readGuestSubmitSession, readGuestMenuSession, getGuestMyPageLookupKey, restoreGuestSessionFromReload, persistGuestSessionAfterSubmit } from "./quote-book/guest-session.js";
 import { acquireBookSubmitLock, releaseBookSubmitLock } from "./quote-book/submit-lock.js";
-import { renderQuoteItemTemplate, renderInnerSectionTemplate } from "./quote-book/quote-item-template.js?v=20261030-a5-impressions";
-import { syncNoBindingCoverState } from "./quote-book/no-binding-cover.js";
+import { renderQuoteItemTemplate, renderInnerSectionTemplate } from "./quote-book/quote-item-template.js?v=20261125-remove-cover-extras";
+import { syncNoBindingCoverState } from "./quote-book/no-binding-cover.js?v=20261125-remove-cover-extras";
 import "../session.js?v=20261102-wire-cover-paper";
 
 // 페이지 로드 시 공통 헤더 렌더링
@@ -706,10 +706,7 @@ function applyImagePreviewsToUI(root=document) {
         const newItem = document.createElement('div');
         newItem.className = 'quote-item animate-fade-in';
         newItem.dataset.itemId = quoteItemCounter;
-        const designPrice = unitPriceConfig?.book?.etc?.coverDesign || 0;
-        const oshiPrice = unitPriceConfig?.book?.etc?.coverOshi || 0;
-
-        newItem.innerHTML = renderQuoteItemTemplate({ quoteItemCounter, designPrice, oshiPrice });
+        newItem.innerHTML = renderQuoteItemTemplate({ quoteItemCounter });
 
         DOMElements.quoteItemsContainer.appendChild(newItem);
         try { applyImagePreviewsToUI(newItem); } catch(e) {}
@@ -731,8 +728,11 @@ function applyImagePreviewsToUI(root=document) {
                 newItem.dataset.wireCoverFrontMode = data.wireCoverFrontMode === 'duplex' ? 'duplex' : 'simplex';
                 newItem.dataset.wireCoverBackMode = data.wireCoverBackMode === 'duplex' ? 'duplex' : 'simplex';
             }
-            newItem.querySelector('.coverDesign').checked = data.coverDesign || false;
-            newItem.querySelector('.coverOshi').checked = data.coverOshi || false;
+            // Only existing orders retain old options; new quotes and restored drafts cannot select them.
+            if (editState.enabled) {
+                newItem.dataset.legacyCoverDesign = data.coverDesign === true ? '1' : '0';
+                newItem.dataset.legacyCoverOshi = data.coverOshi === true ? '1' : '0';
+            }
             // 옛 견적서에는 제본안함('none')이 이미 기록되어 있으므로 유지합니다.
             // 새 견적서에는 아무 방식도 기본 선택하지 않습니다.
             const bindingValue = data.bindingType ?? '';
@@ -1136,19 +1136,19 @@ function applyImagePreviewsToUI(root=document) {
                 }
             }
 
-            const coverDesign = itemEl.querySelector('.coverDesign').checked;
-            const coverOshi = itemEl.querySelector('.coverOshi').checked;
+            const coverDesign = editState.enabled && itemEl.dataset.legacyCoverDesign === '1';
+            const coverOshi = editState.enabled && itemEl.dataset.legacyCoverOshi === '1';
             let etcDesignCost = 0;
             let etcOshiCost = 0;
 
             if (coverDesign) {
-                etcDesignCost = floorToHundred(priceConfig.etc.coverDesign || 0); // 100원 단위 절삭
+                etcDesignCost = floorToHundred(priceConfig.etc?.coverDesign || 0); // 100원 단위 절삭
                 if (etcDesignCost > 0) {
                     itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 디자인</span><div class="font-medium text-slate-800">${etcDesignCost.toLocaleString()}원</div></div></li>`;
                 }
             }
             if (coverOshi) {
-                etcOshiCost = floorToHundred((priceConfig.etc.coverOshi || 0) * quantity); // 100원 단위 절삭
+                etcOshiCost = floorToHundred((priceConfig.etc?.coverOshi || 0) * quantity); // 100원 단위 절삭
                 if (etcOshiCost > 0) {
                     itemBreakdownHtml += `<li><div class="flex justify-between"><span class="text-slate-700">- 오시</span><div class="font-medium text-slate-800">${etcOshiCost.toLocaleString()}원</div></div></li>`;
                 }

@@ -141,8 +141,8 @@ function __displayNameForHeader(currentUser) {
 
     </style>
     <script src="assets/js/naver-analytics.js" defer></script>
-    <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261013-estimate">
-    <script src="assets/js/responsive-ui.js?v=20261125-estimate-guide" defer></script>
+    <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261125-mobile-summary">
+    <script src="assets/js/responsive-ui.js?v=20261125-mobile-summary" defer></script>
 </head>
 <body data-page="quote-book" class="antialiased selection:bg-brand-100 selection:text-brand-900">
 
@@ -238,7 +238,7 @@ function __displayNameForHeader(currentUser) {
                 <div class="lg:col-span-4">
                     <div class="sticky top-24 space-y-6">
                         <!-- 견적 요약 카드 -->
-                        <div class="bg-white rounded-xl shadow-paper border border-slate-200 overflow-hidden">
+                        <div class="quote-inline-summary bg-white rounded-xl shadow-paper border border-slate-200 overflow-hidden">
                             <div class="bg-slate-50 px-5 py-4 border-b border-slate-100 flex items-center gap-2">
                                 <i class="fas fa-calculator text-brand-600"></i>
                                 <h3 class="font-bold text-slate-800">금액산출</h3>
@@ -938,7 +938,7 @@ function __displayNameForHeader(currentUser) {
 <script src="assets/js/header-shell.js"></script>
 <script defer src="assets/js/quote-email-copy.js?v=20261125-icon"></script>
 <script type="module" src="assets/js/maintenance-check.js"></script>
-<script type="module" src="assets/js/pages/quote-book.js?v=20261125-email-checkbox"></script>
+<script type="module" src="assets/js/pages/quote-book.js?v=20261125-remove-cover-extras"></script>
 <script>
   // bfcache(뒤로가기 캐시)로 복원되면 JS 초기화가 꼬일 수 있어 강제 새로고침
   window.addEventListener('pageshow', function (e) {

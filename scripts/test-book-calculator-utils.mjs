@@ -122,8 +122,8 @@ for (const expected of [
   'const sectionCost = floorToHundred(sectionCostRaw);',
   'totalInterleafCost = floorToHundred(interleafUnitPrice * totalInterleafSheets);',
   'bindingCost = floorToHundred(bindingUnitPrice * quantity);',
-  'etcDesignCost = floorToHundred(priceConfig.etc.coverDesign || 0);',
-  'etcOshiCost = floorToHundred((priceConfig.etc.coverOshi || 0) * quantity);',
+  'etcDesignCost = floorToHundred(priceConfig.etc?.coverDesign || 0);',
+  'etcOshiCost = floorToHundred((priceConfig.etc?.coverOshi || 0) * quantity);',
 ]) {
   assert.ok(quoteBookSource.includes(expected), `100원 절삭 공통화 누락: ${expected}`);
 }

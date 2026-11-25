@@ -121,8 +121,17 @@ test.describe('responsive renewal', () => {
           await expect(page.locator('#top-nav-bar .dropdown-item').first()).toHaveCSS('font-size', '14px');
         }
         if (url.startsWith('quote-')) {
-          if (width < 1024) await expect(page.locator('.mobile-order-bar')).toBeVisible();
-          else await expect(page.locator('.mobile-order-bar')).toBeHidden();
+          if (width < 1024) {
+            await expect(page.locator('.mobile-order-bar')).toBeVisible();
+            await expect(page.locator('.quote-inline-summary')).toBeHidden();
+            await page.locator('.mobile-price').click();
+            await expect(page.locator('.order-summary-sheet')).toBeVisible();
+            await page.getByRole('button',{name:'견적 상세 닫기'}).click();
+          } else {
+            await expect(page.locator('.mobile-order-bar')).toBeHidden();
+            await expect(page.locator('.quote-inline-summary')).toBeVisible();
+          }
+          if (url.includes('quote-book')) await expect(page.locator('.coverDesign,.coverOshi')).toHaveCount(0);
         }
         if (url === 'quote-book.html') {
           await expect(page.locator('.order-step-nav button').first()).toHaveText('01 기본 정보');
