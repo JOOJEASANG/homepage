@@ -30,21 +30,25 @@
   document.querySelectorAll('[data-email-copy]').forEach(group => {
     const button = group.querySelector('[data-copy-email]');
     const address = group.querySelector('[data-email-address]');
-    const label = group.querySelector('[data-copy-label]');
+    const icon = group.querySelector('[data-copy-icon]');
     const status = group.querySelector('[data-copy-status]');
-    if (!button || !address || !label || !status) return;
+    if (!button || !address || !icon || !status) return;
     let timer;
     button.addEventListener('click', async () => {
       clearTimeout(timer);
       button.disabled = true;
       try {
         const copied = await copyText(address.textContent.trim());
-        label.textContent = copied ? '복사 완료' : '복사 실패';
+        icon.classList.remove('fa-copy', 'fa-check', 'fa-exclamation-circle');
+        icon.classList.add(copied ? 'fa-check' : 'fa-exclamation-circle');
+        button.title = copied ? '복사 완료' : '복사 실패';
         status.textContent = copied ? '이메일 주소가 복사되었습니다.' : '복사하지 못했습니다. 이메일 주소를 직접 선택해 복사해 주세요.';
         status.classList.toggle('sr-only', copied);
         if (!copied) status.classList.add('w-full', 'text-xs');
         timer = setTimeout(() => {
-          label.textContent = '주소 복사';
+          icon.classList.remove('fa-check', 'fa-exclamation-circle');
+          icon.classList.add('fa-copy');
+          button.title = '주소 복사';
           status.textContent = '';
           status.classList.add('sr-only');
         }, 3000);
