@@ -537,3 +537,20 @@ test('both quote pages copy the email address without a mailto link', async ({ p
     await assertNoHorizontalOverflow(page);
   }
 });
+
+test('quote email receipt uses a single optional checkbox', async ({ page }) => {
+  for (const [path, kind] of [['/quote-book.html','book'], ['/quote-print.html','print']]) {
+    await page.goto(path, { waitUntil: 'domcontentloaded' });
+    const checkbox = page.getByRole('checkbox', { name: '이메일로 파일 접수', exact: true });
+    await expect(checkbox).toBeVisible();
+    await expect(checkbox).not.toBeChecked();
+    await expect(page.locator('[data-email-file-input] select')).toHaveCount(0);
+    await checkbox.check();
+    await expect(checkbox).toBeChecked();
+    await expect.poll(() => page.evaluate(key=>sessionStorage.getItem(key),'gprint-email-file-'+kind)).toBe('sent');
+    await page.reload({waitUntil:'domcontentloaded'});
+    await expect(checkbox).toBeChecked();
+    await checkbox.uncheck();
+    await expect.poll(() => page.evaluate(key=>sessionStorage.getItem(key),'gprint-email-file-'+kind)).toBeNull();
+  }
+});

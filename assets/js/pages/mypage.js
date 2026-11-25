@@ -25,7 +25,7 @@ import "../overlays.js";
 import "../session.js";
 import { validateUploadFiles } from "../file-upload-policy.js";
 import { canHold, canResume, changeOrderHold } from "./shared/order-hold.js";
-import { canReportEmailFile, emailFileLabel } from "./shared/email-file-notice.js";
+import { canReportEmailFile, emailFileLabel } from "./shared/email-file-notice.js?v=20261125-checkbox";
 
 // 페이지 로드 시 공통 헤더 렌더링
 // NOTE: mypage.js는 top-level await(아래) 및 session.js(모듈 그래프에 top-level await)를

@@ -26,7 +26,7 @@ import { isPendingCancellation, canAdminDirectCancel, cancellationResolution } f
 import { canAdminConvertEstimate, adminEstimatePrice, normalizeCustomerOrderRequestNote, convertEstimateToOrderByAdmin } from "./admin/estimate-conversion.js";
 import { ADMIN_NOTIFICATION_KEY, readAdminNotificationPreference, notificationToggleText } from "./admin/notification-preference.js";
 import { canHold, canResume, changeOrderHold } from "./shared/order-hold.js";
-import { isEmailFileNotice, emailFileLabel } from "./shared/email-file-notice.js";
+import { isEmailFileNotice, emailFileLabel } from "./shared/email-file-notice.js?v=20261125-checkbox";
 import { monthlyRevenue, renderMonthlyRevenue } from "./admin/monthly-revenue.js?v=20261125-calendar-year";
 
 // 페이지 로드 시 헤더 렌더링 (관리자 페이지는 활성 메뉴 없음)
