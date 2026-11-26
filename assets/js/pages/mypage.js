@@ -26,7 +26,8 @@ import "../session.js";
 import { validateUploadFiles } from "../file-upload-policy.js";
 import { canHold, canResume, changeOrderHold } from "./shared/order-hold.js";
 import { canReportEmailFile, emailFileLabel } from "./shared/email-file-notice.js?v=20261125-checkbox";
-import { renderChatAttachment, renderChatImage, isChatImage, safeChatFileUrl, bindChatImageViewer, syncChatImageViewer } from "./shared/chat-attachments.js";
+import { renderChatAttachment, renderChatImage, isChatImage, safeChatFileUrl, bindChatImageViewer, syncChatImageViewer, deleteChatAttachment } from "./shared/chat-attachments.js?v=20261126-audit";
+import { createChatUploadSession, uniqueUploadName } from "./shared/chat-upload-session.js";
 bindChatImageViewer();
 
 // 페이지 로드 시 공통 헤더 렌더링
@@ -231,7 +232,9 @@ try { window.auth = auth; } catch(e) {}
         let myQuotesCache = [];
         let currentQuoteId = null;
         let companyInfoCache = null;
-        let uploadedFile = null; 
+        let uploadedFile = null;
+        let chatSending = false;
+        const chatUpload = createChatUploadSession(path=>deleteObject(ref(storage,path)), error=>console.warn('Unsent chat file cleanup failed',error)); 
 
 
         // ── 알림음 재생 시스템 ─────────────────────────────────────
@@ -894,6 +897,10 @@ let buttonsHtml = `
         // ── 견적 상세 모달 열기 ──────────────────────────────────
         // 선택한 견적의 전체 정보와 채팅창을 팝업으로 표시합니다.
         function showDetailsModal(quote) {
+            if (currentQuoteId !== quote.id) {
+                if(chatSending) { showToast('메시지 전송이 끝난 후 이동해 주세요.','info'); return; }
+                resetUploadUI(); DOMElements.chatInput.value=''; syncChatImageViewer([]);
+            }
             currentQuoteId = quote.id;
             DOMElements.modalTitle.textContent = `'${quote.orderName}' 상세 정보`;
             
@@ -945,11 +952,13 @@ let buttonsHtml = `
         }
         
         function closeDetailsModal() {
+            if(chatSending) { showToast('메시지 전송이 끝난 후 닫아 주세요.','info'); return; }
             try {
                 DOMElements.detailsModal.classList.add('hidden');
                 if (typeof unsubscribeMessages === 'function' && unsubscribeMessages) unsubscribeMessages();
                 currentQuoteId = null;
                 if (typeof resetUploadUI === 'function') resetUploadUI();
+                DOMElements.chatInput.value=''; syncChatImageViewer([]);
             } catch (e) {
                 console.warn('closeDetailsModal failed:', e);
             }
@@ -1102,7 +1111,7 @@ const cancelState = quote.cancelRequestState || (quote.status === '취소요청'
                     </a>
                     <div class="flex items-center ml-2">
                         <span class="text-xs text-slate-400 mr-2">${msg.sender==='customer'?'나':'관리자'}</span>
-                        ${msg.sender === 'customer' ? `<button data-msg-id="${msg.id}" data-file-path="${msg.filePath}" class="delete-file-btn text-slate-300 hover:text-red-500 transition-colors p-1"><i class="fas fa-trash-alt"></i></button>` : ''}
+                        ${msg.sender === 'customer' ? `<button data-msg-id="${msg.id}" data-file-path="" class="delete-file-btn text-slate-300 hover:text-red-500 transition-colors p-1"><i class="fas fa-trash-alt"></i></button>` : ''}
                     </div>
                 `;
                 DOMElements.fileList.appendChild(fileItem);
@@ -1198,6 +1207,7 @@ const cancelState = quote.cancelRequestState || (quote.status === '취소요청'
         }
         
         function resetUploadUI() {
+            chatUpload.discard();
             uploadedFile = null;
             DOMElements.fileInput.value = '';
             DOMElements.uploadProgressContainer.classList.add('hidden');
@@ -1207,61 +1217,65 @@ const cancelState = quote.cancelRequestState || (quote.status === '취소요청'
         }
 
         function handleFileSelection(event) {
-            const file = event.target.files[0];
-            if (!file || !currentQuoteId) return;
-            const validation = validateUploadFiles([file]);
-            if (!validation.ok) {
-                showToast(validation.message, 'error');
-                resetUploadUI();
-                return;
-            }
-            DOMElements.uploadFileName.textContent = file.name;
+            const file=event.target.files[0], quoteId=currentQuoteId;
+            if (!file || !quoteId || chatSending) return;
+            const validation=validateUploadFiles([file]);
+            if(!validation.ok){resetUploadUI();showToast(validation.message,'error');return;}
+            resetUploadUI();
+            const path=`quotes/${quoteId}/${uniqueUploadName(file.name)}`;
+            const token=chatUpload.begin(quoteId,path);
+            DOMElements.uploadFileName.textContent=file.name;
             DOMElements.uploadProgressContainer.classList.remove('hidden');
-            DOMElements.uploadProgressBar.style.width = '0%';
-            DOMElements.chatForm.querySelector('button[type="submit"]').disabled = true;
-            const storageRef = ref(storage, `quotes/${currentQuoteId}/${Date.now()}_${file.name}`);
-            const uploadTask = uploadBytesResumable(storageRef, file);
-            uploadTask.on('state_changed', (snapshot) => {
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    DOMElements.uploadProgressBar.style.width = progress + '%';
-                }, (error) => { console.error("Upload failed:", error); showToast('파일 업로드에 실패했습니다.', 'error'); resetUploadUI(); }, 
-                async () => {
-                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    uploadedFile = { name: file.name, url: downloadURL, path: uploadTask.snapshot.ref.fullPath };
-                    showToast('업로드 완료. 전송 버튼을 눌러주세요.', 'success');
-                    DOMElements.chatForm.querySelector('button[type="submit"]').disabled = false;
-                }
-            );
+            DOMElements.uploadProgressBar.style.width='0%';
+            const btn=DOMElements.chatForm.querySelector('button[type="submit"]');
+            btn.disabled=true;
+            try {
+                const task=uploadBytesResumable(ref(storage,path),file);
+                task.on('state_changed',snap=>{if(chatUpload.isCurrent(token)) DOMElements.uploadProgressBar.style.width=(snap.bytesTransferred/snap.totalBytes*100)+'%';},
+                  async error=>{if(chatUpload.isCurrent(token)){await chatUpload.failed(token);resetUploadUI();showToast('파일 업로드에 실패했습니다.','error');}},
+                  async ()=>{
+                    try {
+                        if (!await chatUpload.complete(token)) return;
+                        const url=await getDownloadURL(task.snapshot.ref);
+                        if(!chatUpload.isCurrent(token))return;
+                        uploadedFile={name:file.name,url,path,quoteId};
+                        showToast('업로드 완료. 전송 버튼을 눌러주세요.','success');btn.disabled=false;
+                    } catch(error){if(chatUpload.isCurrent(token)){await chatUpload.failed(token,true);resetUploadUI();showToast('파일 주소를 확인하지 못했습니다.','error');}}
+                  });
+            } catch(error){if(chatUpload.isCurrent(token)){void chatUpload.failed(token);resetUploadUI();showToast('파일 업로드에 실패했습니다.','error');}}
         }
-        
         async function handleChatSubmit(event) {
             event.preventDefault();
-            const text = DOMElements.chatInput.value.trim();
-            if (!text && !uploadedFile) return;
-            const submitBtn = DOMElements.chatForm.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
+            const quoteId=currentQuoteId, file=uploadedFile, text=DOMElements.chatInput.value.trim();
+            const submitBtn=DOMElements.chatForm.querySelector('button[type="submit"]');
+            if(!quoteId||chatSending||submitBtn.disabled||(!text&&!file)||(file&&file.quoteId!==quoteId))return;
+            chatSending=true;submitBtn.disabled=true;
             try {
-                const messageData = { sender: 'customer', timestamp: serverTimestamp(), text: text || '' };
-                if (uploadedFile) { messageData.type = 'file'; messageData.fileName = uploadedFile.name; messageData.fileURL = uploadedFile.url; messageData.filePath = uploadedFile.path; }
-                await addDoc(collection(db, `quotes/${currentQuoteId}/messages`), messageData);
-                await updateDoc(doc(db, "quotes", currentQuoteId), { hasUnreadAdminMessage: true });
-                DOMElements.chatInput.value = '';
-                resetUploadUI();
-            } catch (error) { console.error("Message send failed:", error); showToast('메시지 전송에 실패했습니다.', 'error'); } finally { submitBtn.disabled = false; }
+                const data={sender:'customer',timestamp:serverTimestamp(),text:text||''};
+                if(file)Object.assign(data,{type:'file',fileName:file.name,fileURL:file.url,filePath:file.path});
+                await addDoc(collection(db,`quotes/${quoteId}/messages`),data);
+                chatUpload.sent();resetUploadUI();DOMElements.chatInput.value='';
+                try{await updateDoc(doc(db,"quotes",quoteId),{hasUnreadAdminMessage:true});}
+                catch(error){console.warn('Message delivered but unread flag failed',error);showToast('메시지는 전송됐지만 알림 갱신에 실패했습니다.','info');}
+            } catch(error){console.error('Message send failed',error);showToast('메시지 전송에 실패했습니다.','error');}
+            finally{chatSending=false;submitBtn.disabled=false;}
         }
-        
+
         function updateOverallNotificationStatus() {
             const hasAnyUnread = myQuotesCache.some(q => q.hasUnreadCustomerMessage);
             DOMElements.notificationIndicator.classList.toggle('hidden', !hasAnyUnread);
         }
         
         async function deleteFile(msgId, filePath) {
-            if(!currentQuoteId || !filePath) return;
+            const quoteId=currentQuoteId;
+            if(!quoteId || !msgId) return;
             const confirmed = await showConfirmation('파일 삭제', '이 파일을 정말로 삭제하시겠습니까?');
             if (!confirmed) return;
             try {
-                await deleteObject(ref(storage, filePath));
-                await deleteDoc(doc(db, `quotes/${currentQuoteId}/messages`, msgId));
+                const messageRef=doc(db,'quotes',quoteId,'messages',msgId);
+                const snapshot=await getDoc(messageRef);
+                if(!snapshot.exists() || snapshot.data().sender!=='customer') return;
+                await deleteChatAttachment({quoteId,msg:snapshot.data(),deleteStorage:path=>deleteObject(ref(storage,path)),deleteRecord:()=>deleteDoc(messageRef)});
                 showToast('파일이 성공적으로 삭제되었습니다.', 'success');
             } catch (error) { showToast('파일 삭제 중 오류가 발생했습니다.', 'error'); }
         }
@@ -1572,12 +1586,7 @@ if (__activeMoreMenu === menu) __activeMoreMenu = null;
 }
 
             // 7. 모달 및 기타 UI 이벤트
-            DOMElements.closeModalBtn.addEventListener('click', () => { 
-                DOMElements.detailsModal.classList.add('hidden'); 
-                if (unsubscribeMessages) unsubscribeMessages(); 
-                currentQuoteId = null; 
-                resetUploadUI(); 
-            });
+            DOMElements.closeModalBtn.addEventListener('click', closeDetailsModal);
             DOMElements.closeQuoteModalBtn.addEventListener('click', () => { DOMElements.quoteModal.classList.add('hidden'); currentDocQuote = null; currentDocType = null; });
             DOMElements.closeTaxInvoiceModalBtn.addEventListener('click', () => DOMElements.taxInvoiceModal.classList.add('hidden'));
             

@@ -18,6 +18,8 @@ import { app, auth, db, storage,
          ref as storageRef, uploadBytes, getDownloadURL,
 } from "../firebase.js";
 import { initHeader } from "../header.js";
+import { uniqueUploadName } from "./shared/chat-upload-session.js";
+import { validateUploadFiles } from "../file-upload-policy.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
 import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer, confirmEstimateIntent } from "./shared/estimate-quick-order.js?v=20261125-estimate-guide";
 import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
@@ -1260,6 +1262,8 @@ function applyImagePreviewsToUI(root=document) {
     function resetFormAndStorage() {
         quoteItemCounter = 0; DOMElements.quoteItemsContainer.innerHTML = ''; createNewQuoteItem();
         emailFileInput.clear();
+        if (DOMElements.attachmentsInput) DOMElements.attachmentsInput.value = '';
+        renderAttachmentsList();
         const tempStorageKey = getTempStorageKey(); clearBookDraft(tempStorageKey);
         clearLastQuoteCache(__LAST_QUOTE_CACHE_KEY_BOOK);
         calculateQuote(); window.scrollTo(0, 0); showToast('모든 내용이 초기화되었습니다.', 'success');
@@ -1304,6 +1308,8 @@ function applyImagePreviewsToUI(root=document) {
             return;
         }
 
+        const validation = validateUploadFiles(DOMElements.attachmentsInput?.files);
+        if (!validation.ok) { showToast(validation.message,'error'); return; }
         calculateQuote();
 
 
@@ -1572,7 +1578,7 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
             if (files.length > 0) {
                 const uploads = await Promise.all(files.map(async (file) => {
                     const safeName = file.name.replace(/[^a-zA-Z0-9._-가-힣\s]/g, '_');
-                    const path = `quotes/${savedDocId}/attachments/${Date.now()}_${safeName}`;
+                    const path = `quotes/${savedDocId}/attachments/${uniqueUploadName(safeName)}`;
                     const r = storageRef(storage, path);
                     await uploadBytes(r, file);
                     const url = await getDownloadURL(r);

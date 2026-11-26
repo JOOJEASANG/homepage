@@ -28,7 +28,8 @@ import { ADMIN_NOTIFICATION_KEY, readAdminNotificationPreference, notificationTo
 import { canHold, canResume, changeOrderHold } from "./shared/order-hold.js";
 import { isEmailFileNotice, emailFileLabel } from "./shared/email-file-notice.js?v=20261125-checkbox";
 import { downloadAttachmentZip } from "./admin/attachment-zip.js";
-import { renderChatAttachment, safeChatFileUrl, bindChatImageViewer, syncChatImageViewer, deleteChatAttachment } from "./shared/chat-attachments.js";
+import { renderChatAttachment, safeChatFileUrl, bindChatImageViewer, syncChatImageViewer, deleteChatAttachment, quoteAttachmentStoragePath } from "./shared/chat-attachments.js?v=20261126-audit";
+import { createChatUploadSession, uniqueUploadName } from "./shared/chat-upload-session.js";
 bindChatImageViewer();
 import { monthlyRevenue, renderMonthlyRevenue } from "./admin/monthly-revenue.js?v=20261125-calendar-year";
 
@@ -345,6 +346,8 @@ function updateNotifStatus(){
         let unsubscribeFiles = null;
         let imagePreviewsCache = {};
         let completedFileInfo = null;
+        let chatSending = false;
+        const chatUpload = createChatUploadSession(path => deleteObject(ref(storage,path)), error => console.warn("Unsent chat file cleanup failed",error));
         let companyInfoCache = {};
 
         // DOM 요소 캐싱
@@ -634,22 +637,25 @@ document.addEventListener('click', async (e) => {
                     showToast('삭제할 첨부파일을 찾지 못했습니다.', 'info');
                     return;
                 }
-                await updateDoc(refQuote, { attachments: next });
-
-                // Storage 삭제(best-effort)
-                // 1) match.path
-                // 2) 같은 url을 가진 항목의 path
-                // 3) url에서 Storage 경로 추출
-                const foundPath = match?.path || atts.find(a => (a?.url || '') === (match?.url || ''))?.path;
-                const derivedPath = extractStoragePathFromUrl(match?.url || '') || extractStoragePathFromUrl(atts.find(a => (a?.url || '') === (match?.url || ''))?.url || '');
-                const path = (foundPath || derivedPath || '').trim();
-                if (path) {
-                    try { await deleteObject(ref(storage, path)); } catch (e) { logger.warn('storage delete failed', e); }
-                }
+                const matches = atts.filter(item => match?.path ? item?.path === match.path : item?.url === match?.url);
+                const target = matches[0];
+                const path = quoteAttachmentStoragePath(quoteId,target);
+                if (!path) throw Error('첨부파일 경로 확인 실패');
+                try { await deleteObject(ref(storage,path)); }
+                catch (error) { if(error?.code !== 'storage/object-not-found') throw error; }
+                // Read the newest list in a transaction so concurrently added files survive.
+                await runTransaction(db,async tx => {
+                    const fresh = await tx.get(refQuote);
+                    if (!fresh.exists()) return;
+                    const list = Array.isArray(fresh.data().attachments) ? fresh.data().attachments : [];
+                    tx.update(refQuote,{attachments:list.filter(item => quoteAttachmentStoragePath(quoteId,item) !== path)});
+                });
                 showToast('첨부파일이 삭제되었습니다.', 'success');
+                return true;
             } catch (e) {
                 logger.error(e);
-                showToast('첨부파일 삭제에 실패했습니다.', 'error');
+                showToast('첨부파일 삭제에 실패했습니다. 다시 시도해 주세요.', 'error');
+                return false;
             }
         }
 
@@ -1962,10 +1968,16 @@ try {
 
         // --- 상세 모달 ---
         function showDetailsModal(quoteId) {
-            currentQuoteId = quoteId;
-            markNewSeen(quoteId);
             const quote = quotesCache.find(q => q.id === quoteId);
             if(!quote) return;
+            if (currentQuoteId !== quoteId) {
+                if (chatSending) { showToast("메시지 전송이 끝난 후 이동해 주세요.", "info"); return; }
+                resetAdminChatUpload();
+                document.getElementById("chat-input").value = "";
+                syncChatImageViewer([]);
+            }
+            currentQuoteId = quoteId;
+            markNewSeen(quoteId);
 
             DOMElements.modalTitle.textContent = `'${quote.orderName}' 상세 정보`;
             DOMElements.modalContent.innerHTML = generateDetailedSpecsHtml(quote);
@@ -1981,14 +1993,12 @@ try {
                         btn.disabled = true;
                         const old = btn.textContent;
                         btn.textContent = '삭제중...';
-                        await deleteQuoteAttachment(quoteId, { path, url });
+                        const deleted = await deleteQuoteAttachment(quoteId, { path, url });
                         btn.textContent = old;
                         btn.disabled = false;
-                        // UI 갱신
-                        await loadQuotes();
-                        const updated = quotesCache.find(q => q.id === quoteId);
-                        if (updated) {
-                            DOMElements.modalContent.innerHTML = generateDetailedSpecsHtml(updated);
+                        if (deleted) {
+                            await loadQuotes();
+                            if (currentQuoteId === quoteId && !DOMElements.detailsModal.classList.contains("hidden")) showDetailsModal(quoteId);
                         }
                     });
                 });
@@ -2055,83 +2065,72 @@ try {
             });
         }
 
-        async function sendMessage(text, fileData = null, isProof = false) {
-            if(!currentQuoteId) return;
-            const data = {
-                sender: 'admin',
-                timestamp: serverTimestamp(),
-                text: text || '',
-                type: fileData ? 'file' : 'text'
-            };
-            if(fileData) {
-                data.fileName = fileData.name;
-                data.fileURL = fileData.url;
-                data.filePath = fileData.path;
-                if(isProof) {
-                    data.isProof = true;
-                    data.proofStatus = 'pending';
-                }
-            }
-            
-            await addDoc(collection(db, `quotes/${currentQuoteId}/messages`), data);
-            await updateDoc(doc(db, "quotes", currentQuoteId), { hasUnreadCustomerMessage: true });
-            
-            // Reset UI
-            document.getElementById('chat-input').value = '';
+        function resetAdminChatUpload() {
+            chatUpload.discard();
             completedFileInfo = null;
+            document.getElementById('file-input').value = '';
             document.getElementById('upload-progress-container').classList.add('hidden');
             document.getElementById('is-proof-checkbox').checked = false;
+            document.querySelector('#chat-form button[type="submit"]').disabled = false;
         }
-
-        // --- 파일 업로드 로직 ---
-        document.getElementById('attach-file-btn')?.addEventListener('click', () => document.getElementById('file-input').click());
-        document.getElementById('file-input')?.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file || !currentQuoteId) return;
-            const container = document.getElementById('upload-progress-container');
-            const validation = validateUploadFiles([file]);
-            if (!validation.ok) {
-                showToast(validation.message, 'error');
-                e.target.value = '';
-                container.classList.add('hidden');
-                return;
+        async function sendMessage(text, fileData = null, isProof = false) {
+            const quoteId = currentQuoteId;
+            if (!quoteId || (fileData && fileData.quoteId !== quoteId)) return;
+            const data = {sender:'admin', timestamp:serverTimestamp(), text:text||'', type:fileData?'file':'text'};
+            if (fileData) {
+                Object.assign(data,{fileName:fileData.name,fileURL:fileData.url,filePath:fileData.path});
+                if (isProof) Object.assign(data,{isProof:true,proofStatus:'pending'});
             }
-            const nameEl = document.getElementById('upload-file-name');
-            const bar = document.getElementById('upload-progress-bar');
-            
-            container.classList.remove('hidden');
-            nameEl.textContent = file.name;
-            bar.style.width = '0%';
-            
-            const storageRef = ref(storage, `quotes/${currentQuoteId}/admin/${Date.now()}_${file.name}`);
-            const uploadTask = uploadBytesResumable(storageRef, file);
-            
-            uploadTask.on('state_changed', 
-                (snap) => {
-                    const percent = (snap.bytesTransferred / snap.totalBytes) * 100;
-                    bar.style.width = percent + '%';
-                },
-                (err) => {
-                    showToast('업로드 실패', 'error');
-                    container.classList.add('hidden');
-                },
-                async () => {
-                    const url = await getDownloadURL(uploadTask.snapshot.ref);
-                    completedFileInfo = { name: file.name, url: url, path: uploadTask.snapshot.ref.fullPath };
-                    nameEl.textContent = "업로드 완료 (전송 버튼을 눌러주세요)";
-                }
-            );
+            await addDoc(collection(db,`quotes/${quoteId}/messages`),data);
+            chatUpload.sent();
+            resetAdminChatUpload();
+            document.getElementById('chat-input').value='';
+            try { await updateDoc(doc(db,"quotes",quoteId),{hasUnreadCustomerMessage:true}); }
+            catch(error) { logger.warn('Message delivered but unread flag failed',error); showToast('메시지는 전송됐지만 알림 갱신에 실패했습니다.','info'); }
+        }
+        document.getElementById('attach-file-btn')?.addEventListener('click', () => {
+            if (!chatSending) document.getElementById('file-input').click();
         });
-
-        document.getElementById('chat-form')?.addEventListener('submit', async (e) => {
+        document.getElementById('file-input')?.addEventListener('change', async e => {
+            const file=e.target.files[0], quoteId=currentQuoteId;
+            if (!file || !quoteId || chatSending) return;
+            const validation=validateUploadFiles([file]);
+            if (!validation.ok) { resetAdminChatUpload(); showToast(validation.message,'error'); return; }
+            resetAdminChatUpload();
+            const path=`quotes/${quoteId}/admin/${uniqueUploadName(file.name)}`;
+            const token=chatUpload.begin(quoteId,path);
+            const container=document.getElementById('upload-progress-container');
+            const nameEl=document.getElementById('upload-file-name');
+            const bar=document.getElementById('upload-progress-bar');
+            const btn=document.querySelector('#chat-form button[type="submit"]');
+            container.classList.remove('hidden');nameEl.textContent=file.name;bar.style.width='0%';btn.disabled=true;
+            try {
+                const task=uploadBytesResumable(ref(storage,path),file);
+                task.on('state_changed', snap=>{ if(chatUpload.isCurrent(token)) bar.style.width=(snap.bytesTransferred/snap.totalBytes*100)+'%'; },
+                    async error=>{ if(chatUpload.isCurrent(token)){ await chatUpload.failed(token); resetAdminChatUpload();showToast('업로드 실패','error'); } },
+                    async ()=>{
+                        try {
+                            if (!await chatUpload.complete(token)) return;
+                            const url=await getDownloadURL(task.snapshot.ref);
+                            if (!chatUpload.isCurrent(token)) return;
+                            completedFileInfo={name:file.name,url,path,quoteId};
+                            nameEl.textContent='업로드 완료 (전송 버튼을 눌러주세요)';btn.disabled=false;
+                        } catch(error) {
+                            if(chatUpload.isCurrent(token)){ await chatUpload.failed(token,true);resetAdminChatUpload();showToast('파일 주소를 확인하지 못했습니다.','error'); }
+                        }
+                    });
+            } catch(error) { if(chatUpload.isCurrent(token)){ await chatUpload.failed(token);resetAdminChatUpload();showToast('업로드 실패','error'); } }
+        });
+        document.getElementById('chat-form')?.addEventListener('submit', async e=>{
             e.preventDefault();
-            const text = document.getElementById('chat-input').value.trim();
-            if(!text && !completedFileInfo) return;
-            
-            const btn = e.target.querySelector('button[type="submit"]');
-            btn.disabled = true;
-            await sendMessage(text, completedFileInfo, document.getElementById('is-proof-checkbox').checked);
-            btn.disabled = false;
+            const btn=e.target.querySelector('button[type="submit"]');
+            if(chatSending || btn.disabled || !currentQuoteId) return;
+            const text=document.getElementById('chat-input').value.trim();
+            if(!text&&!completedFileInfo)return;
+            chatSending=true;btn.disabled=true;
+            try { await sendMessage(text,completedFileInfo,document.getElementById('is-proof-checkbox').checked); }
+            catch(error){ logger.warn('Chat send failed',error);showToast('메시지 전송에 실패했습니다. 다시 시도해 주세요.','error'); }
+            finally {chatSending=false;btn.disabled=false;}
         });
 
         // --- 기타 기능 (메모, 파일목록) ---
@@ -3471,8 +3470,14 @@ async function handleNoticeSave(e) {
             });
 
             // 모달 닫기 버튼들
-            document.getElementById('closeModalBtn').onclick = () => DOMElements.detailsModal.classList.add('hidden');
-             if (unsubscribeFiles) unsubscribeFiles();
+            document.getElementById('closeModalBtn').onclick = () => {
+                if (chatSending) { showToast('메시지 전송이 끝난 후 닫아 주세요.','info'); return; }
+                DOMElements.detailsModal.classList.add('hidden');
+                if (unsubscribeMessages) unsubscribeMessages(); unsubscribeMessages = null;
+                if (unsubscribeFiles) unsubscribeFiles(); unsubscribeFiles = null;
+                currentQuoteId = null; resetAdminChatUpload(); syncChatImageViewer([]);
+                document.getElementById('chat-input').value = '';
+            };
             document.getElementById('closeCompanyInfoModalBtn').onclick = () => DOMElements.companyInfoModal.classList.add('hidden');
             document.getElementById('closeCannedResponseModalBtn').onclick = () => DOMElements.cannedResponseManagementModal.classList.add('hidden');
             document.getElementById('close-inquiry-modal-btn').onclick = () => DOMElements.inquiryDetailsModal.classList.add('hidden');
