@@ -451,3 +451,27 @@ body[data-page="index"] summary:focus-visible { outline:3px solid #81b9a2; outli
 @media(max-width:1023px) {
   #quoteForm.mobile-summary-active .quote-inline-summary { display:none !important; }
 }
+
+/* Quote email receipt: the label itself toggles the checkbox, and the address
+   and its unobtrusive copy icon always travel as one unit. */
+.quote-email-inline { display:flex; flex-wrap:wrap; align-items:center; gap:3px 6px; font-size:14px; line-height:1.45; }
+.quote-email-label { display:inline-flex; flex:none; align-items:center; gap:5px; cursor:pointer; white-space:nowrap; min-height:28px; }
+.quote-email-label[hidden], .quote-email-label.hidden { display:none !important; }
+.quote-email-label #email-file-status { flex:none; width:16px; height:16px; margin:0; accent-color:#047857; cursor:pointer; }
+.quote-email-address-group { display:inline-flex; flex:none; align-items:center; gap:2px; white-space:nowrap; }
+.quote-email-address-group [data-email-address] { font-weight:800; user-select:text; }
+.quote-email-address-group [data-copy-email] { display:inline-flex; flex:none; align-items:center; justify-content:center; width:24px; height:28px; min-width:0; min-height:0; margin:0; padding:0; background:transparent; border:0; border-radius:4px; box-shadow:none; font-size:13px; color:#047857; cursor:pointer; }
+.quote-email-address-group [data-copy-email]:hover { background:#d1fae5; }
+.quote-email-address-group [data-copy-email]:focus-visible, .quote-email-label #email-file-status:focus-visible { outline:2px solid #059669; outline-offset:2px; }
+.quote-email-inline [data-copy-status]:not(.sr-only) { flex-basis:100%; }
+@media(max-width:480px) {
+  .quote-email-card { padding-inline:10px; }
+  .quote-email-inline { font-size:12px; gap:2px 4px; }
+  .quote-email-label { gap:4px; }
+  .quote-email-label #email-file-status { width:15px; height:15px; }
+  .quote-email-address-group [data-copy-email] { width:20px; font-size:12px; }
+}
+@media(max-width:360px) {
+  .quote-email-inline { font-size:11px; }
+  .quote-email-card { padding-inline:8px; }
+}

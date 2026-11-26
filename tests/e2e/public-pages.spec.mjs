@@ -527,6 +527,20 @@ test('both quote pages copy the email address without a mailto link', async ({ p
     await expect(group).toHaveCount(1);
     await expect(group.locator('[data-email-address]')).toHaveText('winwork@hanmail.net');
     await expect(group.locator('a[href^="mailto:"]')).toHaveCount(0);
+    await expect(group.locator('#email-file-status')).toHaveCount(1);
+    await expect(group.locator('[data-copy-email]')).toHaveCSS('border-top-width','0px');
+    await expect(group.locator('[data-copy-email]')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+    const inline = await group.evaluate(el => {
+      const address = el.querySelector('[data-email-address]').getBoundingClientRect();
+      const copy = el.querySelector('[data-copy-email]').getBoundingClientRect();
+      const checkbox = el.querySelector('#email-file-status').getBoundingClientRect();
+      const label = el.querySelector('.quote-email-label span').getBoundingClientRect();
+      return { gap:copy.left-address.right, aligned:Math.abs((address.top+address.bottom)/2-(copy.top+copy.bottom)/2), checkboxBefore:checkbox.right<=label.left };
+    });
+    expect(inline.gap).toBeGreaterThanOrEqual(0);
+    expect(inline.gap).toBeLessThanOrEqual(5);
+    expect(inline.aligned).toBeLessThan(3);
+    expect(inline.checkboxBefore).toBe(true);
     await group.getByRole('button', {name:'주소 복사'}).click();
     await expect(group.getByRole('button')).toHaveText('');
     await expect(group.locator('[data-copy-icon]')).toHaveClass(/fa-check/);
@@ -552,5 +566,27 @@ test('quote email receipt uses a single optional checkbox', async ({ page }) => 
     await expect(checkbox).toBeChecked();
     await checkbox.uncheck();
     await expect.poll(() => page.evaluate(key=>sessionStorage.getItem(key),'gprint-email-file-'+kind)).toBeNull();
+  }
+});
+
+test('quote email receipt stays compact on small phones', async ({ page }) => {
+  for (const width of [360,390]) {
+    await page.setViewportSize({width,height:844});
+    for (const path of ['/quote-book.html','/quote-print.html']) {
+      await page.goto(path,{waitUntil:'domcontentloaded'});
+      const row = page.locator('[data-email-copy]');
+      await expect(row).toBeVisible();
+      const metrics = await row.evaluate(el => {
+        const a=el.querySelector('[data-email-address]').getBoundingClientRect();
+        const b=el.querySelector('[data-copy-email]').getBoundingClientRect();
+        const l=el.querySelector('.quote-email-label').getBoundingClientRect();
+        const box=el.getBoundingClientRect();
+        return {fits:b.right<=box.right+1, addressAndIcon:Math.abs((a.top+a.bottom-b.top-b.bottom)/2), rowHeight:box.height, labelBefore:l.left<a.left};
+      });
+      expect(metrics.fits).toBe(true);
+      expect(metrics.addressAndIcon).toBeLessThan(3);
+      expect(metrics.rowHeight).toBeLessThanOrEqual(58);
+      await assertNoHorizontalOverflow(page);
+    }
   }
 });
