@@ -6,6 +6,6 @@ assert.match(layoutGeometry({...s,rows:3}).warnings[0],/벗어/);
 assert.equal(sourcePlacement({w:303,h:216},g,'actual',0).bleedCovered,true);
 assert.equal(sourcePlacement({w:297,h:210},g,'actual',0).bleedCovered,false);
 assert.equal(sourcePlacement({w:216,h:303},g,'actual',90).bleedCovered,true);
-assert.equal(sourcePlacement({w:297,h:210,pixels:{w:2970,h:2100}},g,'actual',0).dpi,254);
+assert.ok(Math.abs(sourcePlacement({w:297,h:210,pixels:{w:2970,h:2100}},g,'actual',0).dpi-254)<1e-9);
 assert.throws(()=>layoutGeometry({...s,cols:1.5}),/정수/);
 console.log('layout geometry, folds, reverse faces, bleed and raster DPI passed');
