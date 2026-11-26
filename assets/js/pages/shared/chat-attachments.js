@@ -20,6 +20,14 @@ function parseFileUrl(value) {
   } catch { return null; }
 }
 export const safeChatFileUrl = value => parseFileUrl(value)?.url || '';
+export function quoteAttachmentStoragePath(quoteId, item) {
+  const parsed=parseFileUrl(item?.url);
+  const path=String(item?.path || parsed?.path || '');
+  const parts=path.split('/');
+  if(parts.length!==4 || parts[0]!=='quotes' || parts[1]!==quoteId || parts[2]!=='attachments' || !parts[3] || ['.','..'].includes(parts[3]))return '';
+  if(item?.url && (!parsed || parsed.path!==path))return '';
+  return path;
+}
 export function chatStoragePath(quoteId, msg) {
   const parsed = parseFileUrl(msg?.fileURL);
   const path = String(msg?.filePath || parsed?.path || '');

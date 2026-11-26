@@ -14,6 +14,8 @@ import { app, auth, db, storage, doc, getDoc, collection, addDoc, updateDoc,
          signInAnonymously, setPersistence, browserLocalPersistence, browserSessionPersistence,
          ref as storageRef, uploadBytes, getDownloadURL } from "../firebase.js";
 import { initHeader } from "../header.js";
+import { uniqueUploadName } from "./shared/chat-upload-session.js";
+import { validateUploadFiles } from "../file-upload-policy.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
 import { requestGuestAccess } from "../guest-access-v2.js";
 import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer, confirmEstimateIntent } from "./shared/estimate-quick-order.js?v=20261125-estimate-guide";
@@ -1543,7 +1545,7 @@ payload.lastEditedBy = editState.adminEdit ? 'admin' : 'customer';
         if (files.length > 0){
           const uploads = await Promise.all(files.map(async(file)=>{
             const safeName = file.name.replace(/[^a-zA-Z0-9._-가-힣\s]/g, '_');
-            const path = `quotes/${savedDocId}/attachments/${Date.now()}_${safeName}`;
+            const path = `quotes/${savedDocId}/attachments/${uniqueUploadName(safeName)}`;
             const r = storageRef(storage, path);
             await uploadBytes(r, file);
             const url = await getDownloadURL(r);
@@ -1633,6 +1635,8 @@ closeSignupModal();
     async function submitQuote(e, requestType = 'order'){
   e.preventDefault();
   if (__QUOTE_SUBMIT_LOCK) return;
+  const validation = validateUploadFiles(el.attachments?.files);
+  if (!validation.ok) { showToast(validation.message,'error'); return; }
   setSubmissionIntent(requestType);
   __QUOTE_SUBMIT_LOCK = true;
   try{const calc = compute();
@@ -1755,7 +1759,6 @@ openSignupModal();
     el.customW.addEventListener('input', compute);
     el.customH.addEventListener('input', compute);
     el.oshiEnabled.addEventListener('change', ()=>{ toggleOshi(); compute(); });
-    el.fullBackgroundEnabled?.addEventListener('change', compute);
     el.fullBackgroundEnabled?.addEventListener('change', compute);
     document.querySelectorAll('input[name="oshiLines"]').forEach(r=> r.addEventListener('change', compute));
     el.refreshBtn.addEventListener('click', async ()=>{

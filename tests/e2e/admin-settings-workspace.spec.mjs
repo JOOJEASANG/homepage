@@ -1161,3 +1161,20 @@ test('customer sees chat pictures and proof image before approval',async({page})
   await expect(page.locator('.chat-image-dialog')).toBeVisible();
   await page.getByRole('button',{name:'이미지 닫기'}).click();
 });
+
+test('admin unsent chat attachment is cleared when switching orders',async({page})=>{
+  await fixture(page);
+  await page.addInitScript(()=>{
+    window.__fixtureQuotes=['first-order','second-order'].map(id=>({id,userId:'customer',status:'접수완료',productType:'print',orderName:id,totalPrice:10000,createdAt:{toDate:()=>new Date()}}));
+  });
+  await page.goto('/admin.html',{waitUntil:'domcontentloaded'});
+  await page.locator('#quote-list-body tr[data-quote-id="first-order"] td').first().click();
+  await page.locator('#file-input').setInputFiles({name:'private.pdf',mimeType:'application/pdf',buffer:Buffer.from('private')});
+  await expect(page.locator('#upload-file-name')).toContainText('업로드 완료');
+  await page.locator('#chat-input').evaluate(el=>{el.value='old draft';});
+  await page.locator('#closeModalBtn').click();
+  await expect.poll(()=>page.evaluate(()=> (window.__fixtureChatDeletes||[]).some(x=>x.startsWith('storage:quotes/first-order/admin/')))).toBe(true);
+  await page.locator('#quote-list-body tr[data-quote-id="second-order"] td').first().click();
+  await expect(page.locator('#chat-input')).toHaveValue('');
+  await expect(page.locator('#upload-progress-container')).toHaveClass(/hidden/);
+});
