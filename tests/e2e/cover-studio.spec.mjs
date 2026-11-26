@@ -18,5 +18,13 @@ test('cover studio geometry, design, editing, undo and print output',async({page
  await expect.poll(()=>page.evaluate(()=>window.__printed)).toBe(true);
  await expect(page.locator('#print-output svg')).toHaveAttribute('width','436.1mm');
  await expect(page.locator('#print-output .guide')).toHaveCount(0);
+ // Verify the browser-generated PDF, rather than only checking the preview.
+ const pdf=await page.pdf({preferCSSPageSize:true,printBackground:true,displayHeaderFooter:false});
+ const raw=pdf.toString('latin1');
+ expect(raw.match(/\/Type\s*\/Page\b/g)?.length).toBe(1);
+ const media=raw.match(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/);
+ expect(media).not.toBeNull();
+ expect(Math.abs(Number(media[1])-436.1*72/25.4)).toBeLessThan(2);
+ expect(Math.abs(Number(media[2])-303*72/25.4)).toBeLessThan(2);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2)).toBe(true);
 });
