@@ -480,3 +480,26 @@ body[data-page="index"] summary:focus-visible { outline:3px solid #81b9a2; outli
 .quote-file-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.06); padding:20px; min-width:0; }
 .quote-file-picker:focus-within > div { outline:2px solid #059669; outline-offset:2px; }
 .quote-file-card ul { overflow-wrap:anywhere; }
+
+/* Shared chat attachment previews, including customer proof approval. */
+#chat-messages .chat-bubble-file { width: min(270px, 78vw); max-width:100%; min-width:0; white-space:normal; }
+#chat-messages > div { min-width:0; }
+.chat-attachment-content { display:grid; gap:7px; min-width:0; text-align:left; }
+.chat-image-preview { display:block; width:100%; padding:0; border:0; border-radius:8px; overflow:hidden; background:#fff; color:#475569; cursor:zoom-in; text-align:center; }
+.chat-image-preview img { display:block; width:100%; max-height:240px; object-fit:contain; background:#f8fafc; }
+.chat-image-preview span { display:block; padding:4px; font-size:11px; }
+.chat-file-download { display:block; overflow-wrap:anywhere; text-decoration:underline; font-size:12px; }
+.chat-file-caption { white-space:pre-wrap; overflow-wrap:anywhere; }
+.chat-proof-tag { font-size:11px; font-weight:750; background:#fef3c7; color:#92400e; border-radius:5px; padding:3px 6px; justify-self:start; }
+.chat-file-delete,.chat-open-proof { display:inline-flex; align-items:center; gap:5px; padding:6px 8px; border-radius:5px; font-size:12px; color:#b91c1c; background:#fff; margin-top:5px; }
+.chat-open-proof { color:#047857; }
+.chat-file-delete:disabled { opacity:.5; }
+.chat-proof-panel { max-height:min(52dvh,420px); flex-shrink:0; }
+#proof-list .chat-image-preview { margin-bottom:12px; }
+.chat-image-dialog { border:0; border-radius:14px; padding:0; max-width:calc(100vw - 24px); width:min(980px,calc(100vw - 24px)); max-height:94dvh; background:#fff; color:#172c25; overflow:auto; }
+.chat-image-dialog::backdrop { background:rgba(15,23,42,.82); }
+.chat-image-dialog-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; }
+.chat-image-dialog-bar strong { overflow-wrap:anywhere; font-size:14px; }
+.chat-image-dialog-bar button { flex:none; width:40px; height:40px; border-radius:50%; background:#f1f5f9; font-size:25px; }
+.chat-image-dialog img { display:block; max-width:100%; max-height:78dvh; width:100%; object-fit:contain; background:#f8fafc; }
+.chat-image-error { padding:15px; text-align:center; }

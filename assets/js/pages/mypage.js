@@ -26,6 +26,8 @@ import "../session.js";
 import { validateUploadFiles } from "../file-upload-policy.js";
 import { canHold, canResume, changeOrderHold } from "./shared/order-hold.js";
 import { canReportEmailFile, emailFileLabel } from "./shared/email-file-notice.js?v=20261125-checkbox";
+import { renderChatAttachment, renderChatImage, isChatImage, safeChatFileUrl, bindChatImageViewer, syncChatImageViewer } from "./shared/chat-attachments.js";
+bindChatImageViewer();
 
 // 페이지 로드 시 공통 헤더 렌더링
 // NOTE: mypage.js는 top-level await(아래) 및 session.js(모듈 그래프에 top-level await)를
@@ -1094,7 +1096,7 @@ const cancelState = quote.cancelRequestState || (quote.status === '취소요청'
                 const fileItem = document.createElement('div');
                 fileItem.className = 'flex items-center justify-between p-3 bg-white border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors group';
                 fileItem.innerHTML = `
-					<a href="${msg.fileURL}" data-force-download="1" download="${sanitizeHTML(msg.fileName)}" class="text-sm font-medium text-slate-700 hover:text-brand-600 truncate flex-grow flex items-center">
+					<a href="${sanitizeHTML(safeChatFileUrl(msg.fileURL)) || '#'}" data-force-download="1" download="${sanitizeHTML(msg.fileName)}" class="text-sm font-medium text-slate-700 hover:text-brand-600 truncate flex-grow flex items-center">
                         <div class="w-8 h-8 rounded bg-brand-50 text-brand-600 flex items-center justify-center mr-3 text-lg"><i class="fas fa-file"></i></div>
                         ${sanitizeHTML(msg.fileName)}
                     </a>
@@ -1119,7 +1121,7 @@ const cancelState = quote.cancelRequestState || (quote.status === '취소요청'
                 else if (msg.proofStatus === 'rejected') statusBadge = `<span class="text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded-full">수정 요청</span>`;
                 else statusBadge = `<span class="text-xs font-bold text-amber-600 bg-amber-100 px-2 py-1 rounded-full">확인 대기중</span>`;
                 
-                const isImage = /\.(jpe?g|png|gif|webp)$/i.test(msg.fileName);
+                const isImage = isChatImage(msg);
                 proofItem.innerHTML = `
                     <div class="flex justify-between items-start mb-3">
                         <div class="flex items-center gap-3 overflow-hidden">
@@ -1127,14 +1129,14 @@ const cancelState = quote.cancelRequestState || (quote.status === '취소요청'
                                 <i class="fas ${isImage?'fa-image':'fa-file-pdf'}"></i>
                             </div>
                             <div class="flex flex-col overflow-hidden">
-							<a href="${msg.fileURL}" data-force-download="1" download="${sanitizeHTML(msg.fileName)}" class="text-sm font-bold text-slate-800 hover:text-brand-600 truncate transition-colors">${sanitizeHTML(msg.fileName)}</a>
+							<a href="${sanitizeHTML(safeChatFileUrl(msg.fileURL)) || '#'}" data-force-download="1" download="${sanitizeHTML(msg.fileName)}" class="text-sm font-bold text-slate-800 hover:text-brand-600 truncate transition-colors">${sanitizeHTML(msg.fileName)}</a>
                                 <span class="text-xs text-slate-400">${msg.timestamp?.toDate().toLocaleString()}</span>
                             </div>
                         </div>
                         <div class="flex-shrink-0 ml-2">${statusBadge}</div>
                     </div>
-                    <div class="flex gap-2 justify-end border-t border-slate-100 pt-3">
-                        ${isImage ? `<button class="btn btn-secondary btn-sm preview-image-btn py-1 px-3 text-xs h-8" data-url="${msg.fileURL}">크게 보기</button>` : ''}
+                    ${renderChatImage(msg)}
+                    <div class="flex flex-wrap gap-2 justify-end border-t border-slate-100 pt-3">
                         ${msg.proofStatus !== 'approved' && msg.proofStatus !== 'rejected' ? `<button class="btn btn-success btn-sm approve-proof-btn py-1 px-3 text-xs h-8" data-msg-id="${msg.id}"><i class="fas fa-check "></i>승인</button><button class="btn btn-danger btn-sm reject-proof-btn py-1 px-3 text-xs h-8" data-msg-id="${msg.id}"><i class="fas fa-times "></i>수정요청</button>` : ''}
                     </div>
                     ${msg.rejectionReason ? `<p class="text-xs text-red-600 mt-3 p-3 bg-red-50 rounded-lg border border-red-100"><strong><i class="fas fa-comment-alt "></i>수정 요청:</strong> ${sanitizeHTML(msg.rejectionReason)}</p>` : ''}
@@ -1150,12 +1152,12 @@ const cancelState = quote.cancelRequestState || (quote.status === '취소요청'
             const q = query(collection(db, `quotes/${quoteId}/messages`), orderBy("timestamp"));
             unsubscribeMessages = onSnapshot(q, (snapshot) => {
                 DOMElements.chatMessages.innerHTML = '';
-                const allMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const allMessages = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                syncChatImageViewer(allMessages);
                 
                 let lastDate = '';
                 
                 allMessages.forEach(msg => {
-                    if(msg.isProof) return;
                     
                     const msgDate = msg.timestamp ? msg.timestamp.toDate().toLocaleDateString() : '';
                     if (msgDate && msgDate !== lastDate) {
@@ -1171,8 +1173,9 @@ const cancelState = quote.cancelRequestState || (quote.status === '취소요청'
                     msgContainer.className = `flex flex-col ${isCustomer ? 'items-end' : 'items-start'} mb-3`;
                     
                     let messageContent = '';
-                    if (msg.type === 'file' && msg.fileName) {
-						messageContent = `<div class="flex items-center gap-2"><div class="w-8 h-8 bg-white/20 rounded flex items-center justify-center"><i class="fas fa-file-alt"></i></div> <a href="${msg.fileURL}" data-force-download="1" download="${sanitizeHTML(msg.fileName)}" class="underline hover:opacity-80 truncate max-w-[200px]">${sanitizeHTML(msg.fileName)}</a></div>`;
+                    if (msg.type === 'file') {
+                        messageContent = renderChatAttachment(msg);
+                        if (msg.isProof) messageContent += '<button type="button" class="chat-open-proof">시안 확인 / 승인</button>';
                     } else if (msg.text) {
                         messageContent = sanitizeHTML(msg.text);
                     }
@@ -1182,7 +1185,7 @@ const cancelState = quote.cancelRequestState || (quote.status === '취소요청'
                     
                     msgContainer.innerHTML = `
                         <div class="flex items-end gap-1 ${isCustomer ? 'flex-row-reverse' : 'flex-row'}">
-                            <div class="chat-bubble ${isCustomer ? 'chat-bubble-customer' : 'chat-bubble-admin'}">${messageContent}</div>
+                            <div class="chat-bubble ${isCustomer ? 'chat-bubble-customer' : 'chat-bubble-admin'} ${msg.type === 'file' ? 'chat-bubble-file' : ''}">${messageContent}</div>
                             <span class="text-[10px] text-slate-300 min-w-[35px] ${isCustomer ? 'text-right' : 'text-left'}">${timeStr}</span>
                         </div>
                     `;
@@ -1656,6 +1659,11 @@ if (__activeMoreMenu === menu) __activeMoreMenu = null;
                 }
             });
 
+            DOMElements.chatMessages.addEventListener('click', e => {
+                if (!e.target.closest('.chat-open-proof')) return;
+                document.getElementById('files-panel')?.classList.add('hidden');
+                document.getElementById('proof-panel')?.classList.remove('hidden');
+            });
             // 시안 확인 리스트 (승인/거절/미리보기)
             DOMElements.proofList.addEventListener('click', async e => {
                 const approveBtn = e.target.closest('.approve-proof-btn');
