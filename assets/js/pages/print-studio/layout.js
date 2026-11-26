@@ -1,8 +1,9 @@
 import {layoutGeometry,sourcePlacement,mmRound} from './layout-model.js';
 import {openSource,renderSource} from './layout-source.js';
+import {createLayoutPDF} from './layout-export.js';
 const $=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg';
 import {loadStudioSettings} from './settings-client.js';
-let touched=false;
+let touched=false,exporting=false;
 const defaults={sheetW:330,sheetH:480,trimW:297,trimH:210,bleed:3,margin:5,cols:1,rows:2,gapX:3,gapY:3,edge:3,fold:'none',direction:'right',compensation:3,fit:'actual',rotation:0,imageDpi:300};
 const fields=Object.keys(defaults).filter(k=>!['fit','rotation','imageDpi'].includes(k));
 let s={...defaults},face='front';
@@ -18,6 +19,7 @@ function sync(){
  for(const name of ['front','back']){$('face-'+name).setAttribute('aria-pressed',String(face===name));const a=slots[name],p=$('page-'+name);p.disabled=a.source?.kind!=='pdf';p.max=a.source?.pages||1;p.value=a.page;}
  $('same-pdf-back').disabled=slots.front.source?.kind!=='pdf'||slots.front.page>=slots.front.source.pages;
  $('direction').disabled=$('compensation').disabled=s.fold!=='roll';
+ $('layout-export').disabled=exporting||!slots.front.preview||!!(slots.back.source&&!slots.back.preview);
 }
 function draw(){
  sync();const root=$('layout-svg');root.replaceChildren();let g;
@@ -65,6 +67,11 @@ $('fit').onchange=()=>{slots[face].fit=$('fit').value;draw();};
 $('rotation').onchange=()=>{slots[face].rotation=Number($('rotation').value);draw();};
 $('imageDpi').onchange=()=>{const n=Number($('imageDpi').value);if(!Number.isFinite(n)||n<36||n>2400){status('DPI는 36~2400 범위로 입력하세요.');draw();return;}slots[face].dpi=n;void refresh(face);};
 for(const id of ['show-trim','show-safe','show-fold'])$(id).onchange=draw;
+$('layout-export').onclick=async()=>{
+ if(exporting)return;exporting=true;sync();status('원본을 사용해 PDF 저장 중…');
+ try{const snapshot={...s},sources=Object.fromEntries(Object.entries(slots).map(([name,slot])=>[name,{...slot}]));const bytes=await createLayoutPDF(snapshot,sources);const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'})),a=document.createElement('a');a.href=url;a.download='그린오피스-인쇄배치.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);status('배치 PDF를 저장했습니다. 출력 전 실제 크기와 색상·양면 방향을 확인해 주세요.');}
+ catch(e){status('PDF 저장 실패: '+e.message);}finally{exporting=false;sync();}
+};
 $('layout-reset').onclick=()=>{touched=true;s={...defaults};for(const a of Object.values(slots)){a.fit='actual';a.rotation=0;}draw();};
 draw();
 

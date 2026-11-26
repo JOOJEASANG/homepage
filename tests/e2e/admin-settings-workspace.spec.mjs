@@ -1115,7 +1115,7 @@ async function chatFileFixture(page, role) {
   await fixture(page, role, role==='admin');
   await page.route('https://firebasestorage.googleapis.com/v0/b/worklist-1e83a.firebasestorage.app/o/**', route=>route.fulfill({
     contentType:'image/png',
-    body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aJd0AAAAASUVORK5CYII=','base64')
+    body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGO48/orAAVjAr1UswRTAAAAAElFTkSuQmCC','base64')
   }));
   await page.addInitScript(role=>{
     if(role==='user'){localStorage.removeItem('userRole');sessionStorage.removeItem('userRole');}
@@ -1267,7 +1267,7 @@ test('supplier account settings publish only the chosen account',async({page})=>
 
 test('studio admin saves measured paper, design visibility and public defaults',async({page})=>{
   await fixture(page);
-  const pixel=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aJd0AAAAASUVORK5CYII=','base64');
+  const pixel=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGO48/orAAVjAr1UswRTAAAAAElFTkSuQmCC','base64');
   await page.route('https://firebasestorage.googleapis.com/v0/b/worklist-1e83a.firebasestorage.app/o/**',route=>route.fulfill({contentType:'image/png',body:pixel}));
   await page.goto('/admin-print-studio.html',{waitUntil:'domcontentloaded'});
   await expect(page.locator('#studio-save')).toBeEnabled();
@@ -1306,7 +1306,7 @@ test('customer studio receives published paper and layout defaults, not hidden t
   await fixture(page,'user');
   const id='01234567-1234-1234-1234-012345678901',path='public/print-studio/templates/'+id+'.png';
   const url='https://firebasestorage.googleapis.com/v0/b/worklist-1e83a.firebasestorage.app/o/'+encodeURIComponent(path)+'?alt=media&token=fixture';
-  await page.route('https://firebasestorage.googleapis.com/v0/b/worklist-1e83a.firebasestorage.app/o/**',route=>route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aJd0AAAAASUVORK5CYII=','base64')}));
+  await page.route('https://firebasestorage.googleapis.com/v0/b/worklist-1e83a.firebasestorage.app/o/**',route=>route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGO48/orAAVjAr1UswRTAAAAAElFTkSuQmCC','base64')}));
   await page.addInitScript(({id,path,url})=>{window.__fixtureSettings={'settings/printStudio':{cover:{bleed:4,adjust:.5},layout:{bleed:5,gapX:6},papers:[{name:'실측 용지',caliper:.092}],sheets:[{name:'매장 규격',width:320,height:450}],hiddenBuiltins:['classic'],templates:[{id:'custom-'+id,path,url,name:'등록 디자인',width:1,height:1}]}};},{id,path,url});
   await page.goto('/cover-studio.html',{waitUntil:'domcontentloaded'});
   await expect(page.locator('#paperPreset option')).toHaveCount(2);
