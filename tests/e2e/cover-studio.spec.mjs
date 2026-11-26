@@ -27,4 +27,8 @@ test('cover studio geometry, design, editing, undo and print output',async({page
  expect(Math.abs(Number(media[1])-436.1*72/25.4)).toBeLessThan(2);
  expect(Math.abs(Number(media[2])-303*72/25.4)).toBeLessThan(2);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2)).toBe(true);
+ await page.locator('#cover-order-file').setInputFiles({name:'cover.pdf',mimeType:'application/pdf',buffer:pdf});
+ await expect(page).toHaveURL(/quote-book\\.html#studio-handoff/);await expect(page.locator('[data-studio-add]')).toBeEnabled();
+ await page.locator('[data-studio-add]').click();await expect.poll(()=>page.locator('#quote-attachments').evaluate(e=>Array.from(e.files).map(f=>f.name))).toEqual(['cover.pdf']);
+ await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('[data-studio-add]')).toBeEnabled();await page.locator('[data-studio-add]').click();await expect.poll(()=>page.locator('#quote-attachments').evaluate(e=>e.files.length)).toBe(1);
 });

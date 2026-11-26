@@ -16,6 +16,7 @@ import { app, auth, db, storage, doc, getDoc, collection, addDoc, updateDoc,
 import { initHeader } from "../header.js";
 import { uniqueUploadName } from "./shared/chat-upload-session.js";
 import { validateUploadFiles } from "../file-upload-policy.js";
+import {hasStudioHandoff,studioAttachmentReady,clearStudioHandoff} from "./print-studio/handoff.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
 import { requestGuestAccess } from "../guest-access-v2.js";
 import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer, confirmEstimateIntent } from "./shared/estimate-quick-order.js?v=20261125-estimate-guide";
@@ -179,14 +180,14 @@ userMenuEditInfoBtn?.addEventListener('click', () => {
 // 1. 헤더 유저 메뉴의 로그인 버튼
 userMenuGoLoginBtn?.addEventListener('click', () => {
     saveTempFormData(); // ★ 추가됨: 데이터 저장
-    try { localStorage.setItem('postLoginRedirect', 'quote-print.html?autopost=1'); } catch(e){}
+    try { localStorage.setItem('postLoginRedirect', (hasStudioHandoff('print') ? 'quote-print.html' : 'quote-print.html?autopost=1')); } catch(e){}
     window.location.href = 'index.html';
 });
 
 // 2. 접수 모달 내의 로그인 버튼
 document.getElementById('member-go-login-btn')?.addEventListener('click', () => {
     saveTempFormData();
-    try { localStorage.setItem('postLoginRedirect', 'quote-print.html?autopost=1'); } catch(e){}
+    try { localStorage.setItem('postLoginRedirect', (hasStudioHandoff('print') ? 'quote-print.html' : 'quote-print.html?autopost=1')); } catch(e){}
     location.href = 'index.html';
 });
 
@@ -1202,6 +1203,7 @@ function loadEditPayloadIfAny(){
 // ── Firestore 견적 문서 저장 ─────────────────────────────────
 // 실제 Firestore 에 접수 데이터를 저장합니다.
 async function submitQuoteRequest(user, ordererName, ordererContact, ordererCompany = '', opts = {}){
+        if (!studioAttachmentReady('print',document.getElementById('attachments'))) { showToast('인쇄 스튜디오 PDF를 첨부하거나 임시 파일을 취소한 뒤 접수해 주세요.','error'); return; }
       // UI만 갱신하고, 계산 결과는 compute()의 반환값을 사용
       refreshMemberTabUI();
       const calc = compute();
@@ -1495,6 +1497,7 @@ payload.lastEditedBy = editState.adminEdit ? 'admin' : 'customer';
           // Keep previously uploaded customer artwork when more files are attached
           // during a quote edit. Replacing with uploads alone orphaned old files.
           await updateDoc(doc(db, "quotes", savedDocId), { attachments: [...baseAttachments, ...uploads] });
+          if(hasStudioHandoff('print'))await clearStudioHandoff('print');
         }
 
         // save guest session for mypage lookup
@@ -1876,7 +1879,7 @@ openSignupModal();
 
       const pending = __applyPendingMemberSubmitIfAny();
       if(!pending) return;
-      if(!shouldTry) return; // 실수 방지: redirect로 온 경우만 자동 제출
+      if(!shouldTry || hasStudioHandoff('print')) return; // 실수 방지: redirect로 온 경우만 자동 제출
 
       try{
         const u = auth.currentUser;
@@ -1903,7 +1906,7 @@ openSignupModal();
       __savePendingMemberSubmit();
       try{
         // 로그인 후 다시 이 페이지로 돌아오게 설정
-        localStorage.setItem('postLoginRedirect', 'quote-print.html?autopost=1');
+        localStorage.setItem('postLoginRedirect', (hasStudioHandoff('print') ? 'quote-print.html' : 'quote-print.html?autopost=1'));
       }catch(e){}
       location.href='index.html';
     });

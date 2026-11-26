@@ -51,4 +51,11 @@ test('PDF preview uses the real pinned PDF.js engine and independent page sides'
  expect(output.getPageCount()).toBe(2);expect(output.getPage(0).getWidth()).toBeCloseTo(330*72/25.4,3);expect(output.getPage(1).getHeight()).toBeCloseTo(480*72/25.4,3);
  const words=await page.evaluate(async data=>{const pdf=await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs');const doc=await pdf.getDocument({data:new Uint8Array(data),isEvalSupported:false}).promise;try{return await Promise.all([1,2].map(async n=>(await (await doc.getPage(n)).getTextContent()).items.map(x=>x.str).join(' ')));}finally{await doc.destroy();}},Array.from(bytes));
  expect(words[0]).toContain('FRONT');expect(words[1]).toContain('BACK');
+ await page.locator('#layout-order').click();await expect(page).toHaveURL(/quote-print\\.html#studio-handoff/);
+ await expect(page.locator('#studio-handoff')).toBeVisible();await expect(page.locator('[data-studio-add]')).toBeEnabled();
+ await page.locator('#attachments').setInputFiles({name:'existing.pdf',mimeType:'application/pdf',buffer:pdf});
+ await page.locator('[data-studio-add]').click();
+ await expect.poll(()=>page.locator('#attachments').evaluate(e=>Array.from(e.files).map(f=>f.name))).toEqual(['existing.pdf','그린오피스-인쇄배치.pdf']);
+ await page.locator('[data-studio-discard]').click();await expect(page.locator('#studio-handoff')).toBeHidden();
+ await expect.poll(()=>page.locator('#attachments').evaluate(e=>Array.from(e.files).map(f=>f.name))).toEqual(['existing.pdf']);
 });

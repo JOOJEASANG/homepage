@@ -38,11 +38,11 @@ async function fixture(page, role = 'admin', realSession = true) {
       const updates = [];
       const tx = {
         get: getDoc,
-        update: (path, data) => updates.push({ path, data }),
-        set: (path, data) => updates.push({ path, data }),
+        update: (path, data) => updates.push({ path, data, options: { merge: true } }),
+        set: (path, data, options) => updates.push({ path, data, options }),
       };
       const result = await callback(tx);
-      for (const update of updates) write(update.path, update.data);
+      for (const update of updates) write(update.path, update.data, update.options);
       return result;
     };
     export const getApps = () => [app], getApp = () => app;
@@ -118,7 +118,7 @@ async function fixture(page, role = 'admin', realSession = true) {
       }
     }
     export const setDoc = async (path, data, options) => write(path, data, options);
-    export const updateDoc = async (path, data) => write(path, data);
+    export const updateDoc = async (path, data) => write(path, data, { merge: true });
     export const addDoc = async (path, data) => { write(path, data); return { id: 'fixture-created' }; };
     export const deleteDoc = async path => {
       if (!path.includes('/messages/')) return;

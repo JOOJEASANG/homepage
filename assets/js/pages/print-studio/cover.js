@@ -1,5 +1,6 @@
 import {PAPER_SIZES,TEMPLATES,FONTS,coverGeometry,defaultCover,normalizeCover} from './cover-model.js';
 import {loadStudioSettings} from './settings-client.js';
+import {sendStudioFile} from './handoff.js';
 const $=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg';
 const names={plain:'흰색',report:'보고서',education:'교육',classic:'클래식',soft:'파스텔'},faces={front:'앞표지',back:'뒷표지',spine:'책등'};
 let touched=false,paperOptions=[],catalog=[],hiddenBuiltins=[];
@@ -73,3 +74,5 @@ render();
 void loadStudioSettings().then(async settings=>{if(!settings)return;paperOptions=settings.papers;const select=$('paperPreset');paperOptions.forEach((p,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=p.name+' · '+p.caliper+'mm';select.append(o);});
  const results=await Promise.all(settings.templates.map(async t=>{try{const image=new Image();image.src=t.url;await image.decode();assets.set(t.id,t);return t;}catch{return null;}}));catalog=results.filter(Boolean);hiddenBuiltins=settings.hiddenBuiltins;if(!touched){Object.assign(state,settings.cover);for(const k of ['frontTemplate','backTemplate'])if(hiddenBuiltins.includes(state[k]))state[k]='plain';}rebuildGallery();render();if(results.some(t=>!t))msg('일부 등록 디자인을 불러오지 못했습니다. 기본 디자인은 사용할 수 있습니다.');});
 Promise.all(TEMPLATES.map(async key=>{const response=await fetch('assets/img/cover-templates/'+key+'.svg');if(!response.ok)throw Error('디자인 로딩 실패');const doc=new DOMParser().parseFromString(await response.text(),'image/svg+xml');if(doc.querySelector('parsererror')||doc.documentElement.localName!=='svg')throw Error('디자인 파일 오류');assets.set(key,doc.documentElement);})).then(()=>{ready=true;render();msg('디자인 파일을 불러왔습니다.');}).catch(e=>msg(e.message+' · 새로고침 후 다시 시도해 주세요.'));
+
+$('cover-order-file').onchange=async()=>{const input=$('cover-order-file'),file=input.files[0];if(!file)return;try{msg('PDF를 견적 페이지로 전달하는 중…');await sendStudioFile('book',file);}catch(e){msg(e.message+' · PDF를 견적 페이지에서 직접 첨부할 수도 있습니다.');}finally{input.value='';}};
