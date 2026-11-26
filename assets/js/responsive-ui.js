@@ -73,7 +73,28 @@
     fileButton.textContent = `${book ? '06' : '04'} 파일·접수`;
     fileButton.dataset.stageTarget = 'files';
     const fileInput = document.getElementById(book ? 'quote-attachments' : 'attachments');
-    const fileCard = fileInput?.closest(book ? '.bg-white' : '.card');
+    const fileCard = fileInput?.closest('[data-quote-file-card]');
+    if (!book && fileInput) {
+      const list = document.getElementById('print-attachments-list');
+      function renderPrintFiles() {
+        if (!list) return;
+        list.replaceChildren(...Array.from(fileInput.files || [], file => {
+          const item = document.createElement('li');
+          const icon = document.createElement('i');
+          icon.className = 'fas fa-file text-brand-500 mr-1';
+          icon.setAttribute('aria-hidden', 'true');
+          const size = document.createElement('span');
+          size.className = 'text-slate-400';
+          size.textContent = ' (' + Math.round(file.size / 1024).toLocaleString() + 'KB)';
+          item.append(icon, document.createTextNode(file.name), size);
+          return item;
+        }));
+      }
+      fileInput.addEventListener('change', renderPrintFiles);
+      form.addEventListener('reset', () => queueMicrotask(renderPrintFiles));
+      form.addEventListener('gprint:print-quote-reset', renderPrintFiles);
+      renderPrintFiles();
+    }
     fileCard?.setAttribute('data-order-stage', 'files');
     fileButton.addEventListener('click', () => {
       fileCard?.scrollIntoView({ behavior: reducedMotion() ? 'instant' : 'smooth', block: 'start' });

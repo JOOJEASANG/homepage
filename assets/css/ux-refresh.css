@@ -475,3 +475,8 @@ body[data-page="index"] summary:focus-visible { outline:3px solid #81b9a2; outli
   .quote-email-inline { font-size:11px; }
   .quote-email-card { padding-inline:8px; }
 }
+
+/* Shared file attachment card for both quote types. */
+.quote-file-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.06); padding:20px; min-width:0; }
+.quote-file-picker:focus-within > div { outline:2px solid #059669; outline-offset:2px; }
+.quote-file-card ul { overflow-wrap:anywhere; }

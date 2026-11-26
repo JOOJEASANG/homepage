@@ -82,7 +82,9 @@ assert.match(print, /hasAutomaticEstimatePrice\(calc\.total\) \? 'completed' : '
 assert.match(mypage, /바로 주문 접수/);
 for(const filename of ['quote-book.html', 'quote-print.html']) {
   const html = fs.readFileSync(path.join(root, filename), 'utf8');
-  assert.match(html, /견적 요청만으로는 작업이 진행되지 않습니다/);
+  assert.doesNotMatch(html, /견적 요청만으로는 작업이 진행되지 않습니다/);
+  assert.match(html, /id="estimate-request-guide" class="sr-only"/);
+  assert.match(html, /data-quote-file-card/);
   assert.match(html, /id="estimate-request-guide"/);
   assert.doesNotMatch(html, /견적만 요청\s*\(미주문\)/);
   assert.match(html, /주문 접수 및 작업 요청/);

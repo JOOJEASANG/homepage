@@ -590,3 +590,18 @@ test('quote email receipt stays compact on small phones', async ({ page }) => {
     }
   }
 });
+
+test('quote attachment design is shared and redundant visible estimate warning is removed', async ({page}) => {
+  for (const [path,input,list] of [['/quote-book.html','#quote-attachments','#attachments-list'],['/quote-print.html','#attachments','#print-attachments-list']]) {
+    await page.goto(path,{waitUntil:'domcontentloaded'});
+    const card=page.locator('[data-quote-file-card]');
+    await expect(card.getByRole('heading',{name:'인쇄 파일 첨부'})).toBeVisible();
+    await expect(card.locator('.quote-file-picker')).toBeVisible();
+    await expect(page.locator('#estimate-request-guide')).toHaveClass('sr-only');
+    await expect(page.getByText('견적 요청만으로는 작업이 진행되지 않습니다.',{exact:true})).toHaveCount(0);
+    await card.locator(input).setInputFiles([{name:'표지.pdf',mimeType:'application/pdf',buffer:Buffer.from('test pdf')},{name:'내지.pdf',mimeType:'application/pdf',buffer:Buffer.from('test pdf')}]);
+    await expect(card.locator(list)).toContainText('표지.pdf');
+    await expect(card.locator(list)).toContainText('내지.pdf');
+    await assertNoHorizontalOverflow(page);
+  }
+});
