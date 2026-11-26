@@ -2107,7 +2107,7 @@ try {
             try {
                 const task=uploadBytesResumable(ref(storage,path),file);
                 task.on('state_changed', snap=>{ if(chatUpload.isCurrent(token)) bar.style.width=(snap.bytesTransferred/snap.totalBytes*100)+'%'; },
-                    async error=>{ if(chatUpload.isCurrent(token)){ await chatUpload.failed(token); resetAdminChatUpload();showToast('업로드 실패','error'); } },
+                    async error=>{ if(chatUpload.isCurrent(token)){ void chatUpload.failed(token);resetAdminChatUpload();showToast('업로드 실패','error'); } },
                     async ()=>{
                         try {
                             if (!await chatUpload.complete(token)) return;
@@ -2116,7 +2116,7 @@ try {
                             completedFileInfo={name:file.name,url,path,quoteId};
                             nameEl.textContent='업로드 완료 (전송 버튼을 눌러주세요)';btn.disabled=false;
                         } catch(error) {
-                            if(chatUpload.isCurrent(token)){ await chatUpload.failed(token,true);resetAdminChatUpload();showToast('파일 주소를 확인하지 못했습니다.','error'); }
+                            if(chatUpload.isCurrent(token)){ void chatUpload.failed(token,true);resetAdminChatUpload();showToast('파일 주소를 확인하지 못했습니다.','error'); }
                         }
                     });
             } catch(error) { if(chatUpload.isCurrent(token)){ await chatUpload.failed(token);resetAdminChatUpload();showToast('업로드 실패','error'); } }

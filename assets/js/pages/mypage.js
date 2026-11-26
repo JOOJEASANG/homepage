@@ -1232,7 +1232,7 @@ const cancelState = quote.cancelRequestState || (quote.status === '취소요청'
             try {
                 const task=uploadBytesResumable(ref(storage,path),file);
                 task.on('state_changed',snap=>{if(chatUpload.isCurrent(token)) DOMElements.uploadProgressBar.style.width=(snap.bytesTransferred/snap.totalBytes*100)+'%';},
-                  async error=>{if(chatUpload.isCurrent(token)){await chatUpload.failed(token);resetUploadUI();showToast('파일 업로드에 실패했습니다.','error');}},
+                  async error=>{if(chatUpload.isCurrent(token)){void chatUpload.failed(token);resetUploadUI();showToast('파일 업로드에 실패했습니다.','error');}},
                   async ()=>{
                     try {
                         if (!await chatUpload.complete(token)) return;
@@ -1240,7 +1240,7 @@ const cancelState = quote.cancelRequestState || (quote.status === '취소요청'
                         if(!chatUpload.isCurrent(token))return;
                         uploadedFile={name:file.name,url,path,quoteId};
                         showToast('업로드 완료. 전송 버튼을 눌러주세요.','success');btn.disabled=false;
-                    } catch(error){if(chatUpload.isCurrent(token)){await chatUpload.failed(token,true);resetUploadUI();showToast('파일 주소를 확인하지 못했습니다.','error');}}
+                    } catch(error){if(chatUpload.isCurrent(token)){void chatUpload.failed(token,true);resetUploadUI();showToast('파일 주소를 확인하지 못했습니다.','error');}}
                   });
             } catch(error){if(chatUpload.isCurrent(token)){void chatUpload.failed(token);resetUploadUI();showToast('파일 업로드에 실패했습니다.','error');}}
         }
