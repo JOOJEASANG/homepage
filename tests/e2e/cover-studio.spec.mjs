@@ -16,7 +16,7 @@ test('cover studio geometry, design, editing, undo and print output',async({page
  await page.evaluate(()=>{window.print=()=>{window.__printed=true;};});
  await page.locator('#print-cover').click();
  await expect.poll(()=>page.evaluate(()=>window.__printed)).toBe(true);
- await expect(page.locator('#print-output svg')).toHaveAttribute('width','436.1mm');
+ await expect(page.locator('#print-output > svg')).toHaveAttribute('width','436.1mm');
  await expect(page.locator('#print-output .guide')).toHaveCount(0);
  // Verify the browser-generated PDF, rather than only checking the preview.
  const pdf=await page.pdf({preferCSSPageSize:true,printBackground:true,displayHeaderFooter:false});

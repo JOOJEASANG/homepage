@@ -1254,6 +1254,11 @@ test('supplier account settings publish only the chosen account',async({page})=>
   expect(settings['settings/companyInfo'].accountNum).toBe('333-444');
   expect(settings['settings/companyInfo'].accounts).toBeUndefined();
   expect(settings['settings/paymentGuide'].accountNumber).toBe('333-444');
-  await page.goto('/index.html',{waitUntil:'domcontentloaded'});
-  await expect(page.locator('#home-bank-account-text')).toHaveText('은행2 333-444 (예금주: 테스트)');
+  // An authenticated admin is intentionally redirected away from the public homepage.
+  const customer=await page.context().newPage();
+  await fixture(customer,'user');
+  await customer.addInitScript(()=>{window.__fixtureSettings={'settings/companyInfo':{bankName:'은행2',accountNum:'333-444',accountHolder:'테스트',accountsManaged:true}};});
+  await customer.goto('/index.html',{waitUntil:'domcontentloaded'});
+  await expect(customer.locator('#home-bank-account-text')).toHaveText('은행2 333-444 (예금주: 테스트)');
+  await customer.close();
 });

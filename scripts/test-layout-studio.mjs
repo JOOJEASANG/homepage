@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {layoutGeometry,foldPanels,sourcePlacement} from '../assets/js/pages/print-studio/layout-model.js';
+const s={sheetW:330,sheetH:480,trimW:297,trimH:210,bleed:3,margin:5,cols:1,rows:2,gapX:3,gapY:3,edge:3,fold:'roll',direction:'right',compensation:3};
+const g=layoutGeometry(s);assert.equal(g.cells.length,2);assert.equal(g.usedW,303);assert.equal(g.usedH,435);assert.deepEqual(g.panels,[100,100,97]);assert.deepEqual(layoutGeometry(s,true).panels,[97,100,100]);assert.deepEqual(foldPanels(297,'half'),[148.5,148.5]);assert.deepEqual(foldPanels(297,'z'),[99,99,99]);assert.equal(g.warnings.length,0);
+assert.match(layoutGeometry({...s,rows:3}).warnings[0],/벗어/);
+assert.equal(sourcePlacement({w:303,h:216},g,'actual',0).bleedCovered,true);
+assert.equal(sourcePlacement({w:297,h:210},g,'actual',0).bleedCovered,false);
+assert.equal(sourcePlacement({w:216,h:303},g,'actual',90).bleedCovered,true);
+assert.equal(sourcePlacement({w:297,h:210,pixels:{w:2970,h:2100}},g,'actual',0).dpi,254);
+assert.throws(()=>layoutGeometry({...s,cols:1.5}),/정수/);
+console.log('layout geometry, folds, reverse faces, bleed and raster DPI passed');

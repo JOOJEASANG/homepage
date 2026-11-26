@@ -6,7 +6,7 @@
 - Browser print-to-PDF with exact CSS page size, no raster screenshot. Font embedding and print driver/output dimensions depend on browser; verify generated PDF before production. No claim of PDF/X or CMYK. Browser-native output only for this stage.
 - No Firebase upload or real order submission yet.
 ## Stage 2
-- PDF/image local layout inspection, page size, front/back, panel fold types, margins, bleed, spacing.
+- Implemented: PDF/image local inspection, independent sides/pages, actual/fit scale, rotation, centered repeated grid, bleed/safe/trim guides, half/Z/roll folds with mirrored panel widths, warnings. PDF.js 4.10.38 loaded from pinned CDN only for PDF. Image DPI is user-set assumption; PDF page view is not automatic TrimBox/BleedBox analysis. Preview is not a printable imposed export. Original files stay in browser; PDF engine real-file validation and PC/mobile checks pending.
 ## Stage 3
 - Admin design assets, real paper caliper presets, safe defaults and access control.
 ## Stage 4

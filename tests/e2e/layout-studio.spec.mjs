@@ -1,0 +1,20 @@
+import {test,expect} from '@playwright/test';
+test('local layout image, repeat, roll folds and reverse side',async({page})=>{
+ await page.goto('/layout-studio.html',{waitUntil:'domcontentloaded'});
+ await expect(page.locator('#layout-dimensions')).toHaveText('330 × 480 mm · 2개 배치');
+ await page.locator('#fold').selectOption('roll');
+ await expect(page.locator('#panel-widths')).toHaveText('1면 100mm / 2면 100mm / 3면 97mm');
+ await page.locator('#face-back').click();
+ await expect(page.locator('#panel-widths')).toHaveText('1면 97mm / 2면 100mm / 3면 100mm');
+ const image=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=600;c.height=400;const x=c.getContext('2d');x.fillStyle='green';x.fillRect(0,0,600,400);return c.toDataURL().split(',')[1];});
+ await page.locator('#file-front').setInputFiles({name:'front.png',mimeType:'image/png',buffer:Buffer.from(image,'base64')});
+ await expect(page.locator('#source-summary')).toContainText('front.png');
+ await expect(page.locator('#layout-svg image')).toHaveCount(2);
+ await expect(page.locator('#layout-warning')).toContainText('도련 영역');
+ await page.locator('#fit').selectOption('bleed');
+ await expect(page.locator('#layout-warning')).toContainText('확대/축소');
+ await page.locator('#face-back').click();await expect(page.locator('#layout-svg image')).toHaveCount(0);
+ await page.locator('#rows').fill('3');await page.locator('#rows').blur();
+ await expect(page.locator('#layout-warning')).toContainText('벗어납니다');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2)).toBe(true);
+});
