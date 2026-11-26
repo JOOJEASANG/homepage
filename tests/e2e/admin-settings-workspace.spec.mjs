@@ -1186,3 +1186,34 @@ test('admin unsent chat attachment is cleared when switching orders',async({page
   await expect(page.locator('#chat-input')).toHaveValue('');
   await expect(page.locator('#upload-progress-container')).toHaveClass(/hidden/);
 });
+
+test('digital output A3 and larger permitted sizes use the same configured A3 price', async ({page})=>{
+  await fixture(page);
+  await page.addInitScript(()=>{
+    window.__fixtureUnitPriceConfig={digital_print:{
+      output_base:{snow_200:[{threshold:10,price:300}],arte_200:[{threshold:10,price:300}]},
+      weight_factor:{snow_200:1,arte_200:1},
+      size:{minMultiplier:.6,multipliers:{A3:2.25,A4:1,A5:.6}},
+      oshi:{oneLine:50,twoLine:80,threeLine:0}
+    }};
+  });
+  await page.goto('/quote-print.html?adminEdit=1&adminPricing=1',{waitUntil:'domcontentloaded'});
+  await expect(page.locator('#paperWeight')).toHaveValue('200');
+  const size=page.locator('#paperSize'), total=page.locator('#totalPrice');
+  await page.locator('#quantity').fill('100');
+  await size.selectOption('A3');
+  await expect(total).toHaveText('67,500원');
+  for(const preset of ['IN12x18','IN13x19']){
+    await size.selectOption(preset);
+    await expect(total).toHaveText('67,500원');
+    await expect(size).toHaveValue(preset);
+  }
+  await size.selectOption('CUSTOM');
+  await page.locator('#customW').fill('330');
+  await page.locator('#customH').fill('480');
+  await expect(total).toHaveText('67,500원');
+  await expect(page.locator('#customW')).toHaveValue('330');
+  await expect(page.locator('#customH')).toHaveValue('480');
+  await size.selectOption('A4');
+  await expect(total).toHaveText('30,000원');
+});

@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {getDigitalPrintSizeMultiplier as size} from '../assets/js/pages/quote-print/size-calculator.js';
+const cfg={minMultiplier:.6,multipliers:{A3:2.25,A4:1.1,A5:.65,B5:.72}};
+for(const preset of ['A3','B4','IN12x18','IN13x19']) assert.equal(size(preset,0,0,cfg),2.25,preset);
+for(const [w,h] of [[297,420],[305,457],[330,480],[330,482],[482,330],[300,400],[211,297],[210,298]]) assert.equal(size('CUSTOM',w,h,cfg),2.25,w+'x'+h);
+for(const [w,h] of [[210,297],[297,210],[100,150]]) assert.equal(size('CUSTOM',w,h,cfg),1.1);
+assert.equal(size('B5',0,0,cfg),1.1);
+assert.equal(size('A5',0,0,cfg),.65);
+assert.equal(size('A4',0,0,cfg),1.1);
+assert.equal(size('CUSTOM',0,330,cfg),0);
+for(const dims of [[483,330],[482,331],[331,482]]) assert.throws(()=>size('CUSTOM',...dims,cfg),/최대 사이즈/);
+console.log('digital print A3 cap: presets, custom dimensions, rotation and existing limits passed');
