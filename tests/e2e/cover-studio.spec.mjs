@@ -1,0 +1,22 @@
+import {test,expect} from '@playwright/test';
+test('cover studio geometry, design, editing, undo and print output',async({page})=>{
+ await page.goto('/cover-studio.html',{waitUntil:'domcontentloaded'});
+ await expect(page.locator('#print-cover')).toBeEnabled();
+ await expect(page.locator('#spine-width')).toHaveText('10');
+ await expect(page.locator('#cover-dimensions')).toHaveText('436 × 303 mm (도련 포함)');
+ await page.locator('#pages').fill('201');await page.locator('#pages').blur();
+ await expect(page.locator('#spine-width')).toHaveText('10.1');
+ await page.locator('#sides').selectOption('1');
+ await expect(page.locator('#spine-width')).toHaveText('20.1');
+ await page.locator('#undo').click();
+ await expect(page.locator('#spine-width')).toHaveText('10.1');
+ await page.locator('#frontTemplate').selectOption('classic');
+ await page.locator('#layer-text').fill('테스트 표지');await page.locator('#layer-text').blur();
+ await expect(page.locator('#cover-svg [data-layer="title"]')).toHaveText('테스트 표지');
+ await page.evaluate(()=>{window.print=()=>{window.__printed=true;};});
+ await page.locator('#print-cover').click();
+ await expect.poll(()=>page.evaluate(()=>window.__printed)).toBe(true);
+ await expect(page.locator('#print-output svg')).toHaveAttribute('width','436.1mm');
+ await expect(page.locator('#print-output .guide')).toHaveCount(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2)).toBe(true);
+});

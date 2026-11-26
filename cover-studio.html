@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>표지 만들기 | 그린오피스</title><link rel="icon" href="favicon.ico"><link rel="stylesheet" href="assets/css/print-studio.css?v=1"></head>
+<body>
+<header class="studio-header"><a href="index.html" class="brand">그린오피스 <span>PRINT STUDIO</span></a><nav><a href="quote-book.html">책자·제본 견적</a><a href="index.html">홈으로</a></nav></header>
+<main id="cover-app" class="studio-app">
+  <div class="studio-heading"><div><p class="eyebrow">COVER STUDIO · 개발 미리보기</p><h1>책자 표지 만들기</h1><p>규격과 책등을 설정하고 배경 디자인과 문자를 배치하세요.</p></div><div class="actions"><button id="undo" type="button">실행 취소</button><button id="redo" type="button">다시 실행</button><button id="save-project" type="button">편집 저장</button><label class="button">불러오기<input id="load-project" type="file" accept=".json,application/json" hidden></label><button class="primary" id="print-cover" type="button" disabled>인쇄용 PDF 만들기</button></div></div>
+  <div class="studio-grid">
+    <aside class="studio-panel">
+      <h2>01. 표지 규격</h2><label>판형<select id="size"><option>A4</option><option>A5</option><option>B5</option><option>B4</option><option>A3</option><option value="CUSTOM">직접입력</option></select></label>
+      <div class="field-grid"><label>가로(mm)<input id="width" type="number" min="30" max="482"></label><label>세로(mm)<input id="height" type="number" min="30" max="482"></label></div>
+      <label>표지 구성<select id="mode"><option value="spread">무선제본 펼침 표지</option><option value="front">앞표지 한 장</option></select></label>
+      <section id="spine-settings"><h2>02. 책등 계산</h2>
+      <div class="field-grid"><label>내지 페이지 수<input id="pages" type="number" min="0" max="3000" step="1"></label><label>인쇄 방식<select id="sides"><option value="1">단면</option><option value="2">양면</option></select></label></div>
+      <div class="field-grid"><label>한 장 두께(mm)<input id="caliper" type="number" min=".03" max="1" step=".001"></label><label>제본 보정(mm)<input id="adjust" type="number" min="0" max="10" step=".1"></label></div>
+      <label>책등 방식<select id="spineMode"><option value="auto">자동 계산</option><option value="manual">직접입력</option></select></label><label>직접 책등(mm)<input id="manualSpine" type="number" min="0" max="200" step=".01"></label>
+      <div class="measure"><span>내지 <strong id="sheet-count">-</strong>장</span><span>책등 <strong id="spine-width">-</strong>mm</span></div><p class="muted">실제 종이 두께 및 제본 후 두께는 매장 확인이 필요합니다.</p></section>
+      <h2>03. 인쇄 여백</h2><div class="field-grid"><label>도련(mm)<input id="bleed" type="number" min="0" max="10" step=".5"></label><label>안전 여백(mm)<input id="margin" type="number" min="0" max="30" step=".5"></label></div>
+      <label class="check"><input id="show-guides" type="checkbox" checked> 재단·안전선 표시</label>
+      <h2>04. 디자인</h2><label>앞표지<select id="frontTemplate"></select></label><div id="template-gallery" class="template-gallery"></div><label>뒷표지<select id="backTemplate"></select></label><label>책등 배경색<input id="spineColor" type="color"></label>
+    </aside>
+    <section class="studio-workspace" aria-label="표지 미리보기">
+      <div class="workspace-toolbar"><strong>실제 비율 미리보기</strong><span id="cover-dimensions" aria-live="polite"></span></div>
+      <div id="cover-stage" class="stage"><svg id="cover-svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="표지 배치"></svg></div>
+      <div class="legend"><span><i class="red"></i> 재단선</span><span><i class="green"></i> 안전 여백</span><span><i class="blue"></i> 책등 경계</span><span>바깥 영역: 도련</span></div>
+      <p id="cover-warning" class="warning" role="status"></p>
+      <p class="muted">텍스트를 클릭하거나 끌어 위치를 조정할 수 있습니다. 인쇄 출력에는 안내선이 포함되지 않습니다.</p>
+    </section>
+    <aside class="studio-panel">
+      <h2>05. 문자 편집</h2><div class="field-grid"><select id="add-face" aria-label="추가할 위치"><option value="front">앞표지</option><option value="back">뒷표지</option><option value="spine">책등</option></select><button id="add-text" type="button">+ 문자 추가</button></div><div id="layer-list" class="layer-list"></div>
+      <div id="text-editor"><label>내용<textarea id="layer-text" rows="4"></textarea></label><label>기본 글꼴<select id="layer-font"><option value="sans">고딕체</option><option value="serif">명조체</option></select></label>
+      <div class="field-grid"><label>크기(pt)<input id="layer-size" type="number" min="4" max="120" step=".5"></label><label>글자색<input id="layer-color" type="color"></label></div>
+      <label>정렬<select id="layer-align"><option value="left">왼쪽</option><option value="center">가운데</option><option value="right">오른쪽</option></select></label>
+      <label class="check"><input id="layer-bold" type="checkbox"> 굵게</label><div class="field-grid"><label>가로 위치(%)<input id="layer-x" type="number" min="0" max="100" step=".1"></label><label>세로 위치(%)<input id="layer-y" type="number" min="0" max="100" step=".1"></label></div><label>줄 간격<input id="layer-lineHeight" type="number" min=".8" max="3" step=".1"></label><button id="remove-text" type="button" class="danger">선택 문자 삭제</button></div>
+      <p class="muted">편집 파일은 브라우저에서만 처리합니다. 현재 단계에서는 직접 접수 연동 없이 PDF를 만든 뒤 기존 견적 페이지에서 첨부할 수 있습니다.</p>
+    </aside>
+  </div><p id="studio-status" class="status" role="status" aria-live="polite"></p>
+</main><div id="print-output" aria-hidden="true"></div><script type="module" src="assets/js/pages/print-studio/cover.js?v=1"></script></body></html>

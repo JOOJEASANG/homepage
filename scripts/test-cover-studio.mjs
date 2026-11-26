@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {defaultCover,coverGeometry,normalizeCover} from '../assets/js/pages/print-studio/cover-model.js';
+const s=defaultCover();
+assert.equal(coverGeometry(s).sheets,100);
+assert.equal(coverGeometry(s).spine,10);
+assert.equal(coverGeometry(s).totalWidth,436);
+assert.equal(coverGeometry(s).totalHeight,303);
+assert.equal(coverGeometry({...s,pages:201}).spine,10.1);
+assert.equal(coverGeometry({...s,sides:1}).spine,20);
+assert.equal(coverGeometry({...s,spineMode:'manual',manualSpine:4.5}).totalWidth,430.5);
+assert.equal(coverGeometry({...s,mode:'front'}).totalWidth,216);
+assert.equal(coverGeometry({...s,width:182,height:257}).totalHeight,263);
+assert.throws(()=>coverGeometry({...s,pages:1.5}),/정수/);
+assert.throws(()=>coverGeometry({...s,width:20}),/가로/);
+assert.throws(()=>normalizeCover({version:2}),/지원/);
+assert.equal(normalizeCover({...s,frontTemplate:'https://example.org'}).frontTemplate,'plain');
+console.log('cover geometry, duplex rounding, validation and import passed');
