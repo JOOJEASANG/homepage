@@ -64,10 +64,15 @@ async function fixture(page, role = 'admin', realSession = true) {
         return { exists: () => !!data, data: () => qnaData(data) };
       }
       if (path.startsWith('settings/') || path.startsWith('users/')) {
-        const data = path.startsWith('users/') ? { role: ${JSON.stringify(role)} } : path === 'settings/site' ? { maintenance: false } : null;
+        if (path.includes('/messages/')) {
+        const parts=path.split('/'); const id=parts.pop();
+        const data=((window.__fixtureChatMessages || {})[parts.join('/')] || []).find(item=>item.id===id);
+        return {exists:()=>!!data,data:()=>data||{}};
+      }
+      const data = path.startsWith('users/') ? { role: ${JSON.stringify(role)} } : path === 'settings/site' ? { maintenance: false } : null;
         return { exists: () => !!data, data: () => data || {} };
       }
-      let items = path === 'quotes' ? (window.__fixtureQuotes || []) : path === 'qna' ? (window.__fixtureQna || []) : path === 'work_guides' ? (window.__fixtureWorkGuides || []) : [];
+      let items = path === 'quotes' ? (window.__fixtureQuotes || []) : path === 'qna' ? (window.__fixtureQna || []) : path === 'work_guides' ? (window.__fixtureWorkGuides || []) : path.endsWith('/messages') ? ((window.__fixtureChatMessages || {})[path] || []) : [];
       for (const filter of source.filters || []) if (filter.field) items = items.filter(item => item[filter.field] === filter.value);
       const docs = items.map(data => ({ id: data.id, data: () => path === 'qna' ? qnaData(data) : ({ ...data }) }));
       return { docs, size: docs.length, empty: !docs.length, forEach: fn => docs.forEach(fn), docChanges: () => docs.map(doc => ({ type: 'added', doc })) };
@@ -112,12 +117,21 @@ async function fixture(page, role = 'admin', realSession = true) {
     export const setDoc = async (path, data, options) => write(path, data, options);
     export const updateDoc = async (path, data) => write(path, data);
     export const addDoc = async (path, data) => { write(path, data); return { id: 'fixture-created' }; };
-    export const deleteDoc = async () => {}, signOut = async () => {};
+    export const deleteDoc = async path => {
+      if (!path.includes('/messages/')) return;
+      (window.__fixtureChatDeletes ||= []).push('record:'+path);
+      const parts=path.split('/'),id=parts.pop(),collection=parts.join('/');
+      window.__fixtureChatMessages[collection]=(window.__fixtureChatMessages[collection]||[]).filter(m=>m.id!==id);
+      (window.__fixtureSnapshotListeners||[]).forEach(fn=>queueMicrotask(fn));
+    }, signOut = async () => {};
     export const writeBatch = () => ({ update() {}, commit: async () => {} });
     export const ref = (_, fullPath) => ({ fullPath });
     export const uploadBytesResumable = (ref, file) => { (window.__fixtureUploads ||= []).push({ path: ref.fullPath, name: file.name, type: file.type }); return { snapshot: { ref }, on: (_, progress, fail, done) => queueMicrotask(done) }; };
     export const uploadBytes = async () => ({}), getDownloadURL = async () => '/favicon.ico';
-    export const listAll = async () => ({ items: [] }), deleteObject = async () => {};
+    export const listAll = async () => ({ items: [] }), deleteObject = async ref => {
+      if(window.__fixtureStorageDenied) throw Object.assign(Error('denied'),{code:'storage/unauthorized'});
+      (window.__fixtureChatDeletes ||= []).push('storage:'+ref.fullPath);
+    };
   `)));
 }
 
@@ -1091,4 +1105,59 @@ test('admin downloads multiple order attachments in one ZIP', async ({ page }) =
   expect(zip.readUInt16LE(zip.length-12)).toBe(2);
   expect(zip.includes(Buffer.from('표지.pdf'))).toBe(true);
   expect(zip.includes(Buffer.from('내지.pdf'))).toBe(true);
+});
+
+async function chatFileFixture(page, role) {
+  await fixture(page, role, role==='admin');
+  await page.route('https://firebasestorage.googleapis.com/v0/b/worklist-1e83a.firebasestorage.app/o/**', route=>route.fulfill({
+    contentType:'image/png',
+    body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aJd0AAAAASUVORK5CYII=','base64')
+  }));
+  await page.addInitScript(role=>{
+    if(role==='user'){localStorage.removeItem('userRole');sessionStorage.removeItem('userRole');}
+    window.__fixtureQuotes=[{id:'chat-order',userId:'fixture-admin',isGuest:false,status:'접수완료',productType:'print',orderName:'상담파일',totalPrice:10000,createdAt:{toDate:()=>new Date()}}];
+    const make=(id,sender,fileName,isProof=false)=>{
+      const filePath='quotes/chat-order/'+(sender==='admin'?'admin/':'')+id+'_'+fileName;
+      return {id,sender,type:'file',filePath,fileName,fileURL:'https://firebasestorage.googleapis.com/v0/b/worklist-1e83a.firebasestorage.app/o/'+encodeURIComponent(filePath)+'?alt=media&token=fixture',isProof,proofStatus:'pending'};
+    };
+    window.__fixtureChatMessages={'quotes/chat-order/messages':[make('customer-image','customer','고객.png'),make('proof-image','admin','시안.png',true)]};
+  },role);
+}
+test('admin can preview chat images and delete a customer attachment from storage before its record',async({page})=>{
+  await chatFileFixture(page,'admin');
+  await page.goto('/admin.html',{waitUntil:'domcontentloaded'});
+  await page.locator('#quote-list-body tr[data-quote-id="chat-order"] td').first().click();
+  const chat=page.locator('#chat-messages');
+  await expect(chat.locator('.chat-image-preview')).toHaveCount(2);
+  const preview=chat.getByRole('button',{name:'이미지 크게 보기: 고객.png'});
+  // The responsive consultation sheet can be collapsed on phones.
+  if(!await preview.isVisible()) await page.locator('#openSheetBtn').click();
+  await preview.click();
+  await expect(page.locator('.chat-image-dialog')).toBeVisible();
+  await page.getByRole('button',{name:'이미지 닫기'}).click();
+  const button=chat.locator('[data-chat-file-delete="customer-image"]');
+  await page.evaluate(()=>{window.__fixtureStorageDenied=true;});
+  await button.click(); await page.locator('#confirmActionBtn').click();
+  await expect(button).toBeEnabled();
+  expect(await page.evaluate(()=>window.__fixtureChatDeletes||[])).toEqual([]);
+  await page.evaluate(()=>{window.__fixtureStorageDenied=false;});
+  await button.click(); await page.locator('#confirmActionBtn').click();
+  await expect(button).toHaveCount(0);
+  expect(await page.evaluate(()=>window.__fixtureChatDeletes)).toEqual(['storage:quotes/chat-order/customer-image_고객.png','record:quotes/chat-order/messages/customer-image']);
+  await expect(chat.getByRole('button',{name:'이미지 크게 보기: 시안.png'})).toBeVisible();
+});
+test('customer sees chat pictures and proof image before approval',async({page})=>{
+  await chatFileFixture(page,'user');
+  await page.goto('/mypage.html',{waitUntil:'domcontentloaded'});
+  await page.locator('.view-details-btn[data-id="chat-order"]:visible').first().click();
+  const chat=page.locator('#chat-messages');
+  await expect(chat.locator('.chat-image-preview')).toHaveCount(2);
+  if(!await chat.locator('.chat-open-proof').isVisible()) await page.locator('#openSheetBtn').click();
+  await chat.locator('.chat-open-proof').click();
+  const proof=page.locator('#proof-list');
+  await expect(proof.locator('img[alt="시안.png"]')).toBeVisible();
+  await expect(proof.locator('.approve-proof-btn')).toBeVisible();
+  await proof.getByRole('button',{name:'이미지 크게 보기: 시안.png'}).click();
+  await expect(page.locator('.chat-image-dialog')).toBeVisible();
+  await page.getByRole('button',{name:'이미지 닫기'}).click();
 });
