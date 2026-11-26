@@ -64,7 +64,7 @@ async function fixture(page, role = 'admin', realSession = true) {
         return { exists: () => !!data, data: () => qnaData(data) };
       }
       if (path.startsWith('settings/') || path.startsWith('users/')) {
-        const data = path.startsWith('users/') ? { role: ${JSON.stringify(role)} } : path === 'settings/site' ? { maintenance: false } : null;
+        const data = path.startsWith('users/') ? { role: ${JSON.stringify(role)} } : path === 'settings/site' ? { maintenance: false } : (window.__fixtureSettings||{})[path] || null;
         return { exists: () => !!data, data: () => data || {} };
       }
       let items = path === 'quotes' ? (window.__fixtureQuotes || []) : path === 'qna' ? (window.__fixtureQna || []) : path === 'work_guides' ? (window.__fixtureWorkGuides || []) : path.endsWith('/messages') ? ((window.__fixtureChatMessages || {})[path] || []) : [];
@@ -95,7 +95,7 @@ async function fixture(page, role = 'admin', realSession = true) {
         : path.startsWith('quotes/') ? ((window.__fixtureQuotes || []).find(item => item.id === path.slice(7)) || null)
         : path === 'settings/site' ? { maintenance: false, maintenanceMessage: '기존 안내문', qnaApiV2: window.__fixtureSecureQna === true }
         : path === 'settings/print' ? { guideHtml: window.__fixtureGuideHtml || '' }
-        : path === 'settings/unitPriceConfig' ? (window.__fixtureUnitPriceConfig || null) : null;
+        : path === 'settings/unitPriceConfig' ? (window.__fixtureUnitPriceConfig || null) : (window.__fixtureSettings||{})[path] || null;
       return { exists: () => data !== null, data: () => data || {} };
     };
     export const onAuthStateChanged = (_, callback) => {
@@ -105,6 +105,7 @@ async function fixture(page, role = 'admin', realSession = true) {
     function write(path, data, options) {
       if (path.startsWith('qna/') && data.answerReadByCustomer === true && window.__fixtureRejectReceipts) throw new Error('fixture receipt permission denied');
       (window.__fixtureWrites ||= []).push({ path, data, options });
+      if(path.startsWith('settings/')){const settings=(window.__fixtureSettings||={});settings[path]={...(options?.merge?settings[path]:{}),...data};}
       if (path.startsWith('qna/')) {
         window.__fixtureQna = (window.__fixtureQna || []).map(item => item.id === path.slice(4) ? { ...item, ...data } : item);
         queueMicrotask(() => window.__fixtureEmitQna?.());
@@ -124,7 +125,7 @@ async function fixture(page, role = 'admin', realSession = true) {
       window.__fixtureChatMessages[collection]=(window.__fixtureChatMessages[collection]||[]).filter(m=>m.id!==id);
       (window.__fixtureSnapshotListeners||[]).forEach(fn=>queueMicrotask(fn));
     }, signOut = async () => {};
-    export const writeBatch = () => ({ update() {}, commit: async () => {} });
+    export const writeBatch = () => {const writes=[];return {update(path,data){writes.push({path,data,options:{merge:true}});},set(path,data,options){writes.push({path,data,options});},commit:async()=>{for(const item of writes)write(item.path,item.data,item.options);}};};
     export const ref = (_, fullPath) => ({ fullPath });
     export const uploadBytesResumable = (ref, file) => { (window.__fixtureUploads ||= []).push({ path: ref.fullPath, name: file.name, type: file.type }); return { snapshot: { ref }, on: (_, progress, fail, done) => queueMicrotask(done) }; };
     export const uploadBytes = async () => ({}), getDownloadURL = async () => '/favicon.ico';
@@ -1216,4 +1217,31 @@ test('digital output A3 and larger permitted sizes use the same configured A3 pr
   await expect(page.locator('#customH')).toHaveValue('480');
   await size.selectOption('A4');
   await expect(total).toHaveText('30,000원');
+});
+
+test('supplier account settings publish only the chosen account',async({page})=>{
+  await fixture(page);
+  await page.addInitScript(()=>{window.__fixtureSettings={'settings/companyInfo':{companyName:'테스트',accountNum:'111-222',accountHolder:'기존',bankName:'은행1'}};});
+  await page.goto('/admin.html',{waitUntil:'domcontentloaded'});
+  await choose(page,'company-info-btn');
+  const rows=page.locator('#company-account-list .company-account-row');
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first().locator('[data-account-field="accountNum"]')).toHaveValue('111-222');
+  await page.locator('#add-company-account').click();
+  const next=rows.nth(1);
+  await next.locator('[data-account-field="bankName"]').fill('은행2');
+  await next.locator('[data-account-field="accountNum"]').fill('333-444');
+  await next.locator('[data-account-field="accountHolder"]').fill('테스트');
+  await next.getByRole('radio').check();
+  await page.locator('#saveCompanyInfoBtn').click();
+  await expect(page.locator('#companyInfoModal')).toBeHidden();
+  const settings=await page.evaluate(()=>window.__fixtureSettings);
+  expect(settings['settings/companyBankAccounts'].accounts).toHaveLength(2);
+  expect(settings['settings/companyBankAccounts'].defaultIndex).toBe(1);
+  expect(settings['settings/companyInfo'].accountNum).toBe('333-444');
+  expect(settings['settings/companyInfo'].accounts).toBeUndefined();
+  expect(settings['settings/paymentGuide'].accountNumber).toBe('333-444');
+  await page.addInitScript(()=>{window.__fixtureSettings={'settings/companyInfo':{bankName:'은행2',accountNum:'333-444',accountHolder:'테스트',accountsManaged:true}};});
+  await page.goto('/index.html',{waitUntil:'domcontentloaded'});
+  await expect(page.locator('#home-bank-account-text')).toHaveText('은행2 333-444 (예금주: 테스트)');
 });
