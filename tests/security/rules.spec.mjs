@@ -166,3 +166,17 @@ test('email file notice is owner-reported and only admins can confirm receipt', 
   await seed({'quotes/order':quote({status:'주문취소',emailFileStatus:'planned'})});
   await assertFails(updateDoc(own,report));
 });
+
+test('studio public settings are readable but only admins can publish; private design drafts are not public',async()=>{
+ const publicDoc='settings/printStudio',privateDoc='settings/printStudioAdmin';
+ await assertSucceeds(setDoc(doc(db('admin'),publicDoc),{templates:[]}));
+ await assertSucceeds(setDoc(doc(db('admin'),privateDoc),{templates:[{enabled:false}]}));
+ await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(),publicDoc)));
+ await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(),privateDoc)));
+ await assertFails(getDoc(doc(db('customer'),privateDoc)));
+ await assertFails(setDoc(doc(db('customer'),publicDoc),{templates:[]}));
+ await assertFails(setDoc(doc(db('customer'),privateDoc),{templates:[]}));
+ const path='public/print-studio/templates/test-file.jpg';
+ await assertFails(uploadBytes(ref(env.authenticatedContext('customer').storage(),path),new Uint8Array([1,2,3]),{contentType:'image/jpeg'}));
+ await assertSucceeds(uploadBytes(ref(env.authenticatedContext('admin').storage(),path),new Uint8Array([1,2,3]),{contentType:'image/jpeg'}));
+});

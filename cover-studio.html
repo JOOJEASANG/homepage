@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>표지 만들기 | 그린오피스</title><link rel="icon" href="favicon.ico"><link rel="stylesheet" href="assets/css/print-studio.css?v=1"></head>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>표지 만들기 | 그린오피스</title><link rel="icon" href="favicon.ico"><link rel="stylesheet" href="assets/css/print-studio.css?v=3"></head>
 <body>
 <header class="studio-header"><a href="index.html" class="brand">그린오피스 <span>PRINT STUDIO</span></a><nav><a href="quote-book.html">책자·제본 견적</a><a href="index.html">홈으로</a></nav></header>
 <main id="cover-app" class="studio-app">
@@ -11,7 +11,7 @@
       <label>표지 구성<select id="mode"><option value="spread">무선제본 펼침 표지</option><option value="front">앞표지 한 장</option></select></label>
       <section id="spine-settings"><h2>02. 책등 계산</h2>
       <div class="field-grid"><label>내지 페이지 수<input id="pages" type="number" min="0" max="3000" step="1"></label><label>인쇄 방식<select id="sides"><option value="1">단면</option><option value="2">양면</option></select></label></div>
-      <div class="field-grid"><label>한 장 두께(mm)<input id="caliper" type="number" min=".03" max="1" step=".001"></label><label>제본 보정(mm)<input id="adjust" type="number" min="0" max="10" step=".1"></label></div>
+      <label>내지 용지<select id="paperPreset"><option value="">직접입력</option></select></label><div class="field-grid"><label>한 장 두께(mm)<input id="caliper" type="number" min=".03" max="1" step=".001"></label><label>제본 보정(mm)<input id="adjust" type="number" min="0" max="10" step=".1"></label></div>
       <label>책등 방식<select id="spineMode"><option value="auto">자동 계산</option><option value="manual">직접입력</option></select></label><label>직접 책등(mm)<input id="manualSpine" type="number" min="0" max="200" step=".01"></label>
       <div class="measure"><span>내지 <strong id="sheet-count">-</strong>장</span><span>책등 <strong id="spine-width">-</strong>mm</span></div><p class="muted">실제 종이 두께 및 제본 후 두께는 매장 확인이 필요합니다.</p></section>
       <h2>03. 인쇄 여백</h2><div class="field-grid"><label>도련(mm)<input id="bleed" type="number" min="0" max="10" step=".5"></label><label>안전 여백(mm)<input id="margin" type="number" min="0" max="30" step=".5"></label></div>
@@ -34,4 +34,4 @@
       <p class="muted">편집 파일은 브라우저에서만 처리합니다. 현재 단계에서는 직접 접수 연동 없이 PDF를 만든 뒤 기존 견적 페이지에서 첨부할 수 있습니다.</p>
     </aside>
   </div><p id="studio-status" class="status" role="status" aria-live="polite"></p>
-</main><div id="print-output" aria-hidden="true"></div><script type="module" src="assets/js/pages/print-studio/cover.js?v=1"></script></body></html>
+</main><div id="print-output" aria-hidden="true"></div><script type="module" src="assets/js/pages/print-studio/cover.js?v=3"></script></body></html>

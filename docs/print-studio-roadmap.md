@@ -8,6 +8,6 @@
 ## Stage 2
 - Implemented: PDF/image local inspection, independent sides/pages, actual/fit scale, rotation, centered repeated grid, bleed/safe/trim guides, half/Z/roll folds with mirrored panel widths, warnings. PDF.js 4.10.38 loaded from pinned CDN only for PDF. Image DPI is user-set assumption; PDF page view is not automatic TrimBox/BleedBox analysis. Preview is not a printable imposed export. Original files stay in browser; PDF engine real-file validation and PC/mobile checks pending.
 ## Stage 3
-- Admin design assets, real paper caliper presets, safe defaults and access control.
+- Implemented administrator-only configuration, private drafts and public projection, custom JPG/PNG designs (original bytes), visibility controls and deletion retry, real measured paper caliper presets, additional output sheet presets, default bleed/safe margins/fold compensation, editor consumption. Hidden assets are unlisted rather than access-revoked until deleted. Production rules and real uploads remain unverified.
 ## Stage 4
 - Order attachment handoff and final PDF export/verification, desktop/mobile tests, publication.

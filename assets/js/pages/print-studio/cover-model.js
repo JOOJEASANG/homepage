@@ -21,11 +21,11 @@ export function defaultCover(){
     {id:'spine',face:'spine',text:'2026 교육 결과보고서',font:'sans',size:10,color:'#173c31',align:'center',bold:false,x:50,y:50,lineHeight:1.25}
   ]};
 }
-export function normalizeCover(raw){
+export function normalizeCover(raw,availableTemplates=TEMPLATES){
   if(!raw||raw.version!==1||!Array.isArray(raw.layers)||raw.layers.length>60)throw Error('지원하지 않는 편집 파일입니다.');
   const d=defaultCover(),s={...d,...raw};s.mode=raw.mode==='front'?'front':'spread';s.size=Object.hasOwn(PAPER_SIZES,raw.size)?raw.size:'CUSTOM';s.spineMode=raw.spineMode==='manual'?'manual':'auto';
   if(s.size!=='CUSTOM') [s.width,s.height]=PAPER_SIZES[s.size];
-  for(const key of ['frontTemplate','backTemplate'])s[key]=TEMPLATES.includes(s[key])?s[key]:'plain';
+  for(const key of ['frontTemplate','backTemplate']){if(String(s[key]).startsWith('custom-')&&!availableTemplates.includes(s[key]))throw Error('편집 파일의 등록 디자인을 사용할 수 없습니다. 관리자에게 문의해 주세요.');s[key]=availableTemplates.includes(s[key])?s[key]:'plain';}
   s.spineColor=/^#[0-9a-f]{6}$/i.test(s.spineColor)?s.spineColor:d.spineColor;
   const ids=new Set();
   s.layers=raw.layers.map((l,i)=>{let id=String(l.id||'layer-'+i);if(ids.has(id))id='layer-'+i+'-'+ids.size;ids.add(id);return {id,face:['front','back','spine'].includes(l.face)?l.face:'front',text:String(l.text||'').slice(0,1200),font:Object.hasOwn(FONTS,l.font)?l.font:'sans',size:num(l.size,4,120,'글자 크기'),color:/^#[0-9a-f]{6}$/i.test(l.color)?l.color:'#222222',align:['left','center','right'].includes(l.align)?l.align:'center',bold:!!l.bold,x:num(l.x,0,100,'가로 위치'),y:num(l.y,0,100,'세로 위치'),lineHeight:num(l.lineHeight??1.25,.8,3,'줄 간격')};});

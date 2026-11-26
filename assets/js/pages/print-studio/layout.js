@@ -1,6 +1,8 @@
 import {layoutGeometry,sourcePlacement,mmRound} from './layout-model.js';
 import {openSource,renderSource} from './layout-source.js';
 const $=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg';
+import {loadStudioSettings} from './settings-client.js';
+let touched=false;
 const defaults={sheetW:330,sheetH:480,trimW:297,trimH:210,bleed:3,margin:5,cols:1,rows:2,gapX:3,gapY:3,edge:3,fold:'none',direction:'right',compensation:3,fit:'actual',rotation:0,imageDpi:300};
 const fields=Object.keys(defaults).filter(k=>!['fit','rotation','imageDpi'].includes(k));
 let s={...defaults},face='front';
@@ -63,5 +65,8 @@ $('fit').onchange=()=>{slots[face].fit=$('fit').value;draw();};
 $('rotation').onchange=()=>{slots[face].rotation=Number($('rotation').value);draw();};
 $('imageDpi').onchange=()=>{const n=Number($('imageDpi').value);if(!Number.isFinite(n)||n<36||n>2400){status('DPI는 36~2400 범위로 입력하세요.');draw();return;}slots[face].dpi=n;void refresh(face);};
 for(const id of ['show-trim','show-safe','show-fold'])$(id).onchange=draw;
-$('layout-reset').onclick=()=>{s={...defaults};for(const a of Object.values(slots)){a.fit='actual';a.rotation=0;}draw();};
+$('layout-reset').onclick=()=>{touched=true;s={...defaults};for(const a of Object.values(slots)){a.fit='actual';a.rotation=0;}draw();};
 draw();
+
+for(const type of ['input','change','click'])document.querySelector('main').addEventListener(type,()=>{touched=true;},{capture:true});
+void loadStudioSettings().then(settings=>{if(!settings)return;Object.assign(defaults,settings.layout);const select=$('sheetPreset');for(const p of settings.sheets){const value=p.width+','+p.height;if([...select.options].some(o=>o.value===value))continue;const option=document.createElement('option');option.value=value;option.textContent=p.name+' ('+p.width+'×'+p.height+'mm)';select.insertBefore(option,select.lastElementChild);}if(!touched)Object.assign(s,settings.layout);draw();});
