@@ -4,10 +4,12 @@ import { createHash } from 'node:crypto';
 
 // Exercise the real admin and guide modules without touching customer or site data.
 async function fixture(page, role = 'admin', realSession = true) {
-  await page.addInitScript(() => {
-    localStorage.setItem('userRole', 'admin');
+  await page.addInitScript(role => {
+    if(role==='admin')localStorage.setItem('userRole','admin');
+    else if(role==='user'){localStorage.setItem('userRole','user');sessionStorage.setItem('userRole','user');}
+    else {localStorage.removeItem('userRole');sessionStorage.removeItem('userRole');}
     window.Sortable = class { destroy() {} };
-  });
+  },role);
   const js = body => ({ contentType: 'application/javascript', body });
   await page.route('**/assets/js/maintenance-check.js*', route => route.fulfill(js('')));
   await page.route('**/assets/js/header.js*', route => route.fulfill(js('export function initHeader() {}')));

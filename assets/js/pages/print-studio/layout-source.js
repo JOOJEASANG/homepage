@@ -1,5 +1,6 @@
 // Pinned PDF.js version, loaded only when a PDF is selected. The file stays in browser memory.
-const PDF_BASE='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/';
+const PDF_ROOT='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/';
+const PDF_BASE=PDF_ROOT+'build/';
 let engine;
 async function pdfEngine(){
   if(!engine)engine=import(PDF_BASE+'pdf.min.mjs').then(pdf=>{pdf.GlobalWorkerOptions.workerSrc=PDF_BASE+'pdf.worker.min.mjs';return pdf;}).catch(e=>{engine=null;throw Error('PDF 미리보기 모듈을 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.');});
@@ -10,7 +11,7 @@ export async function openSource(file){
   const ext=file.name.split('.').pop().toLowerCase();
   if(ext==='pdf'){
     const pdf=await pdfEngine();
-    const doc=await pdf.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false,enableXfa:false,disableFontFace:false,stopAtErrors:true}).promise;
+    const doc=await pdf.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false,enableXfa:false,disableFontFace:false,stopAtErrors:true,cMapUrl:PDF_ROOT+'cmaps/',cMapPacked:true,standardFontDataUrl:PDF_ROOT+'standard_fonts/'}).promise;
     return {kind:'pdf',doc,name:file.name,pages:doc.numPages};
   }
   if(!['jpg','jpeg','png','webp'].includes(ext))throw Error('PDF, JPG, PNG, WebP 파일을 선택해 주세요.');
