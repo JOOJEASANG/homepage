@@ -19,7 +19,7 @@ export function loadAccountList(privateData, company={},payment={}) {
   const legacy=normalizeAccount(company);
   const guide=normalizeAccount(payment);
   const a=legacy.accountNum?{...legacy,bankName:legacy.bankName||(legacy.accountNum===guide.accountNum?guide.bankName:'')}:guide;
-  const accounts=a.accountNum||a.accountHolder&&legacy.accountHolder?[a]:[];
+  const accounts=a.accountNum||legacy.accountHolder?[a]:[];
   return {accounts,defaultIndex:accounts.length?0:-1};
 }
 export function prepareAccountSave(rows,defaultIndex) {

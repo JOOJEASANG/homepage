@@ -1217,6 +1217,16 @@ test('digital output A3 and larger permitted sizes use the same configured A3 pr
   await expect(page.locator('#customH')).toHaveValue('480');
   await size.selectOption('A4');
   await expect(total).toHaveText('30,000원');
+  for(const preset of ['A5','B5']){await size.selectOption(preset);await expect(total).toHaveText('30,000원');}
+  await size.selectOption('CUSTOM');
+  await page.locator('#customW').fill('215');
+  await page.locator('#customH').fill('300');
+  await expect(total).toHaveText('30,000원');
+  await expect(page.locator('#breakdown')).toContainText('→ A4');
+  await page.locator('#customW').fill('260');
+  await page.locator('#customH').fill('360');
+  await expect(total).toHaveText('67,500원');
+  await expect(page.locator('#breakdown')).toContainText('→ B4');
 });
 
 test('supplier account settings publish only the chosen account',async({page})=>{
