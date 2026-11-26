@@ -64,12 +64,7 @@ async function fixture(page, role = 'admin', realSession = true) {
         return { exists: () => !!data, data: () => qnaData(data) };
       }
       if (path.startsWith('settings/') || path.startsWith('users/')) {
-        if (path.includes('/messages/')) {
-        const parts=path.split('/'); const id=parts.pop();
-        const data=((window.__fixtureChatMessages || {})[parts.join('/')] || []).find(item=>item.id===id);
-        return {exists:()=>!!data,data:()=>data||{}};
-      }
-      const data = path.startsWith('users/') ? { role: ${JSON.stringify(role)} } : path === 'settings/site' ? { maintenance: false } : null;
+        const data = path.startsWith('users/') ? { role: ${JSON.stringify(role)} } : path === 'settings/site' ? { maintenance: false } : null;
         return { exists: () => !!data, data: () => data || {} };
       }
       let items = path === 'quotes' ? (window.__fixtureQuotes || []) : path === 'qna' ? (window.__fixtureQna || []) : path === 'work_guides' ? (window.__fixtureWorkGuides || []) : path.endsWith('/messages') ? ((window.__fixtureChatMessages || {})[path] || []) : [];
@@ -91,6 +86,11 @@ async function fixture(page, role = 'admin', realSession = true) {
     export const getDoc = async path => {
       (window.__fixtureReads ||= []).push(path);
       if (path.startsWith('qna/')) return snapshotFor(path);
+      if (path.includes('/messages/')) {
+        const parts=path.split('/'), id=parts.pop();
+        const data=((window.__fixtureChatMessages || {})[parts.join('/')] || []).find(item=>item.id===id);
+        return {exists:()=>!!data,data:()=>data||{}};
+      }
       const data = path.startsWith('users/') ? { role: ${JSON.stringify(role)} }
         : path.startsWith('quotes/') ? ((window.__fixtureQuotes || []).find(item => item.id === path.slice(7)) || null)
         : path === 'settings/site' ? { maintenance: false, maintenanceMessage: '기존 안내문', qnaApiV2: window.__fixtureSecureQna === true }
@@ -129,6 +129,7 @@ async function fixture(page, role = 'admin', realSession = true) {
     export const uploadBytesResumable = (ref, file) => { (window.__fixtureUploads ||= []).push({ path: ref.fullPath, name: file.name, type: file.type }); return { snapshot: { ref }, on: (_, progress, fail, done) => queueMicrotask(done) }; };
     export const uploadBytes = async () => ({}), getDownloadURL = async () => '/favicon.ico';
     export const listAll = async () => ({ items: [] }), deleteObject = async ref => {
+      (window.__fixtureStorageDeleteAttempts ||= []).push(ref.fullPath);
       if(window.__fixtureStorageDenied) throw Object.assign(Error('denied'),{code:'storage/unauthorized'});
       (window.__fixtureChatDeletes ||= []).push('storage:'+ref.fullPath);
     };
@@ -1130,8 +1131,11 @@ test('admin can preview chat images and delete a customer attachment from storag
   const chat=page.locator('#chat-messages');
   await expect(chat.locator('.chat-image-preview')).toHaveCount(2);
   const preview=chat.getByRole('button',{name:'이미지 크게 보기: 고객.png'});
-  // The responsive consultation sheet can be collapsed on phones.
-  if(!await preview.isVisible()) await page.locator('#openSheetBtn').click();
+  // Offscreen translated panels can be "visible" to Playwright; actually open the sheet.
+  if (await page.evaluate(()=>matchMedia('(max-width: 768px)').matches)) {
+    await page.locator('#openSheetBtn').click();
+    await expect(page.locator('#modalSide')).toHaveClass(/sheet-open/);
+  }
   await preview.click();
   await expect(page.locator('.chat-image-dialog')).toBeVisible();
   await page.getByRole('button',{name:'이미지 닫기'}).click();
@@ -1140,6 +1144,7 @@ test('admin can preview chat images and delete a customer attachment from storag
   await button.click(); await page.locator('#confirmActionBtn').click();
   await expect(button).toBeEnabled();
   expect(await page.evaluate(()=>window.__fixtureChatDeletes||[])).toEqual([]);
+  expect(await page.evaluate(()=>window.__fixtureStorageDeleteAttempts||[])).toEqual(['quotes/chat-order/customer-image_고객.png']);
   await page.evaluate(()=>{window.__fixtureStorageDenied=false;});
   await button.click(); await page.locator('#confirmActionBtn').click();
   await expect(button).toHaveCount(0);
@@ -1152,7 +1157,10 @@ test('customer sees chat pictures and proof image before approval',async({page})
   await page.locator('.view-details-btn[data-id="chat-order"]:visible').first().click();
   const chat=page.locator('#chat-messages');
   await expect(chat.locator('.chat-image-preview')).toHaveCount(2);
-  if(!await chat.locator('.chat-open-proof').isVisible()) await page.locator('#openSheetBtn').click();
+  if (await page.evaluate(()=>matchMedia('(max-width: 768px)').matches)) {
+    await page.locator('#openSheetBtn').click();
+    await expect(page.locator('#modalSide')).toHaveClass(/sheet-open/);
+  }
   await chat.locator('.chat-open-proof').click();
   const proof=page.locator('#proof-list');
   await expect(proof.locator('img[alt="시안.png"]')).toBeVisible();
