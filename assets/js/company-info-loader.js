@@ -22,6 +22,7 @@ function pickCompanyValue(info, key) {
     address: data.address || '',
     bizCategory: data.bizCategory || '',
     bizType: data.bizType || '',
+    bankName: data.bankName || '',
     accountNum: data.accountNum || '',
     accountHolder: data.accountHolder || '',
     tel: formatPhone(data.tel || data.phone || data.contact || ''),

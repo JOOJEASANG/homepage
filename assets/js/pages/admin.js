@@ -19,6 +19,7 @@ import { app, auth, db, storage, onAuthStateChanged, signOut,
          limit, where, ref, uploadBytesResumable, getDownloadURL, deleteObject, runTransaction,
 } from "../firebase.js";
 import { initHeader } from "../header.js";
+import { loadAccountList, prepareAccountSave } from "./shared/company-accounts.js";
 import "../session.js";
 import { validateUploadFiles } from "../file-upload-policy.js";
 import { activateAdminWorkspace, initAdminWorkspaceNavigation } from "./admin/price-workspace.js";
@@ -788,11 +789,36 @@ if ((printOptionMaps.leaflet && printOptionMaps.leaflet[key]) ||
             
             return value ? value.replace(/_/g, ' ') : '-';
         }
-// 회사 정보 불러오기 및 모달 열기
+// Account rows are private; the current selection is mirrored to public settings atomically.
+    function appendCompanyAccountRow(account={}, selected=false) {
+        const list=document.getElementById('company-account-list');
+        const row=document.createElement('div');
+        row.className='company-account-row rounded-xl border border-slate-200 p-3 space-y-2';
+        row.innerHTML='<div class="flex items-center justify-between gap-2"><label class="flex items-center gap-2 text-sm font-bold"><input type="radio" name="defaultCompanyAccount" class="accent-emerald-600"> 기본 계좌</label><button type="button" data-remove-account class="text-xs text-red-600 px-2 py-1" aria-label="계좌 삭제">삭제</button></div><div class="grid grid-cols-1 sm:grid-cols-3 gap-2"><label class="text-xs font-bold text-slate-500">은행명<input data-account-field="bankName" class="form-input w-full mt-1" type="text" maxlength="50"></label><label class="text-xs font-bold text-slate-500">계좌번호<input data-account-field="accountNum" class="form-input w-full mt-1" type="text" maxlength="80"></label><label class="text-xs font-bold text-slate-500">예금주<input data-account-field="accountHolder" class="form-input w-full mt-1" type="text" maxlength="80"></label></div>';
+        for(const key of ['bankName','accountNum','accountHolder'])row.querySelector('[data-account-field="'+key+'"]').value=account[key]||'';
+        list.append(row);
+        row.querySelector('input[type="radio"]').checked=selected||!list.querySelector('input[type="radio"]:checked');
+        row.querySelector('[data-remove-account]').onclick=()=>{
+            row.remove();
+            if(!list.querySelector('input[type="radio"]:checked')){const first=list.querySelector('input[type="radio"]');if(first)first.checked=true;}
+        };
+    }
+    function renderCompanyAccounts(data) {
+        document.getElementById('company-account-list').replaceChildren();
+        data.accounts.forEach((a,i)=>appendCompanyAccountRow(a,i===data.defaultIndex));
+    }
+    function collectCompanyAccounts() {
+        const rows=[...document.querySelectorAll('#company-account-list .company-account-row')];
+        return prepareAccountSave(rows.map(row=>Object.fromEntries([...row.querySelectorAll('[data-account-field]')].map(input=>[input.dataset.accountField,input.value]))), rows.findIndex(row=>row.querySelector('input[type="radio"]').checked));
+    }
+    document.getElementById('add-company-account')?.addEventListener('click',()=>appendCompanyAccountRow());
+    // 회사 정보 불러오기 및 모달 열기
     async function openCompanyInfoModal() {
         try {
             const docRef = doc(db, "settings", "companyInfo");
-            const docSnap = await getDoc(docRef);
+            const [docSnap,privateSnap,paymentSnap] = await Promise.all([getDoc(docRef),getDoc(doc(db,"settings","companyBankAccounts")),getDoc(doc(db,"settings","paymentGuide"))]);
+            companyInfoCache=docSnap.exists()?docSnap.data():{};
+            renderCompanyAccounts(loadAccountList(privateSnap.exists()?privateSnap.data():null,companyInfoCache,paymentSnap.exists()?paymentSnap.data():{}));
 
             // 데이터가 있으면 캐시에 저장하고 폼에 입력
             if (docSnap.exists()) {
@@ -800,11 +826,11 @@ if ((printOptionMaps.leaflet && printOptionMaps.leaflet[key]) ||
                 const form = document.getElementById('company-info-form');
                 
                 // 데이터 채우기 (ID 기반 매핑)
-                const fields = ['bizNum', 'companyName', 'ceoName', 'address', 'bizCategory', 'bizType', 'accountNum', 'accountHolder', 'tel', 'fax'];
+                const fields = ['bizNum', 'companyName', 'ceoName', 'address', 'bizCategory', 'bizType', 'tel', 'fax'];
                 fields.forEach(key => {
                     const input = document.getElementById(key);
-                    if (input && companyInfoCache[key]) {
-                        input.value = companyInfoCache[key];
+                    if (input) {
+                        input.value = companyInfoCache[key] || '';
                     }
                 });
                 
@@ -836,6 +862,8 @@ if ((printOptionMaps.leaflet && printOptionMaps.leaflet[key]) ||
             : document.getElementById('company-info-form');
         const sealFile = document.getElementById('companySealFile').files[0];
         
+        let accountSave;
+        try { accountSave=collectCompanyAccounts(); } catch(error) { showToast(error.message,'error'); return; }
         // 폼 데이터 수집
         const updatedInfo = {
             bizNum: document.getElementById('bizNum').value,
@@ -844,8 +872,7 @@ if ((printOptionMaps.leaflet && printOptionMaps.leaflet[key]) ||
             address: document.getElementById('address').value,
             bizCategory: document.getElementById('bizCategory').value,
             bizType: document.getElementById('bizType').value,
-            accountNum: document.getElementById('accountNum').value,
-            accountHolder: document.getElementById('accountHolder').value,
+            ...accountSave.publicData,
             tel: document.getElementById('tel').value,
             fax: document.getElementById('fax').value,
         };
@@ -875,7 +902,11 @@ if ((printOptionMaps.leaflet && printOptionMaps.leaflet[key]) ||
     updatedInfo.sealUrl = companyInfoCache.sealUrl;
 }
 
-            await setDoc(doc(db, "settings", "companyInfo"), updatedInfo, { merge: true });
+            const batch=writeBatch(db);
+            batch.set(doc(db,"settings","companyBankAccounts"),accountSave.privateData);
+            batch.set(doc(db,"settings","companyInfo"),updatedInfo,{merge:true});
+            batch.set(doc(db,"settings","paymentGuide"),accountSave.paymentData,{merge:true});
+            await batch.commit();
             companyInfoCache = updatedInfo; // 캐시 업데이트
             showToast("회사 정보가 저장되었습니다.", "success");
             DOMElements.companyInfoModal.classList.add('hidden');

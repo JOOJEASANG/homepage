@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {loadAccountList,prepareAccountSave,accountText} from '../assets/js/pages/shared/company-accounts.js';
+const old=loadAccountList(null,{accountNum:'123',accountHolder:'기존'},{accountNumber:'123',bankName:'은행'});
+assert.equal(old.accounts[0].bankName,'은행');
+const result=prepareAccountSave([...old.accounts,{bankName:'다른은행',accountNum:'456',accountHolder:'대표'}],1);
+assert.equal(result.privateData.accounts.length,2);
+assert.equal(result.publicData.accountNum,'456');
+assert.equal(result.publicData.accounts,undefined);
+assert.equal(result.paymentData.accountNumber,'456');
+assert.equal(accountText(result.publicData),'다른은행 456 (예금주: 대표)');
+assert.equal(prepareAccountSave([],0).publicData.accountNum,'');
+assert.throws(()=>prepareAccountSave([{bankName:'은행'}],0),/입력/);
+assert.deepEqual(loadAccountList({accounts:[],defaultIndex:-1},{accountNum:'123'}).accounts,[]);
+console.log('private account list and selected public account passed');
+
+assert.equal(loadAccountList(null,{accountNum:'111',accountHolder:'기존'},{accountNumber:'222',accountHolder:'다른'}).accounts.length,2);

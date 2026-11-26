@@ -20,6 +20,7 @@ import { app, auth, db, storage,
          getDownloadURL, deleteObject,
 } from "../firebase.js";
 import { initHeader } from "../header.js";
+import { accountText } from "./shared/company-accounts.js";
 import { requestGuestAccess } from "../guest-access-v2.js";
 import "../overlays.js";
 import "../session.js";
@@ -518,10 +519,9 @@ try { window.auth = auth; } catch(e) {}
                 const docSnap = await getDoc(doc(db, "settings", "companyInfo"));
                 if (docSnap.exists()) {
                     companyInfoCache = docSnap.data();
-                    if(companyInfoCache.accountNum && companyInfoCache.accountHolder) {
-                        DOMElements.accountDetails.textContent = `${companyInfoCache.accountNum} (예금주: ${companyInfoCache.accountHolder})`;
-                        DOMElements.paymentInfoFooter.classList.remove('hidden');
-                    }
+                    const account=accountText(companyInfoCache);
+                    DOMElements.accountDetails.textContent=account;
+                    DOMElements.paymentInfoFooter.classList.toggle('hidden',!account);
                 }
             } catch (e) { console.error("Error fetching company info:", e); }
         }
