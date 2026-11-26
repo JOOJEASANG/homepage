@@ -12,7 +12,7 @@ function svg(tag,attrs={},content){const n=document.createElementNS(NS,tag);for(
 function snapshot(){touched=true;history.push(copy(state));if(history.length>80)history.shift();future=[];}
 function change(fn){snapshot();fn();render();}
 function syncControls(){for(const k of fields)$(k).value=state[k];$('paperPreset').value=String(paperOptions.findIndex(p=>p.caliper===Number(state.caliper)));if($('paperPreset').selectedIndex<0)$('paperPreset').value='';$('width').disabled=$('height').disabled=state.size!=='CUSTOM';$('manualSpine').disabled=state.spineMode!=='manual';$('spine-settings').hidden=state.mode==='front';$('backTemplate').disabled=$('spineColor').disabled=state.mode==='front';}
-function art(parent,key,x,y,w,h){const source=assets.get(key);const n=svg('svg',{x,y,width:w,height:h,viewBox:'0 0 210 297',preserveAspectRatio:'none'});if(source?.url)n.append(svg('image',{href:source.url,width:210,height:297,preserveAspectRatio:'xMidYMid slice'}));else if(source)for(const child of source.children)n.append(document.importNode(child,true));else n.append(svg('rect',{width:210,height:297,fill:'#fff'}));parent.append(n);}
+function art(parent,key,x,y,w,h){const source=assets.get(key);if(source?.url){parent.append(svg('image',{href:source.url,x,y,width:w,height:h,preserveAspectRatio:'xMidYMid slice'}));return;}const n=svg('svg',{x,y,width:w,height:h,viewBox:'0 0 210 297',preserveAspectRatio:'none'});if(source)for(const child of source.children)n.append(document.importNode(child,true));else n.append(svg('rect',{width:210,height:297,fill:'#fff'}));parent.append(n);}
 function drawText(root,l,r){
  if(!r||r.w<=0||!l.text)return;
  const x=r.x+r.w*l.x/100,y=r.y+r.h*l.y/100,mm=l.size*25.4/72;
@@ -37,7 +37,7 @@ function render(){
     try{let box=el.getBBox();if(layer.face==='spine'){const mm=layer.size*25.4/72;if(mm*1.2>r.w||box.width>r.h-2*g.m)warnings.push('책등 문자 크기 또는 길이를 확인하세요.');}else if(box.x<r.x+g.m||box.y<r.y+g.m||box.x+box.width>r.x+r.w-g.m||box.y+box.height>r.y+r.h-g.m)warnings.push(faces[layer.face]+' 문자 안전 여백을 확인하세요.');}catch{}
   }
   if($('show-guides').checked){guide(root,{x:b,y:b,w:g.trimWidth,h:g.h},'#dc2626');for(const r of [g.front,g.back])if(r)guide(root,{x:r.x+g.m,y:r.y+g.m,w:r.w-2*g.m,h:r.h-2*g.m},'#16a34a');guide(root,g.spineRect,'#2563eb');}
-  for(const [key,r] of [[state.frontTemplate,g.front],[state.backTemplate,g.back]]){const image=assets.get(key);if(r&&image?.url){const dpi=Math.min(image.width/(r.w+g.b)/.03937007874,image.height/g.totalHeight/.03937007874);if(dpi<300)warnings.push('등록 디자인의 예상 해상도가 300dpi 미만입니다.');}}
+  for(const [key,r] of [[state.frontTemplate,g.front],[state.backTemplate,g.back]]){const image=assets.get(key);if(r&&image?.url){const dpi=25.4*Math.min(image.width/(r.w+(g.back?g.b:2*g.b)),image.height/g.totalHeight);if(dpi<300)warnings.push('등록 디자인의 예상 해상도가 300dpi 미만입니다.');}}
   $('cover-warning').textContent=[...new Set(warnings)].join('\n');$('print-cover').disabled=!ready||![state.frontTemplate,...(g.back?[state.backTemplate]:[])].every(key=>assets.has(key));
   const layers=$('layer-list');layers.replaceChildren();
   for(const l of state.layers.filter(l=>state.mode==='spread'||l.face==='front')){const button=document.createElement('button');button.type='button';button.textContent=faces[l.face]+' · '+(l.text.split('\n')[0]||'(빈 문자)');button.setAttribute('aria-pressed',String(selected===l.id));button.onclick=()=>{selected=l.id;render();};layers.append(button);}

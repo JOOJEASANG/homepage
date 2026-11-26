@@ -2,7 +2,7 @@ import {auth,db,storage,onAuthStateChanged,doc,getDoc,runTransaction,ref,uploadB
 import {BUILTIN_NAMES,normalizeStudioSettings,publicStudioSettings,validatePresetRows,validTemplatePath} from './settings-model.js';
 const $=id=>document.getElementById(id),form=$('studio-settings-form'),button=$('studio-save');
 const privateRef=doc(db,'settings','printStudioAdmin'),publicRef=doc(db,'settings','printStudio');
-let revision=0,authEpoch=0,adminUid='',busy=false,originalPaths=[],pending=[],designs=[];
+let revision=0,authEpoch=0,adminUid='',busy=false,originalPaths=[],pending=[],designs=[],stagedPaths=[];
 const status=t=>$('admin-studio-status').textContent=t;
 const trim=v=>String(v||'').trim();
 function control(tag,attrs={}){const n=document.createElement(tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);return n;}
@@ -68,18 +68,19 @@ async function save(){
   try{
     for(const t of designs)if(t.file){const id=crypto.randomUUID(),path='public/print-studio/templates/'+id+(t.file.type==='image/png'?'.png':'.jpg');const dest=ref(storage,path);
       await uploadBytes(dest,t.file,{contentType:t.file.type});let url;try{url=await getDownloadURL(dest);}catch(e){try{await deleteObject(dest);}catch{}throw e;}
-      Object.assign(t,{id:'custom-'+id,path,url,file:null});}
+      stagedPaths.push(path);Object.assign(t,{id:'custom-'+id,path,url,file:null});}
     data.templates=designs.map(({id,name,category,url,path,width,height,enabled})=>({id,name,category,url,path,width,height,enabled}));
     const normalized=normalizeStudioSettings(data);
     if(normalized.templates.length!==designs.length)throw Error('저장할 디자인 파일의 주소를 확인하지 못했습니다.');
-    const nextPaths=normalized.templates.map(t=>t.path),nextPending=[...new Set([...pending,...originalPaths.filter(p=>!nextPaths.includes(p))])].filter(p=>!nextPaths.includes(p));
+    const nextPaths=normalized.templates.map(t=>t.path),nextPending=[...new Set([...pending,...originalPaths.filter(p=>!nextPaths.includes(p)),...stagedPaths.filter(p=>!nextPaths.includes(p))])].filter(p=>!nextPaths.includes(p));
     await runTransaction(db,async tx=>{const snap=await tx.get(privateRef);if((Number(snap.exists()?snap.data().revision:0)||0)!==revision)throw Error('다른 관리자에서 설정을 변경했습니다. 새로 열어 확인해 주세요.');tx.set(privateRef,{...normalized,revision:revision+1,pendingCleanup:nextPending});tx.set(publicRef,publicStudioSettings(normalized));});
-    revision++;originalPaths=nextPaths;pending=nextPending;status('설정이 저장되었습니다. 고객 화면을 새로 열면 반영됩니다.');
+    revision++;originalPaths=nextPaths;pending=nextPending;stagedPaths=[];status('설정이 저장되었습니다. 고객 화면을 새로 열면 반영됩니다.');
     try{await cleanup(pending);}catch{ $('cleanup-status').textContent='파일 정리 기록 갱신 실패. 다음 저장에서 재시도합니다.'; }
-  }catch(e){status('저장 실패: '+(e?.message||'다시 시도해 주세요.'));}
+  }catch(e){status('저장 실패: '+(e?.message||'다시 시도해 주세요.')+(stagedPaths.length?' · 업로드된 파일이 있으므로 창을 닫지 말고 다시 저장해 주세요.':''));}
   finally{busy=false;form.inert=false;button.disabled=!adminUid;}
 }
 $('add-paper').onclick=()=>addPreset('paper');$('add-sheet').onclick=()=>addPreset('sheet');$('add-design').onclick=()=>addDesign();
+window.addEventListener('beforeunload',event=>{if(busy||stagedPaths.length){event.preventDefault();event.returnValue='';}});
 button.onclick=save;form.onsubmit=e=>{e.preventDefault();void save();};
 onAuthStateChanged(auth,async user=>{const epoch=++authEpoch;adminUid='';button.disabled=true;form.hidden=true;
   try{if(!user||user.isAnonymous)throw Error('관리자 로그인이 필요합니다.');const role=await getDoc(doc(db,'users',user.uid));if(!role.exists()||role.data().role!=='admin')throw Error('관리자 권한이 필요합니다.');
