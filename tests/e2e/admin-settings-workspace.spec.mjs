@@ -1231,7 +1231,10 @@ test('digital output A3 and larger permitted sizes use the same configured A3 pr
 
 test('supplier account settings publish only the chosen account',async({page})=>{
   await fixture(page);
-  await page.addInitScript(()=>{window.__fixtureSettings={'settings/companyInfo':{companyName:'테스트',accountNum:'111-222',accountHolder:'기존',bankName:'은행1'}};});
+  await page.addInitScript(()=>{
+    const home=location.pathname==='/index.html';
+    window.__fixtureSettings={'settings/companyInfo':home?{bankName:'은행2',accountNum:'333-444',accountHolder:'테스트',accountsManaged:true}:{companyName:'테스트',accountNum:'111-222',accountHolder:'기존',bankName:'은행1'}};
+  });
   await page.goto('/admin.html',{waitUntil:'domcontentloaded'});
   await choose(page,'company-info-btn');
   const rows=page.locator('#company-account-list .company-account-row');
@@ -1251,7 +1254,6 @@ test('supplier account settings publish only the chosen account',async({page})=>
   expect(settings['settings/companyInfo'].accountNum).toBe('333-444');
   expect(settings['settings/companyInfo'].accounts).toBeUndefined();
   expect(settings['settings/paymentGuide'].accountNumber).toBe('333-444');
-  await page.addInitScript(()=>{window.__fixtureSettings={'settings/companyInfo':{bankName:'은행2',accountNum:'333-444',accountHolder:'테스트',accountsManaged:true}};});
   await page.goto('/index.html',{waitUntil:'domcontentloaded'});
   await expect(page.locator('#home-bank-account-text')).toHaveText('은행2 333-444 (예금주: 테스트)');
 });
