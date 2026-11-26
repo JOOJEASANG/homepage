@@ -12,3 +12,5 @@ assert.equal(prepareAccountSave([],0).publicData.accountNum,'');
 assert.throws(()=>prepareAccountSave([{bankName:'은행'}],0),/입력/);
 assert.deepEqual(loadAccountList({accounts:[],defaultIndex:-1},{accountNum:'123'}).accounts,[]);
 console.log('private account list and selected public account passed');
+
+assert.equal(loadAccountList(null,{accountNum:'111',accountHolder:'기존'},{accountNumber:'222',accountHolder:'다른'}).accounts.length,2);

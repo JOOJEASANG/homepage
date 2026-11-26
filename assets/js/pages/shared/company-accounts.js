@@ -18,8 +18,10 @@ export function loadAccountList(privateData, company={},payment={}) {
   }
   const legacy=normalizeAccount(company);
   const guide=normalizeAccount(payment);
-  const a=legacy.accountNum?{...legacy,bankName:legacy.bankName||(legacy.accountNum===guide.accountNum?guide.bankName:'')}:guide;
-  const accounts=a.accountNum||legacy.accountHolder?[a]:[];
+  const same=legacy.accountNum&&legacy.accountNum===guide.accountNum;
+  const accounts=[];
+  if(legacy.accountNum||legacy.accountHolder)accounts.push({...legacy,bankName:legacy.bankName||(same?guide.bankName:''),accountHolder:legacy.accountHolder||(same?guide.accountHolder:'')});
+  if(guide.accountNum&&!same)accounts.push(guide);
   return {accounts,defaultIndex:accounts.length?0:-1};
 }
 export function prepareAccountSave(rows,defaultIndex) {
