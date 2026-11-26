@@ -28,6 +28,8 @@ import { ADMIN_NOTIFICATION_KEY, readAdminNotificationPreference, notificationTo
 import { canHold, canResume, changeOrderHold } from "./shared/order-hold.js";
 import { isEmailFileNotice, emailFileLabel } from "./shared/email-file-notice.js?v=20261125-checkbox";
 import { downloadAttachmentZip } from "./admin/attachment-zip.js";
+import { renderChatAttachment, safeChatFileUrl, bindChatImageViewer, syncChatImageViewer, deleteChatAttachment } from "./shared/chat-attachments.js";
+bindChatImageViewer();
 import { monthlyRevenue, renderMonthlyRevenue } from "./admin/monthly-revenue.js?v=20261125-calendar-year";
 
 // 페이지 로드 시 헤더 렌더링 (관리자 페이지는 활성 메뉴 없음)
@@ -2031,22 +2033,21 @@ try {
                 const container = DOMElements.chatMessages;
                 container.innerHTML = '';
                 
+                syncChatImageViewer(snap.docs.map(d => ({...d.data(), id:d.id})));
                 snap.forEach(doc => {
-                    const msg = doc.data();
+                    const msg = {...doc.data(), id:doc.id};
                     const isAdmin = msg.sender === 'admin';
                     const div = document.createElement('div');
-                    div.className = `flex flex-col ${isAdmin ? 'items-end' : 'items-start'}`;
+                    div.className = `flex flex-col ${isAdmin ? 'items-end' : 'items-start'} min-w-0`;
                     
                     let content = '';
                     if(msg.type === 'file') {
-                        // 파일 클릭 시 “새창 열기” 대신 강제 다운로드(저장)로 통일
-                        const safeName = sanitizeHTML(msg.fileName || 'download');
-                        content = `<a href="${msg.fileURL}" data-force-download="1" download="${safeName}" class="flex items-center gap-2 underline"><i class="fas fa-file"></i> ${safeName}</a>`;
+                        content = renderChatAttachment(msg) + `<button type="button" class="chat-file-delete" data-chat-file-delete="${sanitizeHTML(doc.id)}" aria-label="첨부파일 삭제"><i class="fas fa-trash-alt" aria-hidden="true"></i> 삭제</button>`;
                     } else {
                         content = sanitizeHTML(msg.text);
                     }
                     
-                    div.innerHTML = `<div class="chat-bubble ${isAdmin ? 'chat-bubble-admin' : 'chat-bubble-customer'}">${content}</div>
+                    div.innerHTML = `<div class="chat-bubble ${isAdmin ? 'chat-bubble-admin' : 'chat-bubble-customer'} ${msg.type === 'file' ? 'chat-bubble-file' : ''}">${content}</div>
                                      <span class="text-[10px] text-slate-400 mt-1 px-1">${msg.timestamp ? msg.timestamp.toDate().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : ''}</span>`;
                     container.appendChild(div);
                 });
@@ -2196,7 +2197,7 @@ function loadFiles(quoteId) {
                                 <i class="fas fa-file"></i>
                             </div>
                             <div class="flex flex-col overflow-hidden">
-                                <a href="${file.fileURL}" data-force-download="1" download="${sanitizeHTML(file.fileName)}" class="text-sm font-bold text-slate-700 hover:text-brand-600 truncate transition-colors">
+                                <a href="${sanitizeHTML(safeChatFileUrl(file.fileURL)) || '#'}" data-force-download="1" download="${sanitizeHTML(file.fileName)}" class="text-sm font-bold text-slate-700 hover:text-brand-600 truncate transition-colors">
                                     ${sanitizeHTML(file.fileName)}
                                 </a>
                                 <span class="text-[10px] text-slate-400">
@@ -2204,7 +2205,7 @@ function loadFiles(quoteId) {
                                 </span>
                             </div>
                         </div>
-                        <button class="delete-file-only-btn text-slate-300 hover:text-red-500 transition-colors p-2" title="파일 삭제" data-id="${doc.id}" data-path="${file.filePath || ''}">
+                        <button type="button" class="delete-file-only-btn text-slate-500 hover:text-red-500 transition-colors p-2" title="파일 삭제" aria-label="첨부파일 삭제" data-chat-file-delete="${sanitizeHTML(doc.id)}">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     `;
@@ -2217,28 +2218,35 @@ function loadFiles(quoteId) {
                 const emptyEl = document.getElementById('file-list-empty');
                 if (emptyEl) emptyEl.classList.toggle('hidden', !snap.empty);
 
-                // 파일 삭제 버튼 이벤트 연결
-                list.querySelectorAll('.delete-file-only-btn').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
-                        if(!confirm('이 파일을 삭제하시겠습니까? (채팅 내역에서도 사라집니다)')) return;
-                        const msgId = btn.dataset.id;
-                        const path = btn.dataset.path;
-                        try {
-                            // 메시지 문서 삭제
-                            await deleteDoc(doc(db, `quotes/${quoteId}/messages`, msgId));
-                            // Storage 파일 삭제
-                            if(path) {
-                                try { await deleteObject(ref(storage, path)); } catch(err) { logger.warn('Storage delete fail', err); }
-                            }
-                            showToast('파일이 삭제되었습니다.', 'success');
-                        } catch(err) {
-                            logger.error(err);
-                            showToast('삭제 실패', 'error');
-                        }
-                    });
-                });
+
             });
         }
+
+        // One handler for both the conversation and the file list; pin order ID before confirmation.
+        const deletingChatFiles = new Set();
+        document.addEventListener('click', async event => {
+            const button = event.target.closest?.('[data-chat-file-delete]');
+            if (!button || !currentQuoteId) return;
+            const quoteId = currentQuoteId, msgId = button.dataset.chatFileDelete;
+            const key = quoteId + '/' + msgId;
+            if (!msgId || deletingChatFiles.has(key)) return;
+            deletingChatFiles.add(key); button.disabled = true;
+            try {
+                if (!await showConfirmation('상담 파일 삭제','파일과 해당 메시지(시안 승인 기록 포함)가 관리자·고객 화면 및 Firebase에서 삭제됩니다. 삭제하시겠습니까?')) return;
+                const messageRef = doc(db, 'quotes', quoteId, 'messages', msgId);
+                const snapshot = await getDoc(messageRef);
+                if (!snapshot.exists()) { showToast('이미 삭제된 파일입니다.', 'info'); return; }
+                await deleteChatAttachment({
+                    quoteId, msg: snapshot.data(),
+                    deleteStorage: path => deleteObject(ref(storage,path)),
+                    deleteRecord: () => deleteDoc(messageRef)
+                });
+                showToast('상담 파일이 삭제되었습니다.', 'success');
+            } catch(error) {
+                logger.warn('Chat file deletion failed',error);
+                showToast('파일 삭제를 완료하지 못했습니다. 다시 시도해 주세요.', 'error');
+            } finally { deletingChatFiles.delete(key); button.disabled = false; }
+        });
 
         // [추가] 메모 리스트 클릭 이벤트 (수정/삭제 처리)
         document.getElementById('memo-list')?.addEventListener('click', async (e) => {
