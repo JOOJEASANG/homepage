@@ -27,7 +27,6 @@ import { isPendingCancellation, canAdminDirectCancel, cancellationResolution } f
 import { canAdminConvertEstimate, adminEstimatePrice, normalizeCustomerOrderRequestNote, convertEstimateToOrderByAdmin } from "./admin/estimate-conversion.js";
 import { ADMIN_NOTIFICATION_KEY, readAdminNotificationPreference, notificationToggleText } from "./admin/notification-preference.js";
 import { canHold, canResume, changeOrderHold } from "./shared/order-hold.js";
-import { isEmailFileNotice, emailFileLabel } from "./shared/email-file-notice.js?v=20261125-checkbox";
 import { downloadAttachmentZip } from "./admin/attachment-zip.js";
 import { renderChatAttachment, safeChatFileUrl, bindChatImageViewer, syncChatImageViewer, deleteChatAttachment, quoteAttachmentStoragePath } from "./shared/chat-attachments.js?v=20261126-audit";
 import { createChatUploadSession, uniqueUploadName } from "./shared/chat-upload-session.js";
@@ -1201,7 +1200,6 @@ async function listenToQuotes() {
                 }
                 
                 const userBadge = ``;
-                const emailNotice = emailFileLabel(q);
 
                 tr.innerHTML = `
                     <td class="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">${date}</td>
@@ -1214,7 +1212,6 @@ async function listenToQuotes() {
                             ${q.hasUnreadAdminMessage ? '<span class="ml-2 w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0"></span>' : ''}
                             ${newQuoteIds.has(q.id) ? '<span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-green-50 text-green-700 border border-green-100 flex-shrink-0">NEW</span>' : ''}
                         </div>
-                        ${emailNotice ? `<div class="mt-1 flex flex-wrap items-center gap-2"><span class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-bold ${q.emailFileConfirmedAt ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-100 text-amber-900'}"><i class="fas fa-envelope" aria-hidden="true"></i>${emailNotice}</span>${!q.emailFileConfirmedAt ? `<button type="button" class="email-file-confirm-btn text-xs font-bold text-emerald-700 underline" data-id="${q.id}">수신 확인</button>` : ''}</div>` : ''}
                     </td>
                     <td class="px-6 py-4">
                         <div class="customer-info-row flex items-center whitespace-nowrap">
@@ -1377,22 +1374,6 @@ function updateDashboard() {
             }
         }
 
-        const emailConfirmBusy = new Set();
-        async function confirmEmailFile(id) {
-            if (emailConfirmBusy.has(id)) return;
-            emailConfirmBusy.add(id);
-            try {
-                if (!await showConfirmation('이메일 파일 수신 확인','실제 이메일 접수함에서 해당 주문의 파일을 확인하셨습니까? 확인하면 고객에게도 수신 확인이 표시됩니다.')) return;
-                await runTransaction(db,async tx=>{
-                    const ref=doc(db,'quotes',id);
-                    const snap=await tx.get(ref);
-                    if(!snap.exists() || !isEmailFileNotice(snap.data()) || snap.data().emailFileConfirmedAt) throw new Error('EMAIL_NOTICE_CHANGED');
-                    tx.update(ref,{emailFileConfirmedAt:serverTimestamp(),hasUnreadCustomerMessage:true,updatedAt:serverTimestamp()});
-                });
-                showToast('이메일 파일 수신 확인을 기록했습니다.','success');
-            } catch(error){logger.error('email file confirm failed',error);showToast('이메일 수신 확인 저장에 실패했습니다.','error');}
-            finally {emailConfirmBusy.delete(id);}
-        }
         const changingHoldIds = new Set();
         async function updateStatus(quoteId, newStatus) {
             if (newStatus === '보류' || newStatus === '보류해제') {
@@ -1724,9 +1705,6 @@ try {
 } catch(e) { logger.warn('taxInvoiceInfo render failed', e); }
 
 
-            if (emailFileLabel(quote)) {
-                html += `<div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-6 text-sm text-amber-900"><strong><i class="fas fa-envelope mr-2"></i>${emailFileLabel(quote)}</strong><p class="mt-1">이메일 접수함(winwork@hanmail.net)에서 고객명과 품명을 확인해 주세요. 홈페이지 첨부파일과 별도입니다.</p></div>`;
-            }
             // 접수 첨부파일(견적 신청 시 업로드된 파일)
             try {
                 const atts = Array.isArray(quote.attachments) ? quote.attachments : [];
@@ -3587,7 +3565,6 @@ DOMElements.quoteListBody.addEventListener('click', (e) => {
                 const contactAction = e.target.closest('.mobile-contact-action');
                 const editBtn = e.target.closest('.admin-edit-quote-btn');
                 const convertEstimateBtn = e.target.closest('.admin-convert-estimate-btn');
-                const emailConfirmBtn = e.target.closest('.email-file-confirm-btn');
                 const approveCancelBtn = e.target.closest('.approve-cancel-btn');
                 const rejectCancelBtn = e.target.closest('.reject-cancel-btn');
                 const directCancelBtn = e.target.closest('.direct-cancel-btn');
@@ -3595,7 +3572,6 @@ DOMElements.quoteListBody.addEventListener('click', (e) => {
                 
                 // 전화/문자 링크의 기본 동작은 유지하고 목록 행 상세보기만 차단합니다.
                 if (contactAction) { e.stopPropagation(); return; }
-                if (emailConfirmBtn) { confirmEmailFile(emailConfirmBtn.dataset.id); return; }
                 if (convertEstimateBtn) { convertCustomerRequestedEstimate(convertEstimateBtn.dataset.id); return; }
                 if (approveCancelBtn) { resolveCancelRequest(approveCancelBtn.dataset.id, 'approve'); return; }
                 if (rejectCancelBtn) { resolveCancelRequest(rejectCancelBtn.dataset.id, 'reject'); return; }
