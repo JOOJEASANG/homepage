@@ -18,3 +18,6 @@
 
 ### Stage 4b: order handoff and navigation
 - Home Print Studio section and quote-page tool links. The layout editor can create a PDF and transfer it to a print quote; the cover editor uses a user-selected PDF saved via the browser print dialog. No automatic order submission or Firebase upload. A same-tab session token and IndexedDB store the PDF temporarily (30-minute access window; expired records purged on next use). Explicit add/discard controls preserve existing selected files. Quotes cannot submit while an active studio transfer has not been attached; login returns to manual review, and successful attachment metadata clears the transfer. Manual PDF upload remains the fallback. No automatic price/specification mapping (the customer verifies the quote).
+
+### Stage 4c: booklet order preview
+- Local page-count-only saddle-stitch sheet diagrams, left/right reading direction, end padding, and sheet counts. No uploads, database reads or print-ready file creation. Browser tests cover 16 and 10 pages, invalid values, mobile overflow and homepage navigation.
