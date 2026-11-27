@@ -67,3 +67,13 @@ test('spine upright writing, nudge, delete and standalone covers',async({page})=
  await expect(spine).toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2)).toBe(true);
 });
+
+test('cover canvas fills desktop viewport and all toolbar buttons fit sidebar',async({page})=>{
+ await page.goto('/cover-studio.html',{waitUntil:'domcontentloaded'});
+ await expect(page.locator('#print-cover')).toBeEnabled();
+ await expect(page.locator('.studio-heading')).toHaveCount(0);
+ await expect(page.locator('.canvas-right #print-cover')).toBeVisible();
+ const metrics=await page.evaluate(()=>{const stage=document.querySelector('#cover-stage'),panel=document.querySelector('.canvas-right'),r=panel.getBoundingClientRect();return {width:innerWidth,height:innerHeight,stage:stage.getBoundingClientRect().toJSON(),buttons:[...panel.querySelectorAll('.canvas-actions>*')].every(n=>{const b=n.getBoundingClientRect();return b.left>=r.left-1&&b.right<=r.right+1;}),overflow:document.documentElement.scrollWidth>innerWidth+2};});
+ expect(metrics.buttons).toBe(true);expect(metrics.overflow).toBe(false);
+ if(metrics.width>1050){expect(metrics.stage.top).toBeLessThan(110);expect(metrics.stage.height).toBeGreaterThan(metrics.height*.75);}
+});
