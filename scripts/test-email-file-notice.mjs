@@ -1,34 +1,5 @@
 import assert from 'node:assert/strict';
-import {emailFileLabel,canReportEmailFile,isEmailFileNotice,initEmailFileInput} from '../assets/js/pages/shared/email-file-notice.js';
-assert.equal(emailFileLabel({}),'');
-assert.equal(emailFileLabel({emailFileStatus:'planned'}),'이메일 발송 예정');
-assert.equal(emailFileLabel({emailFileStatus:'sent'}),'이메일 접수 · 미확인');
-assert.equal(emailFileLabel({emailFileStatus:'sent',emailFileConfirmedAt:'now'}),'이메일 파일 확인완료');
-assert.equal(canReportEmailFile({status:'보류',emailFileStatus:'planned'}),true);
-assert.equal(canReportEmailFile({status:'주문취소'}),false);
-assert.equal(canReportEmailFile({status:'접수완료',emailFileStatus:'sent'}),false);
-assert.equal(isEmailFileNotice({emailFileStatus:'sent'}),true);
-console.log('Email file notice: OK');
-
-const store = new Map();
-let onChange;
-const input = { type:'checkbox', checked:false, addEventListener:(_, cb)=>{onChange=cb;} };
-globalThis.document = { getElementById:()=>input };
-globalThis.location = {search:''};
-globalThis.sessionStorage = { getItem:key=>store.get(key), setItem:(key,value)=>store.set(key,value), removeItem:key=>store.delete(key) };
-store.set('gprint-email-file-book','planned');
-const controller = initEmailFileInput('book');
-assert.equal(input.checked,false,'a legacy planned value must not become a sent declaration');
-assert.equal(controller.value(),null);
-input.checked=true; onChange();
-assert.equal(controller.value(),'sent');
-assert.equal(store.get('gprint-email-file-book'),'sent');
-input.checked=false; onChange();
-assert.equal(controller.value(),null);
-assert.equal(store.has('gprint-email-file-book'),false);
-input.checked=true; onChange();
-assert.equal(initEmailFileInput('book').value(),'sent');
-controller.clear();
-assert.equal(input.checked,false);
-assert.equal(controller.value(),null);
-assert.equal(store.has('gprint-email-file-book'),false);
+import {readFileSync} from 'node:fs';
+for(const path of ['quote-book.html','quote-print.html']){const s=readFileSync(path,'utf8');assert.ok(!s.includes('email-file-status'));assert.ok(!s.includes('data-email-copy'));}
+for(const path of ['quote-book','quote-print','admin','mypage']){const s=readFileSync('assets/js/pages/'+path+'.js','utf8');assert.ok(!s.includes('email-file-notice.js'));assert.ok(!s.includes('emailFileStatus'));assert.ok(!s.includes('emailFileConfirmedAt'));}
+console.log('Retired email receipt workflow: OK');
