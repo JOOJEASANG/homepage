@@ -543,3 +543,24 @@ test('quote attachment design is shared and redundant visible estimate warning i
     await assertNoHorizontalOverflow(page);
   }
 });
+
+test('booklet calculator opens in a layer without leaving or changing the quote',async({page})=>{
+ await page.goto('/quote-book.html',{waitUntil:'domcontentloaded'});
+ const trigger=page.locator('#open-booklet-dialog'),dialog=page.locator('#booklet-dialog');
+ await expect(trigger).toBeVisible();await expect(dialog).toBeHidden();
+ await page.locator('#quote-attachments').setInputFiles({name:'existing.pdf',mimeType:'application/pdf',buffer:Buffer.from('test')});
+ await trigger.click();await expect(dialog).toBeVisible();
+ const frame=page.frameLocator('#booklet-dialog-frame');
+ await expect(frame.locator('#booklet-pages')).toHaveValue('4');
+ await expect(frame.locator('.studio-header')).toBeHidden();
+ await frame.locator('#booklet-cover').selectOption('excluded');
+ await frame.locator('#booklet-pages').fill('10');
+ await expect(frame.locator('#booklet-count')).toHaveText('4장');
+ await expect(frame.locator('.booklet-sheet')).toHaveCount(4);
+ await page.locator('#close-booklet-dialog').click();await expect(dialog).toBeHidden();
+ await expect(trigger).toBeFocused();await expect(page.locator('#attachments-list')).toContainText('existing.pdf');
+ await expect(page).toHaveURL(/quote-book\.html/);
+ await trigger.click();await expect(frame.locator('#booklet-pages')).toHaveValue('10');
+ await frame.locator('#booklet-pages').press('Escape');await expect(dialog).toBeHidden();
+ await assertNoHorizontalOverflow(page);
+});
