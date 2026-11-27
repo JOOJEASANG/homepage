@@ -22,7 +22,7 @@ import { uniqueUploadName } from "./shared/chat-upload-session.js";
 import { validateUploadFiles } from "../file-upload-policy.js";
 import {hasStudioHandoff,studioAttachmentReady,clearStudioHandoff} from "./print-studio/handoff.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
-import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer, confirmEstimateIntent } from "./shared/estimate-quick-order.js?v=20261125-estimate-guide";
+import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer } from "./shared/estimate-quick-order.js?v=20261125-estimate-guide";
 import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
 import { getPerfectInnerPricingMultiplier, getPerfectBindingMetrics } from "./quote-book/perfect-calculator.js";
 import { getWireCoverCost, getWireCoverPrintedSides, getWireCoverPrintImpressions, getWireInnerPricingMultiplier, getWireBindingMetrics, isWireBindingAllowed } from "./quote-book/wire-calculator.js?v=20261021-wire-duplex-cover-v2";
@@ -38,7 +38,7 @@ import { buildQuoteRequestData, buildQuoteUpdatePayload } from "./quote-book/quo
 import { isAdminEditSearch, parseQuoteReloadPayload } from "./quote-book/page-state.js";
 import { readGuestSubmitSession, readGuestMenuSession, getGuestMyPageLookupKey, restoreGuestSessionFromReload, persistGuestSessionAfterSubmit } from "./quote-book/guest-session.js";
 import { acquireBookSubmitLock, releaseBookSubmitLock } from "./quote-book/submit-lock.js";
-import { renderQuoteItemTemplate, renderInnerSectionTemplate } from "./quote-book/quote-item-template.js?v=20261125-remove-cover-extras";
+import { renderQuoteItemTemplate, renderInnerSectionTemplate } from "./quote-book/quote-item-template.js?v=20261127-simple";
 import { syncNoBindingCoverState } from "./quote-book/no-binding-cover.js?v=20261125-remove-cover-extras";
 import "../session.js?v=20261102-wire-cover-paper";
 
@@ -251,7 +251,8 @@ const editState = { enabled: false, quoteId: null, adminEdit: isAdminEditSearch(
         if (modalTitle) modalTitle.innerHTML = pendingRequestType === 'estimate'
             ? '<i class="fas fa-file-invoice-dollar text-base mr-2"></i>견적 요청자 정보 입력'
             : '<i class="fas fa-user-circle text-base mr-2"></i>주문자 정보 입력';
-        if (guestButtonText) guestButtonText.textContent = pendingRequestType === 'estimate' ? '견적만 요청' : '내용 확인 후 주문 접수';
+        if (guestButtonText) guestButtonText.textContent = pendingRequestType === 'estimate' ? '견적만 요청하기' : '주문 접수하기';
+        const note=document.getElementById('guest-intent-note');if(note)note.textContent=pendingRequestType==='estimate'?'견적만 요청하면 제작이 진행되지 않습니다. 이름과 연락처를 입력해 주세요.':'회원가입 없이 이름과 연락처만 입력하면 주문할 수 있습니다.';
         if (memberButtonText) memberButtonText.textContent = pendingRequestType === 'estimate' ? '회원으로 견적만 요청' : '회원으로 주문 접수';
     }
     
@@ -702,6 +703,58 @@ function applyImagePreviewsToUI(root=document) {
         }
     }
 
+    const bookPresets=[
+        {name:'일반 자료집',description:'일반 책자',binding:'perfect',cover:'snow200',inner:'mimoon80'},
+        {name:'보고서',description:'결과보고서·제안서',binding:'perfect',cover:'snow200',inner:'mimoon80'},
+        {name:'교재 / 문제집',description:'학습용 책자',binding:'perfect',cover:'snow200',inner:'baek80'},
+        {name:'소책자',description:'중철 제본',binding:'saddle',cover:'snow200',inner:'mimoon80'},
+    ];
+    function setupBookQuickOrder(item,restored){
+        const root=item.querySelector('.book-quick-products'),summary=item.querySelector('.book-quick-summary'),toggle=item.querySelector('.book-quick-toggle'),spec=item.querySelector('.book-quick-spec');
+        if(!root||!summary||editState.enabled){if(root)root.hidden=true;return;}
+        const $=selector=>item.querySelector(selector);
+        const optionText=selector=>$(selector)?.selectedOptions[0]?.textContent?.trim()||'미선택';
+        const names={perfect:'무선 제본',wire:'와이어 제본',saddle:'중철 제본',none:'제본 안함'};
+        let active=null, compact=false;
+        function updateSummary(){
+            const binding=$('.bindingType').value;
+            const inners=[...item.querySelectorAll('.inner-section')].map(n=>n.querySelector('.innerPaperType')?.selectedOptions[0]?.textContent?.trim()||'미선택');
+            spec.textContent='현재 사양 · '+(binding==='none'?'표지 없음':optionText('.coverPaperType')+' / '+optionText('.coverPrintType'))+' · 내지 '+[...new Set(inners)].join(', ')+' · '+(names[binding]||'제본 선택 필요');
+            if(!binding&&compact)setCompact(false);
+        }
+        function setCompact(value){
+            compact=value;item.classList.toggle('simple-book-compact',value);
+            toggle.textContent=value?'세부 옵션 변경':'세부 옵션 접기';toggle.setAttribute('aria-expanded',String(!value));summary.hidden=false;
+        }
+        function pick(select,value){if(select&&Array.from(select.options).some(o=>o.value===value&&!o.disabled))select.value=value;}
+        for(const preset of bookPresets){
+            const button=document.createElement('button');button.type='button';button.dataset.quickProduct=preset.name;button.setAttribute('aria-pressed','false');button.textContent=preset.name;
+            const small=document.createElement('small');small.textContent=preset.description;button.append(small);
+            button.onclick=()=>{
+                const bindingButton=item.querySelector('.binding-options [data-value="'+preset.binding+'"]');
+                // Preserve existing page counts and quantities; invalid binding must be selected by the customer.
+                const name=$('.orderName');if(!name.value.trim()||name.value===active?.name)name.value=preset.name;
+                if(preset.binding==='saddle'&&bindingButton?.classList.contains('disabled')){
+                    active=preset;for(const b of root.children)b.setAttribute('aria-pressed',String(b===button));
+                    setCompact(false);updateSummary();calculateAndSave();$('.innerPages')?.focus();showToast('중철 제본은 내지 40페이지 이하에서 선택할 수 있습니다. 실제 페이지 수를 입력한 뒤 소책자를 다시 선택해 주세요.','info');return;
+                }
+                active=preset;
+                for(const b of root.children)b.setAttribute('aria-pressed',String(b===button));
+                pick($('.coverPaperType'),preset.cover);if($('.coverPaperType').value!=='none')$('.coverPrintType').value='color_simplex';
+                for(const n of item.querySelectorAll('.inner-section'))pick(n.querySelector('.innerPaperType'),preset.inner);
+                bindingButton?.click();
+                setCompact(!!$('.bindingType').value);updateSummary();calculateAndSave();
+            };
+            root.append(button);
+        }
+        toggle.onclick=()=>{setCompact(!compact);updateSummary();};
+        item.addEventListener('input',()=>queueMicrotask(updateSummary));
+        item.addEventListener('change',()=>queueMicrotask(updateSummary));
+        item.addEventListener('click',()=>queueMicrotask(updateSummary));
+        // New orders can use a preset immediately; existing drafts keep their exact settings.
+        setCompact(false);updateSummary();
+    }
+
     function createNewQuoteItem(data = {}) {
         quoteItemCounter++;
         const newItem = document.createElement('div');
@@ -770,6 +823,7 @@ function applyImagePreviewsToUI(root=document) {
         }
         setupItemEventListeners(newItem);
         syncNoBindingCoverState(newItem);
+        setupBookQuickOrder(newItem,!!Object.keys(data).length);
     }
     
     function addInnerSection(container, data = {}) {
@@ -1292,6 +1346,8 @@ function applyImagePreviewsToUI(root=document) {
         if (!isValid) { showToast('각 견적 항목의 품명을 모두 입력해주세요.', 'error'); return; }
         const missingBinding = Array.from(document.querySelectorAll('.quote-item')).find(item => !item.querySelector('.bindingType')?.value);
         if (missingBinding) {
+            missingBinding.classList.remove('simple-book-compact');
+            missingBinding.querySelector('.book-quick-toggle')?.setAttribute('aria-expanded','true');
             missingBinding.querySelector('.binding-options')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             showToast('제본방식을 선택해 주세요. 제본하지 않으려면 "제본 안함"을 선택해 주세요.', 'error');
             return;
@@ -1806,8 +1862,7 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
         DOMElements.submitQuoteBtn.addEventListener('click', () => handleQuoteSubmit('order'));
         DOMElements.quoteOnlyBtn?.addEventListener('click', async () => {
             if (__QUOTE_SUBMIT_LOCK) return;
-            const choice = editState.enabled ? 'estimate' : await confirmEstimateIntent();
-            if (choice) await handleQuoteSubmit(choice);
+            await handleQuoteSubmit('estimate');
         });
         DOMElements.resetFormBtn.addEventListener('click', async () => {
             const confirmed = await showConfirmation('새로 작성', '정말 모든 내용을 지우고 새로 작성하시겠습니까?');

@@ -142,7 +142,20 @@ function __displayNameForHeader(currentUser) {
     </style>
     <script src="assets/js/naver-analytics.js" defer></script>
     <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261126-attachment-design">
-    <script src="assets/js/responsive-ui.js?v=20261126-attachment-design" defer></script>
+    <script src="assets/js/responsive-ui.js?v=20261127-simple-order" defer></script>
+<style>
+.booklet-open-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid #a8c9b8;border-radius:8px;background:#f0f8f3;color:#23624f;font-weight:700;font-size:12px;white-space:nowrap;cursor:pointer}
+.booklet-open-btn:hover{background:#e0f1e7}
+#booklet-dialog{position:fixed;inset:0;margin:auto;padding:0;border:1px solid #dce7e1;border-radius:12px;width:min(1040px,calc(100vw - 32px));height:min(850px,calc(100dvh - 32px));max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);overflow:hidden;background:#f3f6f5;color:#172b26;box-shadow:0 18px 60px #102b254d}
+#booklet-dialog[open]{display:flex;flex-direction:column}
+#booklet-dialog::backdrop{background:rgba(15,35,29,.6)}
+.booklet-dialog-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:white;border-bottom:1px solid #dce7e1;flex:none}
+.booklet-dialog-header h2{font-size:16px;font-weight:800;margin:0}
+#close-booklet-dialog{border:1px solid #cbd9d1;border-radius:8px;background:#fff;padding:7px 12px;font-size:13px;font-weight:650;cursor:pointer}
+#booklet-dialog iframe{display:block;flex:1;width:100%;min-height:0;border:0;background:#f3f6f5}
+@media(max-width:640px){#booklet-dialog{width:calc(100vw - 16px);height:calc(100dvh - 16px);max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}.booklet-dialog-header{padding:10px 12px}}
+</style>
+<link rel="stylesheet" href="assets/css/simple-order.css?v=1">
 </head>
 <body data-page="quote-book" class="antialiased selection:bg-brand-100 selection:text-brand-900">
 
@@ -202,11 +215,12 @@ function __displayNameForHeader(currentUser) {
         <!-- 타이틀 섹션 -->
         <div class="mb-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
     <div class="lg:col-span-8">
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
   <h1 class="text-3xl font-bold text-slate-800 tracking-tight">책자/제본 견적</h1>
   <button id="helpBtnBook" type="button" class="w-8 h-8 inline-flex items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:text-slate-700 hover:border-slate-300 shadow-sm" aria-label="도움말">
     <i class="fa-solid fa-circle-question"></i>
   </button>
+  <button id="open-booklet-dialog" type="button" class="booklet-open-btn" aria-haspopup="dialog" aria-controls="booklet-dialog"><i class="fas fa-book-open" aria-hidden="true"></i> 소책자 배치 보기</button>
 </div>
         <p class="text-slate-500 mt-2 text-sm">책자, 각종보고서, 카다로그, 낱장인쇄 등... </p>
     </div>
@@ -216,7 +230,7 @@ function __displayNameForHeader(currentUser) {
             <i class="fas fa-circle-info mt-0.5 text-brand-500"></i>
             <div>
                 <span class="font-extrabold block mb-1">접수 안내</span>
-                접수 후 관리자 확인 → 상담/확정 금액 안내로 진행됩니다. 접수 시 설정한 비밀번호로 주문조회가 가능합니다.
+                접수 후 관리자 확인 및 제작 상담이 진행됩니다.
             </div>
          </div>
     </div>
@@ -282,10 +296,10 @@ function __displayNameForHeader(currentUser) {
                                 <i class="fas fa-file-invoice-dollar mr-2"></i>견적만 요청
                             </button>
                             <button type="button" id="submitQuoteBtn" class="btn btn-primary w-full text-sm shadow-lg shadow-brand-500/20 col-span-2">
-                                <i class="fas fa-paper-plane mr-2"></i>주문 접수 및 작업 요청
+                                <i class="fas fa-paper-plane mr-2"></i>주문하기
                             </button>
                         </div>
-                        <span id="estimate-request-guide" class="sr-only">견적만 요청은 제작 주문이 아닙니다. 버튼을 누르면 자세한 안내를 확인할 수 있습니다.</span>
+                        <p id="estimate-request-guide" class="simple-intent-note">견적만 요청하면 제작이 진행되지 않습니다. 주문은 관리자 확인 후 진행됩니다.</p>
                     </div>
                 </div>
             </div>
@@ -303,36 +317,22 @@ function __displayNameForHeader(currentUser) {
                 <button id="closeSignupModalBtn" class="text-slate-400 hover:text-slate-600 transition-colors"><i class="fas fa-times text-xl"></i></button>
             </div>
             <div class="p-6 overflow-y-auto max-h-[80vh]">
-                <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-5 text-xs text-blue-800">
-                    <p class="font-bold mb-1">📌 접수 안내</p>
-                    입력하신 정보(이름/연락처)로 나중에 주문을 조회할 수 있습니다.<br>
-                    비밀번호는 연락처 끝 4자리로 자동 설정됩니다.
-                </div>
+                <div class="simple-guest-note" id="guest-intent-note">회원가입 없이 이름과 연락처만 입력하면 됩니다.</div>
                 <form id="signup-form" class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-500 mb-1">이름 <span class="text-red-400">*</span></label>
-                        <input type="text" id="signup-name" class="form-input w-full" required placeholder="주문자명">
+                        <input type="text" id="signup-name" autocomplete="name" class="form-input w-full" required placeholder="주문자명">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-500 mb-1">연락처 <span class="text-red-400">*</span></label>
-                        <input type="tel" id="signup-contact" class="form-input w-full" placeholder="010-1234-5678" required>
+                        <input type="tel" id="signup-contact" autocomplete="tel" inputmode="tel" class="form-input w-full" placeholder="010-1234-5678" required>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">비밀번호 (연락처 뒤 4자리 자동)</label>
-                        <input type="password" id="signup-password" class="form-input w-full" readonly placeholder="연락처 뒤 4자리로 자동 설정됩니다">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">이메일 <span class="text-slate-300 font-normal">(선택)</span></label>
-                        <input type="email" id="signup-email" class="form-input w-full" placeholder="example@email.com">
-                    </div>
-                    <p class="text-xs text-slate-500 leading-relaxed bg-slate-50 border border-slate-200 rounded-lg p-3">
-                        견적·제작 접수를 위해 <strong>이름과 연락처</strong>를 필수로 사용합니다.
-                        이메일은 선택 입력이며, 첨부파일과 주문 정보는 제작 상담·접수에 이용합니다.
-                        자세한 내용은 <a href="personal-info.html" target="_blank" rel="noopener noreferrer" class="text-emerald-700 font-bold underline">개인정보처리방침</a>에서 확인하세요.
-                    </p>
+                    <input type="hidden" id="signup-password">
+                    
+                    <p class="simple-privacy">이름과 연락처는 접수 및 상담에 이용합니다. 비회원 주문조회 비밀번호는 연락처 끝 4자리입니다. <a href="personal-info.html" target="_blank" rel="noopener noreferrer">개인정보처리방침</a></p>
                     <div class="pt-4">
                         <button type="submit" class="btn btn-primary w-full">
-                            <span class="btn-text">내용 확인 후 접수하기</span>
+                            <span class="btn-text">접수하기</span>
                             <i class="fas fa-spinner fa-spin ml-2 hidden" style="display:none" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -924,7 +924,7 @@ function __displayNameForHeader(currentUser) {
 
 <script src="assets/js/header-shell.js"></script>
 <script type="module" src="assets/js/maintenance-check.js"></script>
-<script type="module" src="assets/js/pages/quote-book.js?v=20261127-no-email"></script>
+<script type="module" src="assets/js/pages/quote-book.js?v=20261127-simple-order"></script>
 <script>
   // bfcache(뒤로가기 캐시)로 복원되면 JS 초기화가 꼬일 수 있어 강제 새로고침
   window.addEventListener('pageshow', function (e) {
@@ -998,5 +998,19 @@ function __displayNameForHeader(currentUser) {
 })();
 </script>
 
-<script type="module">import {mountStudioHandoff} from './assets/js/pages/print-studio/handoff.js';void mountStudioHandoff('book',document.getElementById('quote-attachments'));</script></body>
+<script type="module">import {mountStudioHandoff} from './assets/js/pages/print-studio/handoff.js';void mountStudioHandoff('book',document.getElementById('quote-attachments'));</script><dialog id="booklet-dialog" aria-labelledby="booklet-dialog-title"><div class="booklet-dialog-header"><h2 id="booklet-dialog-title">소책자 배치 보기</h2><button type="button" id="close-booklet-dialog" autofocus>닫기 ×</button></div><iframe id="booklet-dialog-frame" title="소책자 배치 계산 및 확인"></iframe></dialog>
+<script type="module">
+const open=document.getElementById('open-booklet-dialog'),dialog=document.getElementById('booklet-dialog'),frame=document.getElementById('booklet-dialog-frame'),close=document.getElementById('close-booklet-dialog');
+let previousOverflow='';
+open.addEventListener('click',()=>{
+ if(dialog.open)return;
+ if(!frame.getAttribute('src'))frame.src='booklet-studio.html?embed=1';
+ previousOverflow=document.body.style.overflow;
+ dialog.showModal();document.body.style.overflow='hidden';
+});
+close.addEventListener('click',()=>dialog.close());
+dialog.addEventListener('close',()=>{document.body.style.overflow=previousOverflow;open.focus();});
+dialog.addEventListener('click',e=>{if(e.target!==dialog)return;const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();});
+frame.addEventListener('load',()=>{try{frame.contentDocument.addEventListener('keydown',e=>{if(e.key==='Escape'&&dialog.open){e.preventDefault();dialog.close();}});}catch{}});
+</script></body>
 </html>

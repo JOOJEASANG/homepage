@@ -11,13 +11,13 @@ export function renderQuoteItemTemplate({ quoteItemCounter }) {
                 <button type="button" class="remove-quote-item-btn text-red-400 hover:text-red-600 transition-colors p-2 ${quoteItemCounter === 1 ? 'hidden' : ''}" title="삭제"><i class="fas fa-trash-alt"></i></button>
             </div>
 
-            <div class="order-stage" data-order-stage="basics">
+            <div class="simple-products book-quick-products" aria-label="인쇄물 종류"></div><div class="order-stage" data-order-stage="basics">
                 <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
                     <i class="fas fa-pen-nib"></i> <span class="step-number">01</span> 기본 정보
                 </h2>
                 <div class="book-basic-fields grid grid-cols-1 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">품명</label>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">품명 (선택 시 자동 입력)</label>
                         <input type="text" name="orderName" class="form-input w-full orderName font-medium" placeholder="예: 2025년 상반기 자료집" required>
                     </div>
                     <div>
@@ -27,7 +27,7 @@ export function renderQuoteItemTemplate({ quoteItemCounter }) {
                 </div>
             </div>
 
-            <div class="order-stage" data-order-stage="cover">
+            <div class="simple-spec-summary book-quick-summary" hidden><span class="book-quick-spec"></span><button type="button" class="book-quick-toggle" aria-expanded="false">세부 옵션 변경</button></div><div class="order-stage" data-order-stage="cover">
                 <h2 class="text-sm font-bold text-brand-600 mb-3 uppercase tracking-wider flex items-center gap-2">
                     <i class="fas fa-book-open"></i> <span class="step-number">02</span> 표지 선택
                 </h2>
@@ -53,7 +53,7 @@ export function renderQuoteItemTemplate({ quoteItemCounter }) {
                     <i class="fas fa-file-alt"></i> <span class="step-number">03</span> 규격·내지 인쇄
                 </h2>
                 <div class="space-y-3 inner-sections-container"></div>
-                <div class="mt-3 grid grid-cols-2 gap-3">
+                <div class="mt-3 grid grid-cols-2 gap-3 simple-book-extra">
                     <button type="button" class="add-inner-section-btn py-2 px-3 border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
                         <i class="fas fa-plus text-xs mr-1"></i> 내지 추가
                     </button>
@@ -62,7 +62,7 @@ export function renderQuoteItemTemplate({ quoteItemCounter }) {
                     </button>
                 </div>
                 
-                <div class="interleaf-section mt-4 bg-orange-50 border border-orange-100 p-4 rounded-lg hidden">
+                <div class="interleaf-section simple-book-extra mt-4 bg-orange-50 border border-orange-100 p-4 rounded-lg hidden">
                     <h3 class="text-sm font-bold text-orange-800 mb-3">🎨 간지(색지) 설정</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -231,7 +231,7 @@ export function renderInnerSectionTemplate({ sectionCount }) {
                         <option value="2">A3 (297×420)</option>
                     </select>
                 </div>
-                <div>
+                <div class="simple-book-extra">
                     <label class="block text-xs font-bold text-slate-500 mb-1">내지 용지 <button type="button" class="ml-1 text-[10px] text-emerald-700 underline inner-paper-preview-btn">📄 미리보기</button></label>
                     <select name="innerPaperType" class="form-select w-full innerPaperType"></select>
                 </div>
