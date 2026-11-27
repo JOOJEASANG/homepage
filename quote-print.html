@@ -212,8 +212,7 @@ function __displayNameForHeader(currentUser) {
 </style>
     <script src="assets/js/naver-analytics.js" defer></script>
     <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261126-attachment-design">
-    <script src="assets/js/responsive-ui.js?v=20261127-simple-order" defer></script>
-<link rel="stylesheet" href="assets/css/simple-order.css?v=1">
+    <script src="assets/js/responsive-ui.js?v=20261126-attachment-design" defer></script>
 </head>
 <body data-page="quote-print" class="antialiased">
 
@@ -300,9 +299,9 @@ function __displayNameForHeader(currentUser) {
                         <h2 class="text-lg font-extrabold text-slate-800"><i class="fas fa-sliders-h mr-2 text-brand-600"></i><span class="step-number">01</span> 인쇄물·수량</h2>
                         <span class="pill bg-slate-50 text-slate-600 border border-slate-200" id="loginBadge">로그인 확인 중</span>
                     </div>
-                    <div id="print-quick-products" class="simple-products" aria-label="인쇄물 종류"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-extrabold text-slate-500 mb-1">품명 (선택 시 자동 입력)</label>
+                            <label class="block text-xs font-extrabold text-slate-500 mb-1">품명</label>
                             <input class="form-input w-full font-semibold" id="orderName" placeholder="예: A4 홍보물 1,000매" required="" type="text" />
                         </div>
                         <div>
@@ -312,7 +311,7 @@ function __displayNameForHeader(currentUser) {
                     </div>
                 </div>
                 <div class="card p-6 order-stage" data-order-stage="paper">
-                    <h2 class="stage-title"><span class="step-number">02</span> 기본 사양</h2><div id="print-quick-summary" class="simple-spec-summary" hidden><span id="print-quick-spec"></span><button type="button" id="print-quick-toggle" aria-expanded="false">세부 옵션 변경</button></div>
+                    <h2 class="stage-title"><span class="step-number">02</span> 규격·용지·인쇄</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-extrabold text-slate-500 mb-1">인쇄면</label>
@@ -338,18 +337,20 @@ function __displayNameForHeader(currentUser) {
                                 <input class="form-input w-full" id="customH" min="10" placeholder="세로(mm)" type="number" />
                             </div>
                         </div>
-                        <div class="simple-print-extra"><label class="block text-xs font-extrabold text-slate-500 mb-1">용지</label>
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-500 mb-1">용지</label>
                             <select class="form-select w-full font-semibold" id="paperType">
                                 <option value="snow">스노우지</option>
                                 <option value="arte">아르떼</option>
                             </select>
                         </div>
-                        <div class="simple-print-extra"><label class="block text-xs font-extrabold text-slate-500 mb-1">두께(g)</label>
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-500 mb-1">두께(g)</label>
                             <select class="form-select w-full font-semibold" id="paperWeight"></select>
                             <p class="text-[11px] text-slate-400 mt-1">용지 종류에 따라 선택 가능한 두께가 달라집니다.</p>
                         </div>
                     </div>
-                    <div class="mt-5 border-t border-slate-200 pt-5 order-stage simple-print-extra" data-order-stage="finishing"><h2 class="stage-title"><span class="step-number">03</span> 후가공</h2>
+                    <div class="mt-5 border-t border-slate-200 pt-5 order-stage" data-order-stage="finishing"><h2 class="stage-title"><span class="step-number">03</span> 후가공</h2>
                         <div class="flex items-center justify-between">
                             <label class="flex items-center gap-2 cursor-pointer select-none">
                                 <input class="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" id="oshiEnabled" type="checkbox" />
@@ -458,10 +459,10 @@ function __displayNameForHeader(currentUser) {
                             <i class="fas fa-file-invoice-dollar mr-2"></i>견적만 요청
                         </button>
                         <button class="btn btn-primary w-full text-base col-span-2" id="submitBtn" type="submit">
-                            <i class="fas fa-paper-plane mr-2"></i>주문하기
+                            <i class="fas fa-paper-plane mr-2"></i>주문 접수 및 작업 요청
                         </button>
                         </div>
-                        <p id="estimate-request-guide" class="simple-intent-note">견적만 요청하면 제작이 진행되지 않습니다. 주문은 관리자 확인 후 진행됩니다.</p>
+                        <span id="estimate-request-guide" class="sr-only">견적만 요청은 제작 주문이 아닙니다. 버튼을 누르면 자세한 안내를 확인할 수 있습니다.</span>
                     </div>
                 </div>
             </aside>
@@ -476,7 +477,7 @@ function __displayNameForHeader(currentUser) {
                 <button class="text-slate-400 hover:text-slate-600 transition-colors" id="closeSignupModalBtn" type="button"><i class="fas fa-times text-xl"></i></button>
             </div>
             <div class="p-6 overflow-y-auto max-h-[80vh]">
-                <div class="simple-guest-note" id="guest-intent-note">회원가입 없이 이름과 연락처만 입력하면 됩니다.</div>
+                <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-5 text-sm text-blue-800">회원가입 없이 이름과 연락처만 입력하면 됩니다. 비회원 주문조회 비밀번호는 연락처 끝 4자리입니다.</div>
                 <form class="space-y-4" id="signup-form">
                     <div>
                         <label class="block text-xs font-bold text-slate-500 mb-1">이름 <span class="text-red-400">*</span></label>
@@ -488,10 +489,14 @@ function __displayNameForHeader(currentUser) {
                     </div>
                     <input type="hidden" id="signup-password">
                     
-                    <p class="simple-privacy">이름과 연락처는 접수 및 상담에 이용합니다. 비회원 주문조회 비밀번호는 연락처 끝 4자리입니다. <a href="personal-info.html" target="_blank" rel="noopener noreferrer">개인정보처리방침</a></p>
+                    <p class="text-xs text-slate-500 leading-relaxed bg-slate-50 border border-slate-200 rounded-lg p-3">
+                        견적·제작 접수를 위해 <strong>이름과 연락처</strong>를 필수로 사용합니다.
+                        첨부파일과 주문 정보는 제작 상담·접수에 이용합니다.
+                        자세한 내용은 <a href="personal-info.html" target="_blank" rel="noopener noreferrer" class="text-emerald-700 font-bold underline">개인정보처리방침</a>에서 확인하세요.
+                    </p>
                     <div class="pt-2">
                         <button class="btn btn-primary w-full" type="submit">
-                            <span class="btn-text">접수하기</span>
+                            <span class="btn-text">내용 확인 후 접수하기</span>
                             <i class="fas fa-spinner fa-spin ml-2 hidden" style="display:none" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -849,7 +854,7 @@ try { window.hardLogout = hardLogout; } catch (e) {}
 <script src="assets/js/header-shell.js"></script>
 <script type="module" src="assets/js/maintenance-check.js"></script>
 <script defer src="assets/js/quote-print-reset.js?v=20261028-default-price"></script>
-<script type="module" src="assets/js/pages/quote-print.js?v=20261127-simple-order"></script>
+<script type="module" src="assets/js/pages/quote-print.js?v=20261127-no-email"></script>
 <!-- 도움말 모달 -->
 <div id="helpModalPrint" class="fixed inset-0 z-[9999] hidden" aria-hidden="true">
   <div class="absolute inset-0 bg-black/40" data-help-backdrop="1"></div>
