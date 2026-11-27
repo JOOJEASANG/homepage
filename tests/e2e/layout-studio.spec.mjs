@@ -8,7 +8,7 @@ test('review displays one original per face and safety guides without imposition
  await expect(page.locator('#face-front')).toHaveAttribute('aria-pressed','true');
  await expect(page.locator('#face-panel-front')).toBeVisible();
  await expect(page.locator('#face-panel-back')).toBeHidden();
- const layout=await page.evaluate(()=>{const a=document.querySelector('.review-single-grid .studio-workspace'),b=document.querySelector('.review-options');return {wide:innerWidth>760,preview:a.getBoundingClientRect().toJSON(),options:b.getBoundingClientRect().toJSON(),headings:[...b.querySelectorAll('h2')].map(x=>x.textContent)};});
+ const layout=await page.evaluate(()=>{const a=document.querySelector('.review-single-grid .studio-workspace'),b=document.querySelector('.review-options');return {wide:innerWidth>1050,preview:a.getBoundingClientRect().toJSON(),options:b.getBoundingClientRect().toJSON(),headings:[...b.querySelectorAll('h2')].map(x=>x.textContent)};});
  expect(layout.headings).toEqual(['01. 검수 규격','02. 접지선 확인','03. 원본 파일']);
  if(layout.wide){expect(layout.preview.right).toBeLessThan(layout.options.left);expect(layout.preview.width).toBeGreaterThan(layout.options.width);}else expect(layout.options.top).toBeGreaterThanOrEqual(layout.preview.bottom);
 
@@ -54,4 +54,14 @@ test('review renders genuine two-page PDF with independent faces and detects siz
  await page.locator('#clear-front').click();
  await expect(page.locator('#review-front image')).toHaveCount(0);await expect(page.locator('#review-back image')).toHaveCount(1);
  await page.locator('#page-back').fill('1');await page.locator('#page-back').blur();await expect(page.locator('#summary-back')).toContainText('1/2페이지');
+});
+
+test('review canvas uses available viewport and actions remain inside settings',async({page})=>{
+ await page.goto('/layout-studio.html',{waitUntil:'domcontentloaded'});
+ await expect(page.locator('.studio-heading')).toHaveCount(0);
+ await expect(page.locator('.review-options #layout-reset')).toBeVisible();
+ const metrics=await page.evaluate(()=>{const s=document.querySelector('#face-panel-front .stage').getBoundingClientRect(),p=document.querySelector('.review-options').getBoundingClientRect();return {width:innerWidth,height:innerHeight,stage:s.toJSON(),panel:p.toJSON(),overflow:document.documentElement.scrollWidth>innerWidth+2,buttons:[...document.querySelectorAll('.review-options .canvas-actions>*')].every(n=>{const b=n.getBoundingClientRect();return b.left>=p.left-1&&b.right<=p.right+1;})};});
+ expect(metrics.buttons).toBe(true);expect(metrics.overflow).toBe(false);
+ if(metrics.width>1050){expect(metrics.stage.top).toBeLessThan(150);expect(metrics.stage.height).toBeGreaterThan(metrics.height*.7);}
+ await page.locator('#face-back').click();await expect(page.locator('#face-panel-back')).toBeVisible();await expect(page.locator('#face-panel-front')).toBeHidden();
 });
