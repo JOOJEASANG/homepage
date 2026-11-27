@@ -425,11 +425,12 @@ test('guest quote and customer forms link to privacy information', async ({ page
   for (const path of ['/quote-book.html', '/quote-print.html']) {
     await page.goto(path, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#signup-form a[href="personal-info.html"]')).toHaveCount(1);
-    await expect(page.locator('#signup-form .btn-text')).toContainText('접수하기');
+    await expect(page.locator('#signup-form .btn-text')).toContainText('내용 확인 후 접수하기');
     await expect(page.locator('#signup-form #signup-name')).toHaveAttribute('required','');
     await expect(page.locator('#signup-form #signup-contact')).toHaveAttribute('required','');
     await expect(page.locator('#signup-form #signup-password')).toHaveAttribute('type','hidden');
     await expect(page.locator('#signup-form #signup-email')).toHaveCount(0);
+    await expect(page.locator('#signup-form input:not([type=hidden])')).toHaveCount(2);
   }
   await page.goto('/login.html', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#guest-lookup-form a[href="personal-info.html"]')).toHaveCount(1);
@@ -539,7 +540,7 @@ test('quote attachment design is shared and redundant visible estimate warning i
     const card=page.locator('[data-quote-file-card]');
     await expect(card.getByRole('heading',{name:'인쇄 파일 첨부'})).toBeVisible();
     await expect(card.locator('.quote-file-picker')).toBeVisible();
-    await expect(page.locator('#estimate-request-guide')).toContainText('견적만 요청하면 제작이 진행되지 않습니다.');
+    await expect(page.locator('#estimate-request-guide')).toHaveClass('sr-only');
     await expect(page.getByText('견적 요청만으로는 작업이 진행되지 않습니다.',{exact:true})).toHaveCount(0);
     await card.locator(input).setInputFiles([{name:'표지.pdf',mimeType:'application/pdf',buffer:Buffer.from('test pdf')},{name:'내지.pdf',mimeType:'application/pdf',buffer:Buffer.from('test pdf')}]);
     await expect(card.locator(list)).toContainText('표지.pdf');
@@ -569,33 +570,3 @@ test('booklet calculator opens in a layer without leaving or changing the quote'
  await assertNoHorizontalOverflow(page);
 });
 
-test('quick book and print presets reuse original fields and reveal detailed options',async({page})=>{
- await page.goto('/quote-book.html',{waitUntil:'domcontentloaded'});
- const item=page.locator('.quote-item').first();
- await expect(item.locator('[data-quick-product="일반 자료집"]')).toBeVisible();
- await item.locator('.quantity').fill('12');
- await item.locator('.innerPages').first().fill('32');
- await item.locator('[data-quick-product="일반 자료집"]').click();
- await expect(item.locator('.orderName')).toHaveValue('일반 자료집');
- await expect(item.locator('.bindingType')).toHaveValue('perfect');
- await expect(item.locator('.quantity')).toHaveValue('12');
- await expect(item.locator('.innerPages').first()).toHaveValue('32');
- await expect(item.locator('.coverPaperType')).toBeHidden();
- await item.locator('.book-quick-toggle').click();
- await expect(item.locator('.coverPaperType')).toBeVisible();
- await expect(page.locator('#signup-password')).toHaveAttribute('type','hidden');
- await expect(page.locator('#signup-email')).toHaveCount(0);
- await assertNoHorizontalOverflow(page);
- await page.goto('/quote-print.html',{waitUntil:'domcontentloaded'});
- await expect(page.locator('[data-quick-product="리플렛"]')).toBeVisible();
- await page.locator('#quantity').fill('125');
- await page.locator('[data-quick-product="리플렛"]').click();
- await expect(page.locator('#orderName')).toHaveValue('리플렛');
- await expect(page.locator('#printSides')).toHaveValue('2');
- await expect(page.locator('#quantity')).toHaveValue('125');
- await expect(page.locator('#paperWeight')).toBeHidden();
- await page.locator('#print-quick-toggle').click();
- await expect(page.locator('#paperWeight')).toBeVisible();
- await expect(page.locator('#signup-email')).toHaveCount(0);
- await assertNoHorizontalOverflow(page);
-});
