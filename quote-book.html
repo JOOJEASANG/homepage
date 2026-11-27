@@ -142,7 +142,7 @@ function __displayNameForHeader(currentUser) {
     </style>
     <script src="assets/js/naver-analytics.js" defer></script>
     <link id="ux-refresh-style" rel="stylesheet" href="assets/css/ux-refresh.css?v=20261126-attachment-design">
-    <script src="assets/js/responsive-ui.js?v=20261127-simple-order" defer></script>
+    <script src="assets/js/responsive-ui.js?v=20261126-attachment-design" defer></script>
 <style>
 .booklet-open-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid #a8c9b8;border-radius:8px;background:#f0f8f3;color:#23624f;font-weight:700;font-size:12px;white-space:nowrap;cursor:pointer}
 .booklet-open-btn:hover{background:#e0f1e7}
@@ -155,7 +155,6 @@ function __displayNameForHeader(currentUser) {
 #booklet-dialog iframe{display:block;flex:1;width:100%;min-height:0;border:0;background:#f3f6f5}
 @media(max-width:640px){#booklet-dialog{width:calc(100vw - 16px);height:calc(100dvh - 16px);max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}.booklet-dialog-header{padding:10px 12px}}
 </style>
-<link rel="stylesheet" href="assets/css/simple-order.css?v=1">
 </head>
 <body data-page="quote-book" class="antialiased selection:bg-brand-100 selection:text-brand-900">
 
@@ -230,7 +229,7 @@ function __displayNameForHeader(currentUser) {
             <i class="fas fa-circle-info mt-0.5 text-brand-500"></i>
             <div>
                 <span class="font-extrabold block mb-1">접수 안내</span>
-                접수 후 관리자 확인 및 제작 상담이 진행됩니다.
+                접수 후 관리자 확인 → 상담/확정 금액 안내로 진행됩니다. 접수 시 설정한 비밀번호로 주문조회가 가능합니다.
             </div>
          </div>
     </div>
@@ -296,10 +295,10 @@ function __displayNameForHeader(currentUser) {
                                 <i class="fas fa-file-invoice-dollar mr-2"></i>견적만 요청
                             </button>
                             <button type="button" id="submitQuoteBtn" class="btn btn-primary w-full text-sm shadow-lg shadow-brand-500/20 col-span-2">
-                                <i class="fas fa-paper-plane mr-2"></i>주문하기
+                                <i class="fas fa-paper-plane mr-2"></i>주문 접수 및 작업 요청
                             </button>
                         </div>
-                        <p id="estimate-request-guide" class="simple-intent-note">견적만 요청하면 제작이 진행되지 않습니다. 주문은 관리자 확인 후 진행됩니다.</p>
+                        <span id="estimate-request-guide" class="sr-only">견적만 요청은 제작 주문이 아닙니다. 버튼을 누르면 자세한 안내를 확인할 수 있습니다.</span>
                     </div>
                 </div>
             </div>
@@ -317,7 +316,7 @@ function __displayNameForHeader(currentUser) {
                 <button id="closeSignupModalBtn" class="text-slate-400 hover:text-slate-600 transition-colors"><i class="fas fa-times text-xl"></i></button>
             </div>
             <div class="p-6 overflow-y-auto max-h-[80vh]">
-                <div class="simple-guest-note" id="guest-intent-note">회원가입 없이 이름과 연락처만 입력하면 됩니다.</div>
+                <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-5 text-sm text-blue-800">회원가입 없이 이름과 연락처만 입력하면 됩니다. 비회원 주문조회 비밀번호는 연락처 끝 4자리입니다.</div>
                 <form id="signup-form" class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-500 mb-1">이름 <span class="text-red-400">*</span></label>
@@ -329,10 +328,14 @@ function __displayNameForHeader(currentUser) {
                     </div>
                     <input type="hidden" id="signup-password">
                     
-                    <p class="simple-privacy">이름과 연락처는 접수 및 상담에 이용합니다. 비회원 주문조회 비밀번호는 연락처 끝 4자리입니다. <a href="personal-info.html" target="_blank" rel="noopener noreferrer">개인정보처리방침</a></p>
+                    <p class="text-xs text-slate-500 leading-relaxed bg-slate-50 border border-slate-200 rounded-lg p-3">
+                        견적·제작 접수를 위해 <strong>이름과 연락처</strong>를 필수로 사용합니다.
+                        첨부파일과 주문 정보는 제작 상담·접수에 이용합니다.
+                        자세한 내용은 <a href="personal-info.html" target="_blank" rel="noopener noreferrer" class="text-emerald-700 font-bold underline">개인정보처리방침</a>에서 확인하세요.
+                    </p>
                     <div class="pt-4">
                         <button type="submit" class="btn btn-primary w-full">
-                            <span class="btn-text">접수하기</span>
+                            <span class="btn-text">내용 확인 후 접수하기</span>
                             <i class="fas fa-spinner fa-spin ml-2 hidden" style="display:none" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -924,7 +927,7 @@ function __displayNameForHeader(currentUser) {
 
 <script src="assets/js/header-shell.js"></script>
 <script type="module" src="assets/js/maintenance-check.js"></script>
-<script type="module" src="assets/js/pages/quote-book.js?v=20261127-simple-order"></script>
+<script type="module" src="assets/js/pages/quote-book.js?v=20261127-no-email"></script>
 <script>
   // bfcache(뒤로가기 캐시)로 복원되면 JS 초기화가 꼬일 수 있어 강제 새로고침
   window.addEventListener('pageshow', function (e) {
