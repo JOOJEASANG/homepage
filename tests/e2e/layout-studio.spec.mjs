@@ -5,6 +5,13 @@ import {PDFDocument} from 'pdf-lib';
 test('review displays one original per face and safety guides without imposition controls',async({page})=>{
  await page.goto('/layout-studio.html',{waitUntil:'domcontentloaded'});
  await expect(page.locator('#margin')).toHaveValue('10');
+ await expect(page.locator('#face-front')).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('#face-panel-front')).toBeVisible();
+ await expect(page.locator('#face-panel-back')).toBeHidden();
+ const layout=await page.evaluate(()=>{const a=document.querySelector('.review-single-grid .studio-workspace'),b=document.querySelector('.review-options');return {wide:innerWidth>760,preview:a.getBoundingClientRect().toJSON(),options:b.getBoundingClientRect().toJSON(),headings:[...b.querySelectorAll('h2')].map(x=>x.textContent)};});
+ expect(layout.headings).toEqual(['01. 검수 규격','02. 접지선 확인','03. 원본 파일']);
+ if(layout.wide){expect(layout.preview.right).toBeLessThan(layout.options.left);expect(layout.preview.width).toBeGreaterThan(layout.options.width);}else expect(layout.options.top).toBeGreaterThanOrEqual(layout.preview.bottom);
+
  await expect(page.locator('#cols,#rows,#sheetPreset,#fit,#layout-export,#layout-order')).toHaveCount(0);
  await page.locator('#trimPreset').selectOption('297,210');
  await page.locator('#fold').selectOption('roll');
@@ -20,6 +27,9 @@ test('review displays one original per face and safety guides without imposition
  await expect(page.locator('#layout-warning')).toContainText('재단 규격보다 작습니다');
  await page.locator('#file-back').setInputFiles({name:'back.png',mimeType:'image/png',buffer:Buffer.from(image,'base64')});
  await expect(back.locator('image')).toHaveCount(1);
+ await expect(page.locator('#face-panel-front')).toBeHidden();await expect(page.locator('#face-panel-back')).toBeVisible();
+ await page.locator('#face-front').click();await expect(page.locator('#face-panel-front')).toBeVisible();await expect(page.locator('#face-panel-back')).toBeHidden();
+ await page.locator('#face-back').click();await expect(page.locator('#face-panel-back')).toBeVisible();await expect(page.locator('#face-back')).toHaveAttribute('aria-pressed','true');
  expect(await front.getAttribute('viewBox')).toBe(await back.getAttribute('viewBox'));
  await page.locator('#show-safe').uncheck();await expect(front.locator('.safe-guide')).toHaveCount(0);
  await page.locator('#layout-reset').click();await expect(page.locator('#margin')).toHaveValue('10');
@@ -38,6 +48,7 @@ test('review renders genuine two-page PDF with independent faces and detects siz
  await expect(page.locator('#summary-front')).toContainText('1/2페이지',{timeout:15000});
  await page.locator('#same-pdf-back').click();
  await expect(page.locator('#summary-back')).toContainText('2/2페이지');
+ await expect(page.locator('#face-panel-back')).toBeVisible();await page.locator('#face-front').click();await expect(page.locator('#summary-front')).toBeVisible();
  await expect(page.locator('#review-front image')).toHaveCount(1);await expect(page.locator('#review-back image')).toHaveCount(1);
  await expect(page.locator('#layout-warning')).toContainText('앞면과 뒷면의 원본 규격이 다릅니다.');
  await page.locator('#clear-front').click();
