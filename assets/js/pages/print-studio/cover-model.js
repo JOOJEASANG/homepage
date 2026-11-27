@@ -12,22 +12,22 @@ export function coverGeometry(s){
   const spine=s.mode==='spread'?roundMm(s.spineMode==='manual'?num(s.manualSpine,0,200,'책등'):sheets*caliper+adjust):0;
   if(spine>200)throw Error('책등이 200mm를 초과합니다. 매장에 문의해 주세요.');
   const trimWidth=s.mode==='spread'?2*w+spine:w, totalWidth=roundMm(trimWidth+2*b),totalHeight=roundMm(h+2*b);
-  return {w,h,b,m,sheets,spine,trimWidth,totalWidth,totalHeight,back:s.mode==='spread'?{x:b,y:b,w,h}:null,front:{x:b+(s.mode==='spread'?w+spine:0),y:b,w,h},spineRect:s.mode==='spread'?{x:b+w,y:b,w:spine,h}:null};
+  return {w,h,b,m,sheets,spine,trimWidth,totalWidth,totalHeight,back:s.mode==='spread'||s.mode==='back'?{x:b,y:b,w,h}:null,front:s.mode==='back'?null:{x:b+(s.mode==='spread'?w+spine:0),y:b,w,h},spineRect:s.mode==='spread'?{x:b+w,y:b,w:spine,h}:null};
 }
 export function defaultCover(){
   return {version:1,size:'A4',width:210,height:297,mode:'spread',pages:200,sides:2,caliper:.1,adjust:0,spineMode:'auto',manualSpine:10,bleed:3,margin:10,frontTemplate:'report',backTemplate:'report',spineColor:'#dbe9e1',layers:[
     {id:'title',face:'front',text:'2026 교육 결과보고서',font:'sans',size:24,color:'#173c31',align:'center',bold:true,x:50,y:30,lineHeight:1.25},
     {id:'subtitle',face:'front',text:'교육 프로그램 운영 결과',font:'sans',size:12,color:'#475569',align:'center',bold:false,x:50,y:42,lineHeight:1.25},
-    {id:'spine',face:'spine',text:'2026 교육 결과보고서',font:'sans',size:10,color:'#173c31',align:'center',bold:false,x:50,y:50,lineHeight:1.25}
+    {id:'spine',face:'spine',writing:'vertical',text:'2026 교육 결과보고서',font:'sans',size:10,color:'#173c31',align:'center',bold:false,x:50,y:50,lineHeight:1.25}
   ]};
 }
 export function normalizeCover(raw,availableTemplates=TEMPLATES){
   if(!raw||raw.version!==1||!Array.isArray(raw.layers)||raw.layers.length>60)throw Error('지원하지 않는 편집 파일입니다.');
-  const d=defaultCover(),s={...d,...raw};s.mode=raw.mode==='front'?'front':'spread';s.size=Object.hasOwn(PAPER_SIZES,raw.size)?raw.size:'CUSTOM';s.spineMode=raw.spineMode==='manual'?'manual':'auto';
+  const d=defaultCover(),s={...d,...raw};s.mode=['front','back','spread'].includes(raw.mode)?raw.mode:'spread';s.size=Object.hasOwn(PAPER_SIZES,raw.size)?raw.size:'CUSTOM';s.spineMode=raw.spineMode==='manual'?'manual':'auto';
   if(s.size!=='CUSTOM') [s.width,s.height]=PAPER_SIZES[s.size];
   for(const key of ['frontTemplate','backTemplate']){if(String(s[key]).startsWith('custom-')&&!availableTemplates.includes(s[key]))throw Error('편집 파일의 등록 디자인을 사용할 수 없습니다. 관리자에게 문의해 주세요.');s[key]=availableTemplates.includes(s[key])?s[key]:'plain';}
   s.spineColor=/^#[0-9a-f]{6}$/i.test(s.spineColor)?s.spineColor:d.spineColor;
   const ids=new Set();
-  s.layers=raw.layers.map((l,i)=>{let id=String(l.id||'layer-'+i);if(ids.has(id))id='layer-'+i+'-'+ids.size;ids.add(id);return {id,face:['front','back','spine'].includes(l.face)?l.face:'front',text:String(l.text||'').slice(0,1200),font:Object.hasOwn(FONTS,l.font)?l.font:'sans',size:num(l.size,4,120,'글자 크기'),color:/^#[0-9a-f]{6}$/i.test(l.color)?l.color:'#222222',align:['left','center','right'].includes(l.align)?l.align:'center',bold:!!l.bold,x:num(l.x,0,100,'가로 위치'),y:num(l.y,0,100,'세로 위치'),lineHeight:num(l.lineHeight??1.25,.8,3,'줄 간격')};});
+  s.layers=raw.layers.map((l,i)=>{let id=String(l.id||'layer-'+i);if(ids.has(id))id='layer-'+i+'-'+ids.size;ids.add(id);return {id,face:['front','back','spine'].includes(l.face)?l.face:'front',text:String(l.text||'').slice(0,1200),font:Object.hasOwn(FONTS,l.font)?l.font:'sans',size:num(l.size,4,120,'글자 크기'),color:/^#[0-9a-f]{6}$/i.test(l.color)?l.color:'#222222',align:['left','center','right'].includes(l.align)?l.align:'center',bold:!!l.bold,x:num(l.x,0,100,'가로 위치'),y:num(l.y,0,100,'세로 위치'),lineHeight:num(l.lineHeight??1.25,.8,3,'줄 간격'),writing:l.writing==='vertical'?'vertical':'rotated'};});
   coverGeometry(s);return s;
 }

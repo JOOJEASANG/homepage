@@ -15,3 +15,8 @@ assert.throws(()=>coverGeometry({...s,width:20}),/가로/);
 assert.throws(()=>normalizeCover({version:2}),/지원/);
 assert.equal(normalizeCover({...s,frontTemplate:'https://example.org'}).frontTemplate,'plain');
 console.log('cover geometry, duplex rounding, validation and import passed');
+
+const back=coverGeometry({...s,mode:'back'});assert.equal(back.totalWidth,216);assert.equal(back.front,null);assert.equal(back.spineRect,null);assert.deepEqual(back.back,{x:3,y:3,w:210,h:297});
+assert.equal(normalizeCover({...s,mode:'back'}).mode,'back');
+assert.equal(normalizeCover(s).layers.find(l=>l.face==='spine').writing,'vertical');
+assert.equal(normalizeCover({...s,layers:s.layers.map(({writing,...l})=>l)}).layers.find(l=>l.face==='spine').writing,'rotated');
