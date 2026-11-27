@@ -155,6 +155,7 @@ function __displayNameForHeader(currentUser) {
 #booklet-dialog iframe{display:block;flex:1;width:100%;min-height:0;border:0;background:#f3f6f5}
 @media(max-width:640px){#booklet-dialog{width:calc(100vw - 16px);height:calc(100dvh - 16px);max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}.booklet-dialog-header{padding:10px 12px}}
 </style>
+<link rel="stylesheet" href="assets/css/simple-order.css?v=1">
 </head>
 <body data-page="quote-book" class="antialiased selection:bg-brand-100 selection:text-brand-900">
 
@@ -229,7 +230,7 @@ function __displayNameForHeader(currentUser) {
             <i class="fas fa-circle-info mt-0.5 text-brand-500"></i>
             <div>
                 <span class="font-extrabold block mb-1">접수 안내</span>
-                접수 후 관리자 확인 → 상담/확정 금액 안내로 진행됩니다. 접수 시 설정한 비밀번호로 주문조회가 가능합니다.
+                접수 후 관리자 확인 및 제작 상담이 진행됩니다.
             </div>
          </div>
     </div>
@@ -295,10 +296,10 @@ function __displayNameForHeader(currentUser) {
                                 <i class="fas fa-file-invoice-dollar mr-2"></i>견적만 요청
                             </button>
                             <button type="button" id="submitQuoteBtn" class="btn btn-primary w-full text-sm shadow-lg shadow-brand-500/20 col-span-2">
-                                <i class="fas fa-paper-plane mr-2"></i>주문 접수 및 작업 요청
+                                <i class="fas fa-paper-plane mr-2"></i>주문하기
                             </button>
                         </div>
-                        <span id="estimate-request-guide" class="sr-only">견적만 요청은 제작 주문이 아닙니다. 버튼을 누르면 자세한 안내를 확인할 수 있습니다.</span>
+                        <p id="estimate-request-guide" class="simple-intent-note">견적만 요청하면 제작이 진행되지 않습니다. 주문은 관리자 확인 후 진행됩니다.</p>
                     </div>
                 </div>
             </div>
@@ -316,36 +317,22 @@ function __displayNameForHeader(currentUser) {
                 <button id="closeSignupModalBtn" class="text-slate-400 hover:text-slate-600 transition-colors"><i class="fas fa-times text-xl"></i></button>
             </div>
             <div class="p-6 overflow-y-auto max-h-[80vh]">
-                <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-5 text-xs text-blue-800">
-                    <p class="font-bold mb-1">📌 접수 안내</p>
-                    입력하신 정보(이름/연락처)로 나중에 주문을 조회할 수 있습니다.<br>
-                    비밀번호는 연락처 끝 4자리로 자동 설정됩니다.
-                </div>
+                <div class="simple-guest-note" id="guest-intent-note">회원가입 없이 이름과 연락처만 입력하면 됩니다.</div>
                 <form id="signup-form" class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-500 mb-1">이름 <span class="text-red-400">*</span></label>
-                        <input type="text" id="signup-name" class="form-input w-full" required placeholder="주문자명">
+                        <input type="text" id="signup-name" autocomplete="name" class="form-input w-full" required placeholder="주문자명">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-500 mb-1">연락처 <span class="text-red-400">*</span></label>
-                        <input type="tel" id="signup-contact" class="form-input w-full" placeholder="010-1234-5678" required>
+                        <input type="tel" id="signup-contact" autocomplete="tel" inputmode="tel" class="form-input w-full" placeholder="010-1234-5678" required>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">비밀번호 (연락처 뒤 4자리 자동)</label>
-                        <input type="password" id="signup-password" class="form-input w-full" readonly placeholder="연락처 뒤 4자리로 자동 설정됩니다">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">이메일 <span class="text-slate-300 font-normal">(선택)</span></label>
-                        <input type="email" id="signup-email" class="form-input w-full" placeholder="example@email.com">
-                    </div>
-                    <p class="text-xs text-slate-500 leading-relaxed bg-slate-50 border border-slate-200 rounded-lg p-3">
-                        견적·제작 접수를 위해 <strong>이름과 연락처</strong>를 필수로 사용합니다.
-                        이메일은 선택 입력이며, 첨부파일과 주문 정보는 제작 상담·접수에 이용합니다.
-                        자세한 내용은 <a href="personal-info.html" target="_blank" rel="noopener noreferrer" class="text-emerald-700 font-bold underline">개인정보처리방침</a>에서 확인하세요.
-                    </p>
+                    <input type="hidden" id="signup-password">
+                    
+                    <p class="simple-privacy">이름과 연락처는 접수 및 상담에 이용합니다. 비회원 주문조회 비밀번호는 연락처 끝 4자리입니다. <a href="personal-info.html" target="_blank" rel="noopener noreferrer">개인정보처리방침</a></p>
                     <div class="pt-4">
                         <button type="submit" class="btn btn-primary w-full">
-                            <span class="btn-text">내용 확인 후 접수하기</span>
+                            <span class="btn-text">접수하기</span>
                             <i class="fas fa-spinner fa-spin ml-2 hidden" style="display:none" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -937,7 +924,7 @@ function __displayNameForHeader(currentUser) {
 
 <script src="assets/js/header-shell.js"></script>
 <script type="module" src="assets/js/maintenance-check.js"></script>
-<script type="module" src="assets/js/pages/quote-book.js?v=20261127-no-email"></script>
+<script type="module" src="assets/js/pages/quote-book.js?v=20261127-simple-order"></script>
 <script>
   // bfcache(뒤로가기 캐시)로 복원되면 JS 초기화가 꼬일 수 있어 강제 새로고침
   window.addEventListener('pageshow', function (e) {
