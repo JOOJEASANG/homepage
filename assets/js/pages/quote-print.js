@@ -19,7 +19,7 @@ import { validateUploadFiles } from "../file-upload-policy.js";
 import {hasStudioHandoff,studioAttachmentReady,clearStudioHandoff} from "./print-studio/handoff.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
 import { requestGuestAccess } from "../guest-access-v2.js";
-import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer } from "./shared/estimate-quick-order.js?v=20261125-estimate-guide";
+import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer, confirmEstimateIntent } from "./shared/estimate-quick-order.js?v=20261125-estimate-guide";
 import "../overlays.js";
 import "../session.js?v=20261028-subcontract-choice";
 import { loadPrintGuide } from "../print-guide-recovery.js";
@@ -529,8 +529,7 @@ const el = {
       if(modalTitle) modalTitle.innerHTML = pendingRequestType === 'estimate'
         ? '<i class="fas fa-file-invoice-dollar text-base mr-2"></i>견적 요청자 정보 입력'
         : '<i class="fas fa-user-circle text-base mr-2"></i>주문자 정보 입력';
-      if(guestButtonText) guestButtonText.textContent = pendingRequestType === 'estimate' ? '견적만 요청하기' : '주문 접수하기';
-      const note=document.getElementById('guest-intent-note');if(note)note.textContent=pendingRequestType==='estimate'?'견적만 요청하면 제작이 진행되지 않습니다. 이름과 연락처를 입력해 주세요.':'회원가입 없이 이름과 연락처만 입력하면 주문할 수 있습니다.';
+      if(guestButtonText) guestButtonText.textContent = pendingRequestType === 'estimate' ? '견적만 요청' : '내용 확인 후 주문 접수';
       if(memberButtonText) memberButtonText.textContent = pendingRequestType === 'estimate' ? '회원으로 견적만 요청' : '회원으로 주문 접수';
     }
 
@@ -1732,7 +1731,8 @@ openSignupModal();
     el.form.addEventListener('submit', (event) => submitQuote(event, 'order'));
     el.quoteOnlyBtn?.addEventListener('click', async () => {
       if (__QUOTE_SUBMIT_LOCK) return;
-      await submitQuote({ preventDefault(){} }, 'estimate');
+      const choice = editState.enabled ? 'estimate' : await confirmEstimateIntent();
+      if (choice) await submitQuote({ preventDefault(){} }, choice);
     });
 
     el.logoutBtn?.addEventListener('click', async ()=>{
@@ -1751,7 +1751,7 @@ openSignupModal();
 
     el.signupContact?.addEventListener('input', ()=>{
       const digits = (el.signupContact.value||'').replace(/[^0-9]/g,'');
-      el.signupPassword.value = (digits.length===10||digits.length===11) ? digits.slice(-4) : '';
+      el.signupPassword.value = digits ? digits.slice(-4) : '';
     });
 
     el.signupForm?.addEventListener('submit', async (ev)=>{
@@ -1759,7 +1759,7 @@ openSignupModal();
       const name = (el.signupName.value||'').trim();
       const contactRaw = (el.signupContact.value||'').trim();
       const contact = contactRaw.replace(/[^0-9]/g,'');
-      if(!name || !/^\d{10,11}$/.test(contact)){ showToast('이름과 정확한 연락처를 입력해주세요.', 'error'); return; }
+      if(!name || !contact){ showToast('이름/연락처를 입력해주세요.', 'error'); return; }
       const pw = (contact||'').slice(-4);
       el.signupPassword.value = pw;
 
@@ -1915,36 +1915,6 @@ openSignupModal();
       await submitQuoteRequest(currentUser, displayName, memberContact, company, { isGuest:false });
     });
 
-    function setupPrintQuickOrder(){
-      const root=document.getElementById('print-quick-products'),summary=document.getElementById('print-quick-summary'),toggle=document.getElementById('print-quick-toggle'),spec=document.getElementById('print-quick-spec');
-      if(!root||!summary||editState.enabled){if(root)root.hidden=true;return;}
-      const presets=[{name:'홍보물',desc:'안내문·포스터',weight:'200',sides:'1'},{name:'전단지',desc:'배포용 인쇄',weight:'150',sides:'1'},{name:'리플렛',desc:'접지용 인쇄',weight:'150',sides:'2'},{name:'기타 인쇄물',desc:'자유롭게 설정',weight:'200',sides:'1'}];
-      let active=null,compact=false;
-      function renderSummary(){
-        const paper=el.paperType.selectedOptions[0]?.textContent||'용지 미선택',weight=el.paperWeight.selectedOptions[0]?.textContent||'두께 미선택';
-        spec.textContent='현재 사양 · '+paper+' '+weight+' · '+(el.oshiEnabled.checked?'오시 '+getOshiLines()+'줄':'오시 없음')+(el.fullBackgroundEnabled?.checked?' · 전체바탕색 추가':'');
-      }
-      function setCompact(v){compact=v;el.form.classList.toggle('simple-print-compact',v);summary.hidden=false;toggle.textContent=v?'세부 옵션 변경':'세부 옵션 접기';toggle.setAttribute('aria-expanded',String(!v));}
-      for(const preset of presets){
-        const button=document.createElement('button');button.type='button';button.dataset.quickProduct=preset.name;button.setAttribute('aria-pressed','false');button.textContent=preset.name;
-        const small=document.createElement('small');small.textContent=preset.desc;button.append(small);
-        button.onclick=()=>{
-          if(!el.orderName.value.trim()||el.orderName.value===active?.name)el.orderName.value=preset.name;
-          active=preset;for(const b of root.children)b.setAttribute('aria-pressed',String(b===button));
-          el.paperType.value='snow';fillWeightOptions();
-          if([...el.paperWeight.options].some(o=>o.value===preset.weight))el.paperWeight.value=preset.weight;
-          el.printSides.value=preset.sides;
-          // Do not add paid finishing options automatically or reset quantity/size/attachments.
-          setCompact(preset.name!=='기타 인쇄물');renderSummary();compute();
-          el.orderName.dispatchEvent(new Event('input',{bubbles:true}));
-        };
-        root.append(button);
-      }
-      toggle.onclick=()=>{setCompact(!compact);renderSummary();};
-      el.form.addEventListener('input',()=>queueMicrotask(renderSummary));el.form.addEventListener('change',()=>queueMicrotask(renderSummary));
-      setCompact(false);renderSummary();
-    }
-
     // boot
     toggleCustom();
     toggleOshi();
@@ -1978,7 +1948,6 @@ openSignupModal();
       window.__gprintPrintResetRequested = false;
     }
     loadTempFormData();
-    setupPrintQuickOrder();
     // 로그인 페이지에서 돌아온 경우, 저장된 "회원 접수" 데이터를 자동 접수
     await __autoSubmitAfterLoginIfNeeded();
 

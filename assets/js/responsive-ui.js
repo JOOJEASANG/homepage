@@ -112,7 +112,7 @@
     const bar = document.createElement('div');
     bar.className = 'mobile-order-bar';
     const quoteOnly = document.getElementById('quoteOnlyBtn');
-    bar.innerHTML = '<button type="button" class="mobile-price" aria-haspopup="dialog"><small>예상금액 · 부가세 포함</small><strong>계산 대기</strong><span class="price-details">상세 ⌃</span></button><div class="mobile-order-actions"><button type="button" class="mobile-quote-only" aria-label="견적만 요청" aria-describedby="estimate-request-guide">견적만 요청</button><button type="button" class="mobile-order-submit">주문하기</button></div>';
+    bar.innerHTML = '<button type="button" class="mobile-price" aria-haspopup="dialog"><small>예상금액 · 부가세 포함</small><strong>계산 대기</strong><span class="price-details">상세 ⌃</span></button><div class="mobile-order-actions"><button type="button" class="mobile-quote-only" aria-label="견적만 요청" aria-describedby="estimate-request-guide">견적만 요청</button><button type="button" class="mobile-order-submit">주문 접수</button></div>';
     form.after(bar);
     const mobileSubmit = bar.querySelector('.mobile-order-submit');
     const mobileQuoteOnly = bar.querySelector('.mobile-quote-only');
@@ -146,7 +146,7 @@
       mobileSubmit.disabled = submit.disabled;
       mobileQuoteOnly.hidden = !quoteOnly || quoteOnly.hidden || getComputedStyle(quoteOnly).display === 'none';
       mobileQuoteOnly.disabled = Boolean(quoteOnly?.disabled || submit.disabled);
-      mobileSubmit.textContent = submit.disabled ? '처리 중…' : /수정/.test(submit.textContent) ? '견적 수정' : '주문하기';
+      mobileSubmit.textContent = submit.disabled ? '처리 중…' : /수정/.test(submit.textContent) ? '견적 수정' : '주문 접수';
       if (sheet.open) copyBreakdown();
     }
     updateBar();
