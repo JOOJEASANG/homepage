@@ -56,6 +56,7 @@ function render(){
   if($('show-guides').checked){guide(root,{x:b,y:b,w:g.trimWidth,h:g.h},'#dc2626');for(const r of [g.front,g.back])if(r)guide(root,{x:r.x+g.m,y:r.y+g.m,w:r.w-2*g.m,h:r.h-2*g.m},'#16a34a');guide(root,g.spineRect,'#2563eb');}
   for(const [key,r] of [[state.frontTemplate,g.front],[state.backTemplate,g.back]]){const image=assets.get(key);if(r&&image?.url){const dpi=25.4*Math.min(image.width/(r.w+(g.spineRect?g.b:2*g.b)),image.height/g.totalHeight);if(dpi<300)warnings.push('등록 디자인의 예상 해상도가 300dpi 미만입니다.');}}
   $('cover-warning').textContent=[...new Set(warnings)].join('\n');$('print-cover').disabled=!ready||![(g.front?state.frontTemplate:null),(g.back?state.backTemplate:null)].filter(Boolean).every(key=>assets.has(key));
+  if(!state.layers.some(x=>x.id===selected&&visibleFace(x.face)))selected=state.layers.find(x=>visibleFace(x.face))?.id;
   const layers=$('layer-list');layers.replaceChildren();
   for(const l of state.layers.filter(l=>visibleFace(l.face))){
     const row=document.createElement('div');row.className='layer-row';
