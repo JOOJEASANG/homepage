@@ -30,3 +30,11 @@
  .review-single-grid .review-options{grid-column:1;grid-row:2}
  .review-single-grid .review-face .layout-stage{height:clamp(240px,50vh,520px);min-height:240px;padding:8px}
 }
+
+/* Cover text layers: direct delete and precise nudge controls. */
+.layer-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px;align-items:center}
+.layer-row .layer-select{min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis}
+.layer-row .layer-delete{font-size:11px;padding:7px 8px}
+.layer-move{display:grid;gap:4px;margin:8px 0}
+.layer-move-buttons{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.layer-move-buttons button{padding:7px 4px;font-size:17px}
