@@ -142,7 +142,7 @@ test.describe('responsive renewal', () => {
           await expect(page.locator('.quote-item > .order-stage').first().locator('.step-number')).toHaveText('01');
           await expect(page.locator('.quote-item > .order-stage').nth(1).locator('.step-number')).toHaveText('02');
           const basics = page.locator('.quote-item > [data-order-stage="basics"]').first();
-          await expect(basics.getByText('품명', { exact: true })).toBeVisible();
+          await expect(basics.getByText('품명 (선택 시 자동 입력)', { exact: true })).toBeVisible();
           await expect(basics.getByText('주문 수량 (부)', { exact: true })).toBeVisible();
           await expect(basics.locator('.orderName')).toBeVisible();
           await expect(basics.locator('.quantity')).toBeVisible();
