@@ -425,7 +425,11 @@ test('guest quote and customer forms link to privacy information', async ({ page
   for (const path of ['/quote-book.html', '/quote-print.html']) {
     await page.goto(path, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#signup-form a[href="personal-info.html"]')).toHaveCount(1);
-    await expect(page.locator('#signup-form .btn-text')).toContainText('내용 확인 후 접수하기');
+    await expect(page.locator('#signup-form .btn-text')).toContainText('접수하기');
+    await expect(page.locator('#signup-form #signup-name')).toHaveAttribute('required','');
+    await expect(page.locator('#signup-form #signup-contact')).toHaveAttribute('required','');
+    await expect(page.locator('#signup-form #signup-password')).toHaveAttribute('type','hidden');
+    await expect(page.locator('#signup-form #signup-email')).toHaveCount(0);
   }
   await page.goto('/login.html', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#guest-lookup-form a[href="personal-info.html"]')).toHaveCount(1);
