@@ -35,8 +35,6 @@ import { openImagePreview, openPreviewLayer, closeImagePreview } from "./quote-b
 import { getBookTempStorageKey, writeBookDraft, readBookDraft, hasBookDraft, clearBookDraft, readLastQuoteCache, writeLastQuoteCache, clearLastQuoteCache } from "./quote-book/quote-storage.js";
 import { serializeQuoteItems } from "./quote-book/quote-form-data.js?v=20261125-remove-cover-extras";
 import { buildQuoteRequestData, buildQuoteUpdatePayload } from "./quote-book/quote-request-data.js";
-import { initEmailFileInput } from "./shared/email-file-notice.js?v=20261125-checkbox";
-const emailFileInput = initEmailFileInput("book");
 import { isAdminEditSearch, parseQuoteReloadPayload } from "./quote-book/page-state.js";
 import { readGuestSubmitSession, readGuestMenuSession, getGuestMyPageLookupKey, restoreGuestSessionFromReload, persistGuestSessionAfterSubmit } from "./quote-book/guest-session.js";
 import { acquireBookSubmitLock, releaseBookSubmitLock } from "./quote-book/submit-lock.js";
@@ -1262,7 +1260,6 @@ function applyImagePreviewsToUI(root=document) {
 
     function resetFormAndStorage() {
         quoteItemCounter = 0; DOMElements.quoteItemsContainer.innerHTML = ''; createNewQuoteItem();
-        emailFileInput.clear();
         if (DOMElements.attachmentsInput) DOMElements.attachmentsInput.value = '';
         renderAttachmentsList();
         const tempStorageKey = getTempStorageKey(); clearBookDraft(tempStorageKey);
@@ -1494,7 +1491,6 @@ DOMElements.signupModal.classList.remove('hidden');
             requestType: opts.requestType || pendingRequestType,
             automaticallyPriced: hasAutomaticEstimatePrice(lastCalculatedQuote.finalPrice),
         });
-        if (!editState.enabled && emailFileInput.value()) quoteRequestData.emailFileStatus = emailFileInput.value();
 
         try {
             const submitBtn = DOMElements.submitQuoteBtn;
@@ -1623,7 +1619,6 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
 
             if (DOMElements.attachmentsInput) DOMElements.attachmentsInput.value = '';
             if (DOMElements.attachmentsList) DOMElements.attachmentsList.innerHTML = '';
-            emailFileInput.clear();
             const wasEstimateRequest = quoteRequestData.requestType === 'estimate';
             try { localStorage.removeItem('pendingRequestTypeBook'); } catch (e) {}
             const returnToAdmin = editState.enabled && !!editState.quoteId && editState.adminEdit;

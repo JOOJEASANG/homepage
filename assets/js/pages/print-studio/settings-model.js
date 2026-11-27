@@ -1,5 +1,5 @@
 export const BUILTIN_NAMES={plain:'흰색',report:'보고서',education:'교육',classic:'클래식',soft:'파스텔'};
-export const DEFAULT_STUDIO_SETTINGS={cover:{bleed:3,margin:10,adjust:0,caliper:.1},layout:{bleed:3,margin:5,gapX:3,gapY:3,edge:3,compensation:3},papers:[],sheets:[],templates:[],hiddenBuiltins:[]};
+export const DEFAULT_STUDIO_SETTINGS={cover:{bleed:3,margin:10,adjust:0,caliper:.1},layout:{bleed:3,margin:10,gapX:3,gapY:3,edge:3,compensation:3},papers:[],sheets:[],templates:[],hiddenBuiltins:[]};
 const bounded=(v,min,max,def)=>v!==''&&v!=null&&Number.isFinite(Number(v))&&Number(v)>=min&&Number(v)<=max?Number(v):def;
 const label=(v,max=80)=>String(v??'').trim().slice(0,max);
 export function validTemplatePath(path){return /^public\/print-studio\/templates\/[a-z0-9-]{20,80}\.(?:jpg|png)$/.test(String(path||''));}

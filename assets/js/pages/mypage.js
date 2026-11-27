@@ -26,7 +26,6 @@ import "../overlays.js";
 import "../session.js";
 import { validateUploadFiles } from "../file-upload-policy.js";
 import { canHold, canResume, changeOrderHold } from "./shared/order-hold.js";
-import { canReportEmailFile, emailFileLabel } from "./shared/email-file-notice.js?v=20261125-checkbox";
 import { renderChatAttachment, renderChatImage, isChatImage, safeChatFileUrl, bindChatImageViewer, syncChatImageViewer, deleteChatAttachment } from "./shared/chat-attachments.js?v=20261126-audit";
 import { createChatUploadSession, uniqueUploadName } from "./shared/chat-upload-session.js";
 bindChatImageViewer();
@@ -721,7 +720,7 @@ try { window.auth = auth; } catch(e) {}
                     return statusStyleMap[s] || 'bg-slate-100 text-slate-700 ring-1 ring-slate-200';
                 };
 
-                const statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-extrabold tracking-tight ${pickStyle(statusRaw)}">${statusRaw}</span>${emailFileLabel(q) ? `<p class="mt-1 text-xs font-bold text-emerald-800">${emailFileLabel(q)}</p>` : ''}`;
+                const statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-extrabold tracking-tight ${pickStyle(statusRaw)}">${statusRaw}</span>`;
 
 const canEdit = (!q.status || q.status === '접수완료');
                
@@ -751,7 +750,6 @@ const primaryButtons = `
 `;
 
 let extraButtons = '';
-if (canReportEmailFile(q)) extraButtons += `<button type="button" class="report-email-file-btn menu-btn w-full flex items-center gap-2 px-3 py-2 text-sm font-bold text-emerald-800 hover:bg-emerald-50 rounded-md" data-id="${q.id}"><i class="fas fa-envelope"></i><span>이메일 파일 발송 알리기</span></button>`;
 if (canHold(q,'customer') || canResume(q,'customer')) {
     const resume = q.status === '보류';
     extraButtons += `<button type="button" class="customer-order-hold-btn menu-btn w-full flex items-center gap-2 px-3 py-2 text-sm font-bold text-amber-800 hover:bg-amber-50 rounded-md" data-id="${q.id}" data-action="${resume ? 'resume' : 'hold'}"><i class="fas ${resume ? 'fa-play' : 'fa-pause'}"></i><span>${resume ? '보류 해제' : '보류'}</span></button>`;
@@ -972,22 +970,6 @@ let buttonsHtml = `
             if (s.includes('결제완료')) return '결제가 완료되었습니다.';
             return '현재 상태에서는 주문취소가 불가합니다.';
         }
-const emailReportBusy = new Set();
-async function reportEmailFile(quote) {
-    if(!canReportEmailFile(quote)||emailReportBusy.has(quote.id))return;
-    emailReportBusy.add(quote.id);
-    try {
-        if(!await showConfirmation('이메일 발송 알리기','winwork@hanmail.net으로 해당 접수의 파일을 실제로 보내셨습니까? 관리자에게 발송 사실을 알립니다.'))return;
-        await runTransaction(db,async tx=>{
-            const ref=doc(db,'quotes',quote.id);
-            const snap=await tx.get(ref);
-            if(!snap.exists()||!canReportEmailFile(snap.data()))throw new Error('EMAIL_NOTICE_CHANGED');
-            tx.update(ref,{emailFileStatus:'sent',emailFileReportedAt:serverTimestamp(),updatedAt:serverTimestamp(),hasUnreadAdminMessage:true});
-        });
-        showToast('관리자에게 이메일 발송 사실을 알렸습니다.','success');
-    }catch(error){console.warn('email file report failed',error);showToast('이메일 발송 표시를 저장하지 못했습니다.','error');}
-    finally {emailReportBusy.delete(quote.id);}
-}
 const customerHoldBusy = new Set();
 async function changeCustomerHold(quote, action) {
     if (!quote?.id || customerHoldBusy.has(quote.id)) return;
@@ -1490,7 +1472,6 @@ const clickedInsideMoreMenu = !!e.target.closest('.more-actions-menu');
                 
                 // 주문 취소 요청
                 if (e.target.closest('.request-cancel-btn')) { requestCancelOrder(quote); }
-                if (e.target.closest('.report-email-file-btn')) reportEmailFile(quote);
                 const holdButton = e.target.closest('.customer-order-hold-btn');
                 if (holdButton) changeCustomerHold(quote, holdButton.dataset.action);
                 if (e.target.closest('.convert-estimate-btn')) { convertEstimateToOrder(quote); }

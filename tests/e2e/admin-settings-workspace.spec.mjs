@@ -1054,16 +1054,13 @@ test('admin calendar-year revenue displays January to December and accurate annu
   await expect(page.locator('#quote-list-body')).toBeVisible();
 });
 
-test('admin distinguishes a customer email report from confirmed receipt',async({page})=>{
+test('legacy email report does not expose receipt confirmation controls',async({page})=>{
   await fixture(page);
   await page.addInitScript(()=>{window.__fixtureQuotes=[{id:'email-order',orderName:'이메일 주문',createdAt:{toDate:()=>new Date()},status:'접수완료',emailFileStatus:'sent',totalPrice:10000}];});
   await page.goto('/admin.html',{waitUntil:'domcontentloaded'});
   const row=page.locator('#quote-list-body tr[data-quote-id="email-order"]');
-  await expect(row).toContainText('이메일 접수 · 미확인');
-  await row.locator('.email-file-confirm-btn').click();
-  await expect(page.locator('#confirmationMessage')).toContainText('실제 이메일 접수함');
-  await page.locator('#confirmActionBtn').click();
-  await expect(row).toContainText('이메일 파일 확인완료');
+  await expect(row).toBeVisible();
+  await expect(row).not.toContainText('이메일 접수 · 미확인');
   await expect(row.locator('.email-file-confirm-btn')).toHaveCount(0);
 });
 
@@ -1317,9 +1314,8 @@ test('customer studio receives published paper and layout defaults, not hidden t
   await expect(page.locator('#cover-svg > image')).toHaveCount(1);
   await expect(page.locator('#template-gallery [data-template="classic"]')).toHaveCount(0);
   await page.goto('/layout-studio.html',{waitUntil:'domcontentloaded'});
-  await expect(page.locator('#sheetPreset option[value="320,450"]')).toHaveCount(1);
   await expect(page.locator('#bleed')).toHaveValue('5');
-  await expect(page.locator('#gapX')).toHaveValue('6');
-  await page.locator('#sheetPreset').selectOption('320,450');
-  await expect(page.locator('#layout-dimensions')).toContainText('320 × 450');
+  await expect(page.locator('#margin')).toHaveValue('10');
+  await page.locator('#trimPreset').selectOption('210,297');
+  await expect(page.locator('#layout-dimensions')).toContainText('210 × 297');
 });

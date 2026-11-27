@@ -21,3 +21,8 @@
 
 ### Stage 4c: booklet order preview
 - Local page-count-only saddle-stitch sheet diagrams, left/right reading direction, end padding, and sheet counts. No uploads, database reads or print-ready file creation. Browser tests cover 16 and 10 pages, invalid values, mobile overflow and homepage navigation.
+
+### Review-only revision
+Homepage studio section hidden; direct URLs retained, quote file-selection studio links removed. Full-width workspace. Layout review shows both original faces at the same scale with trim, bleed, fold and 10 mm default safety guides. No repeat imposition, PDF creation or order handoff controls in layout review. Legacy export code retained for rollback.
+
+Both quote forms no longer offer email file receipt; customer/admin receipt controls and customer write permissions retired. Historical order fields are retained. Existing explicit cover PDF handoff remains available from the standalone editor.

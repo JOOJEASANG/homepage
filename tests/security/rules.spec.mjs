@@ -150,20 +150,14 @@ test('owners can hold before production and release only their own hold; admins 
   await assertSucceeds(updateDoc(doc(db('verified-guest',{guestLookupKey:'key'}),'quotes/guest'),hold));
 });
 
-test('email file notice is owner-reported and only admins can confirm receipt', async () => {
+test('retired email file declarations cannot be created or updated by customers', async () => {
   const own=doc(db('customer'),'quotes/order');
   const report={emailFileStatus:'sent',emailFileReportedAt:serverTimestamp(),updatedAt:serverTimestamp(),hasUnreadAdminMessage:true};
-  await assertSucceeds(setDoc(doc(db('customer'),'quotes/planned'),quote({emailFileStatus:'planned'})));
+  await assertFails(setDoc(doc(db('customer'),'quotes/planned'),quote({emailFileStatus:'planned'})));
   await assertFails(setDoc(doc(db('customer'),'quotes/forged'),quote({emailFileStatus:'sent',emailFileConfirmedAt:serverTimestamp()})));
   await assertFails(updateDoc(own,{emailFileConfirmedAt:serverTimestamp()}));
-  await assertFails(updateDoc(doc(db('stranger'),'quotes/order'),report));
-  await assertFails(updateDoc(own,{...report,quantity:1}));
-  await assertSucceeds(updateDoc(own,report));
-  await assertSucceeds(updateDoc(doc(db('admin'),'quotes/order'),{emailFileConfirmedAt:serverTimestamp()}));
-  await assertFails(updateDoc(own,{emailFileConfirmedAt:null}));
-  await seed({'quotes/order':quote({status:'보류',emailFileStatus:'planned'})});
-  await assertSucceeds(updateDoc(own,report));
-  await seed({'quotes/order':quote({status:'주문취소',emailFileStatus:'planned'})});
+  await assertFails(updateDoc(own,report));
+  await seed({'quotes/order':quote({emailFileStatus:'planned'})});
   await assertFails(updateDoc(own,report));
 });
 
