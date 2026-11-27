@@ -733,10 +733,11 @@ function applyImagePreviewsToUI(root=document) {
             button.onclick=()=>{
                 const bindingButton=item.querySelector('.binding-options [data-value="'+preset.binding+'"]');
                 // Preserve existing page counts and quantities; invalid binding must be selected by the customer.
-                if(preset.binding==='saddle'&&bindingButton?.classList.contains('disabled')){
-                    setCompact(false);showToast('중철 제본은 현재 페이지 수로 선택할 수 없습니다. 내지 페이지 수를 확인해 주세요.','info');return;
-                }
                 const name=$('.orderName');if(!name.value.trim()||name.value===active?.name)name.value=preset.name;
+                if(preset.binding==='saddle'&&bindingButton?.classList.contains('disabled')){
+                    active=preset;for(const b of root.children)b.setAttribute('aria-pressed',String(b===button));
+                    setCompact(false);updateSummary();calculateAndSave();$('.innerPages')?.focus();showToast('중철 제본은 내지 40페이지 이하에서 선택할 수 있습니다. 실제 페이지 수를 입력한 뒤 소책자를 다시 선택해 주세요.','info');return;
+                }
                 active=preset;
                 for(const b of root.children)b.setAttribute('aria-pressed',String(b===button));
                 pick($('.coverPaperType'),preset.cover);if($('.coverPaperType').value!=='none')$('.coverPrintType').value='color_simplex';
@@ -751,8 +752,7 @@ function applyImagePreviewsToUI(root=document) {
         item.addEventListener('change',()=>queueMicrotask(updateSummary));
         item.addEventListener('click',()=>queueMicrotask(updateSummary));
         // New orders can use a preset immediately; existing drafts keep their exact settings.
-        if(restored){summary.hidden=false;setCompact(false);updateSummary();}
-        else{summary.hidden=false;setCompact(false);updateSummary();}
+        setCompact(false);updateSummary();
     }
 
     function createNewQuoteItem(data = {}) {
