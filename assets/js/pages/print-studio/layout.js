@@ -5,6 +5,9 @@ const $=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg';
 const defaults={bleed:3,margin:10,compensation:3,fold:'none',direction:'right',imageDpi:300};
 const names=['front','back'],slots=Object.fromEntries(names.map(n=>[n,{source:null,preview:null,page:1,token:0}]));
 let touched=false;
+let activeFace='front';
+function selectFace(n){activeFace=n;for(const face of names){$('face-panel-'+face).hidden=face!==n;$('face-'+face).setAttribute('aria-pressed',String(face===n));}}
+for(const face of names)$('face-'+face).onclick=()=>selectFace(face);
 function el(tag,attrs={},text){const n=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(text!=null)n.textContent=text;return n;}
 function rect(root,x,y,w,h,stroke,dash='',fill='none',cls=''){if(w>0&&h>0)root.append(el('rect',{x,y,width:w,height:h,fill,stroke,'stroke-width':.45,'stroke-dasharray':dash,class:cls}));}
 const label=n=>n==='front'?'앞면':'뒷면',status=t=>$('layout-status').textContent=t;
@@ -46,12 +49,12 @@ function draw(){
 function release(source){if(source?.kind==='pdf'&&!names.some(n=>slots[n].source===source))void source.doc.destroy().catch(()=>{});}
 async function refresh(n){const a=slots[n],token=++a.token;a.preview=null;draw();if(!a.source)return;status(label(n)+' 미리보기 생성 중…');try{const p=await renderSource(a.source,a.page,num('imageDpi',36,2400));if(a.token!==token)return;a.preview=p;status(label(n)+' 확인 준비 완료');}catch(e){if(a.token===token)status(label(n)+' 미리보기 실패: '+e.message);}if(a.token===token)draw();}
 async function load(n,file){const a=slots[n],token=++a.token,old=a.source;Object.assign(a,{source:null,preview:null,page:1});release(old);draw();try{const source=await openSource(file);if(a.token!==token){release(source);return;}a.source=source;await refresh(n);}catch(e){if(a.token===token){status(label(n)+' 파일 열기 실패: '+e.message);draw();}}}
-for(const n of names){$('file-'+n).onchange=()=>{const f=$('file-'+n).files[0];if(f)void load(n,f);};$('page-'+n).onchange=()=>{const a=slots[n];if(!a.source)return;a.page=Math.max(1,Math.min(a.source.pages,Math.trunc(Number($('page-'+n).value))||1));void refresh(n);};$('clear-'+n).onclick=()=>{const a=slots[n],old=a.source;++a.token;Object.assign(a,{source:null,preview:null,page:1});$('file-'+n).value='';release(old);draw();};}
-$('same-pdf-back').onclick=()=>{const a=slots.front,b=slots.back,old=b.source;if(a.source?.kind!=='pdf'||a.page>=a.source.pages)return;b.source=a.source;b.page=a.page+1;$('file-back').value='';release(old);void refresh('back');};
+for(const n of names){$('file-'+n).onchange=()=>{const f=$('file-'+n).files[0];if(f){selectFace(n);void load(n,f);}};$('page-'+n).onchange=()=>{const a=slots[n];if(!a.source)return;selectFace(n);a.page=Math.max(1,Math.min(a.source.pages,Math.trunc(Number($('page-'+n).value))||1));void refresh(n);};$('clear-'+n).onclick=()=>{const a=slots[n],old=a.source;++a.token;Object.assign(a,{source:null,preview:null,page:1});$('file-'+n).value='';release(old);draw();};}
+$('same-pdf-back').onclick=()=>{const a=slots.front,b=slots.back,old=b.source;if(a.source?.kind!=='pdf'||a.page>=a.source.pages)return;b.source=a.source;b.page=a.page+1;$('file-back').value='';release(old);selectFace('back');void refresh('back');};
 $('trimPreset').onchange=()=>{const v=$('trimPreset').value;if(v!=='auto'&&v!=='custom')[$('trimW').value,$('trimH').value]=v.split(',');draw();};
 for(const id of ['trimW','trimH','bleed','margin','fold','direction','compensation','show-trim','show-safe','show-fold'])$(id).onchange=draw;
 $('imageDpi').onchange=()=>{try{num('imageDpi',36,2400);}catch(e){status(e.message);return;}for(const n of names)if(slots[n].source?.kind==='image')void refresh(n);};
 function reset(){for(const [k,v] of Object.entries(defaults))$(k).value=v;$('trimPreset').value='auto';for(const id of ['show-trim','show-safe','show-fold'])$(id).checked=true;for(const n of names)if(slots[n].source?.kind==='image')void refresh(n);draw();}
-$('layout-reset').onclick=reset;reset();
+$('layout-reset').onclick=reset;selectFace(activeFace);reset();
 for(const type of ['input','change','click'])document.querySelector('main').addEventListener(type,()=>{touched=true;},{capture:true});
 void loadStudioSettings().then(settings=>{if(!settings)return;defaults.bleed=settings.layout.bleed;defaults.compensation=settings.layout.compensation;if(!touched)reset();});
