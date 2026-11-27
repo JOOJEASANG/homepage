@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {normalizeStudioSettings,publicStudioSettings,validTemplateURL,validatePresetRows} from '../assets/js/pages/print-studio/settings-model.js';
+const id='01234567-1234-1234-1234-012345678901',path='public/print-studio/templates/'+id+'.png',url='https://firebasestorage.googleapis.com/v0/b/worklist-1e83a.firebasestorage.app/o/'+encodeURIComponent(path)+'?alt=media&token=test';
+const t={id:'custom-'+id,path,url,name:'보고서',width:2480,height:3508,enabled:true};
+assert.equal(validTemplateURL(url,path),true);
+assert.equal(validTemplateURL('https://evil.example/'+path,path),false);
+assert.equal(normalizeStudioSettings({cover:{bleed:99}}).cover.bleed,3);
+assert.equal(normalizeStudioSettings({papers:[{name:'모조',caliper:.092}]}).papers[0].caliper,.092);
+assert.equal(publicStudioSettings({templates:[{...t,enabled:false}]}).templates.length,0);
+assert.equal(publicStudioSettings({templates:[t]}).templates[0].id,t.id);
+assert.deepEqual(normalizeStudioSettings({hiddenBuiltins:['plain','report','bad']}).hiddenBuiltins,['report']);
+assert.throws(()=>validatePresetRows([{name:'모조',caliper:''}],'paper'),/입력 범위/);
+assert.equal(validatePresetRows([{name:'330 용지',width:330,height:480}],'sheet')[0].height,480);
+console.log('studio settings validation, public projection, URL checks passed');

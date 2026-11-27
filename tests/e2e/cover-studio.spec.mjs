@@ -1,0 +1,34 @@
+import {test,expect} from '@playwright/test';
+test('cover studio geometry, design, editing, undo and print output',async({page})=>{
+ await page.goto('/cover-studio.html',{waitUntil:'domcontentloaded'});
+ await expect(page.locator('#print-cover')).toBeEnabled();
+ await expect(page.locator('#spine-width')).toHaveText('10');
+ await expect(page.locator('#cover-dimensions')).toHaveText('436 × 303 mm (도련 포함)');
+ await page.locator('#pages').fill('201');await page.locator('#pages').blur();
+ await expect(page.locator('#spine-width')).toHaveText('10.1');
+ await page.locator('#sides').selectOption('1');
+ await expect(page.locator('#spine-width')).toHaveText('20.1');
+ await page.locator('#undo').click();
+ await expect(page.locator('#spine-width')).toHaveText('10.1');
+ await page.locator('#frontTemplate').selectOption('classic');
+ await page.locator('#layer-text').fill('테스트 표지');await page.locator('#layer-text').blur();
+ await expect(page.locator('#cover-svg [data-layer="title"]')).toHaveText('테스트 표지');
+ await page.evaluate(()=>{window.print=()=>{window.__printed=true;};});
+ await page.locator('#print-cover').click();
+ await expect.poll(()=>page.evaluate(()=>window.__printed)).toBe(true);
+ await expect(page.locator('#print-output > svg')).toHaveAttribute('width','436.1mm');
+ await expect(page.locator('#print-output .guide')).toHaveCount(0);
+ // Verify the browser-generated PDF, rather than only checking the preview.
+ const pdf=await page.pdf({preferCSSPageSize:true,printBackground:true,displayHeaderFooter:false});
+ const raw=pdf.toString('latin1');
+ expect(raw.match(/\/Type\s*\/Page\b/g)?.length).toBe(1);
+ const media=raw.match(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/);
+ expect(media).not.toBeNull();
+ expect(Math.abs(Number(media[1])-436.1*72/25.4)).toBeLessThan(2);
+ expect(Math.abs(Number(media[2])-303*72/25.4)).toBeLessThan(2);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2)).toBe(true);
+ await page.locator('#cover-order-file').setInputFiles({name:'cover.pdf',mimeType:'application/pdf',buffer:pdf});
+ await expect(page).toHaveURL(/\/quote-book\.html#studio-handoff$/);await expect(page.locator('[data-studio-add]')).toBeEnabled();
+ await page.locator('[data-studio-add]').click();await expect.poll(()=>page.locator('#quote-attachments').evaluate(e=>Array.from(e.files).map(f=>f.name))).toEqual(['cover.pdf']);
+ await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('[data-studio-add]')).toBeEnabled();await page.locator('[data-studio-add]').click();await expect.poll(()=>page.locator('#quote-attachments').evaluate(e=>e.files.length)).toBe(1);
+});

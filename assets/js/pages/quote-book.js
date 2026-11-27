@@ -20,6 +20,7 @@ import { app, auth, db, storage,
 import { initHeader } from "../header.js";
 import { uniqueUploadName } from "./shared/chat-upload-session.js";
 import { validateUploadFiles } from "../file-upload-policy.js";
+import {hasStudioHandoff,studioAttachmentReady,clearStudioHandoff} from "./print-studio/handoff.js";
 import { resolveQuoteSaveDestination } from "./shared/quote-save-redirect.js";
 import { hasAutomaticEstimatePrice, convertSavedEstimateToOrder, showEstimateCompletedLayer, confirmEstimateIntent } from "./shared/estimate-quick-order.js?v=20261125-estimate-guide";
 import { getSaddleSectionMetrics } from "./quote-book/saddle-calculator.js";
@@ -1425,6 +1426,7 @@ DOMElements.signupModal.classList.remove('hidden');
     // 실제 Firestore 에 접수 데이터를 저장하고 완료 처리합니다.
     // 신규: addDoc / 수정: updateDoc / 관리자 수정: updateDoc + diff 메시지
     async function submitQuoteRequest(user, ordererName, ordererContact, ordererCompany = '', opts = {}) {
+        if (!studioAttachmentReady('book',document.getElementById('quote-attachments'))) { showToast('인쇄 스튜디오 PDF를 첨부하거나 임시 파일을 취소한 뒤 접수해 주세요.','error'); return; }
         const isGuest = !!opts.isGuest && (!user || opts.forceGuest === true);
         let guestLookupKey = opts.guestLookupKey || null;
         const normalizedContact = (ordererContact || '').toString().replace(/[^0-9]/g, '');
@@ -1594,8 +1596,10 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
                         await setDoc(doc(db, "quotes", savedDocId), { attachments: merged }, { merge: true });
                     } catch (e2) {
                         console.warn('Failed to save attachments metadata (setDoc merge)', e2);
+                        if(hasStudioHandoff('book'))throw e2;
                     }
                 }
+                if(hasStudioHandoff('book'))await clearStudioHandoff('book');
             }
             
             const tempStorageKey = getTempStorageKey();
@@ -1772,8 +1776,8 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
                     || !!localStorage.getItem(__LAST_QUOTE_CACHE_KEY_BOOK);
 
                 localStorage.setItem('postLoginRedirect', 'quote-book.html');
-                if (hasDraft) {
-                    localStorage.setItem('autoSubmitBook', 'true');
+                if (hasDraft && !hasStudioHandoff('book')) {
+                    if(!hasStudioHandoff('book'))localStorage.setItem('autoSubmitBook', 'true');else localStorage.removeItem('autoSubmitBook');
                     
                     try { sessionStorage.removeItem('__AUTO_SUBMIT_BOOK_CONSUMED'); } catch(e) {}
                     try { sessionStorage.removeItem('__AUTO_SUBMIT_BOOK_LOCK'); } catch(e) {}
@@ -1911,7 +1915,7 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
         DOMElements.memberGoLoginBtn?.addEventListener('click', () => {
             saveFormData();
             localStorage.setItem('postLoginRedirect', 'quote-book.html');
-            localStorage.setItem('autoSubmitBook', 'true');
+            if(!hasStudioHandoff('book'))localStorage.setItem('autoSubmitBook', 'true');else localStorage.removeItem('autoSubmitBook');
             
                     try { sessionStorage.removeItem('__AUTO_SUBMIT_BOOK_CONSUMED'); } catch(e) {}
                     try { sessionStorage.removeItem('__AUTO_SUBMIT_BOOK_LOCK'); } catch(e) {}
@@ -1960,6 +1964,7 @@ const diffText = editState.adminEdit ? '관리자가 견적을 수정했습니�
         // autoSubmitBook은 페이지 1회 로드당 1번만 소비하도록 가드한다.
         const __shouldAutoSubmitBook = (
             localStorage.getItem('autoSubmitBook') === 'true'
+            && !hasStudioHandoff('book')
             && sessionStorage.getItem('__AUTO_SUBMIT_BOOK_CONSUMED') !== '1'
         );
         if (__shouldAutoSubmitBook) {

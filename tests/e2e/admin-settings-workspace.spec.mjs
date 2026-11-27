@@ -4,10 +4,12 @@ import { createHash } from 'node:crypto';
 
 // Exercise the real admin and guide modules without touching customer or site data.
 async function fixture(page, role = 'admin', realSession = true) {
-  await page.addInitScript(() => {
-    localStorage.setItem('userRole', 'admin');
+  await page.addInitScript(role => {
+    if(role==='admin')localStorage.setItem('userRole','admin');
+    else if(role==='user'){localStorage.setItem('userRole','user');sessionStorage.setItem('userRole','user');}
+    else {localStorage.removeItem('userRole');sessionStorage.removeItem('userRole');}
     window.Sortable = class { destroy() {} };
-  });
+  },role);
   const js = body => ({ contentType: 'application/javascript', body });
   await page.route('**/assets/js/maintenance-check.js*', route => route.fulfill(js('')));
   await page.route('**/assets/js/header.js*', route => route.fulfill(js('export function initHeader() {}')));
@@ -36,11 +38,11 @@ async function fixture(page, role = 'admin', realSession = true) {
       const updates = [];
       const tx = {
         get: getDoc,
-        update: (path, data) => updates.push({ path, data }),
-        set: (path, data) => updates.push({ path, data }),
+        update: (path, data) => updates.push({ path, data, options: { merge: true } }),
+        set: (path, data, options) => updates.push({ path, data, options }),
       };
       const result = await callback(tx);
-      for (const update of updates) write(update.path, update.data);
+      for (const update of updates) write(update.path, update.data, update.options);
       return result;
     };
     export const getApps = () => [app], getApp = () => app;
@@ -116,7 +118,7 @@ async function fixture(page, role = 'admin', realSession = true) {
       }
     }
     export const setDoc = async (path, data, options) => write(path, data, options);
-    export const updateDoc = async (path, data) => write(path, data);
+    export const updateDoc = async (path, data) => write(path, data, { merge: true });
     export const addDoc = async (path, data) => { write(path, data); return { id: 'fixture-created' }; };
     export const deleteDoc = async path => {
       if (!path.includes('/messages/')) return;
@@ -128,7 +130,7 @@ async function fixture(page, role = 'admin', realSession = true) {
     export const writeBatch = () => {const writes=[];return {update(path,data){writes.push({path,data,options:{merge:true}});},set(path,data,options){writes.push({path,data,options});},commit:async()=>{for(const item of writes)write(item.path,item.data,item.options);}};};
     export const ref = (_, fullPath) => ({ fullPath });
     export const uploadBytesResumable = (ref, file) => { (window.__fixtureUploads ||= []).push({ path: ref.fullPath, name: file.name, type: file.type }); return { snapshot: { ref }, on: (_, progress, fail, done) => queueMicrotask(done) }; };
-    export const uploadBytes = async () => ({}), getDownloadURL = async () => '/favicon.ico';
+    export const uploadBytes = async (target,file,metadata) => { (window.__fixtureUploads ||= []).push({path:target?.fullPath,name:file?.name,type:metadata?.contentType});return {}; }, getDownloadURL = async target => target?.fullPath?.startsWith('public/print-studio/templates/') ? 'https://firebasestorage.googleapis.com/v0/b/worklist-1e83a.firebasestorage.app/o/'+encodeURIComponent(target.fullPath)+'?alt=media&token=fixture' : '/favicon.ico';
     export const listAll = async () => ({ items: [] }), deleteObject = async ref => {
       (window.__fixtureStorageDeleteAttempts ||= []).push(ref.fullPath);
       if(window.__fixtureStorageDenied) throw Object.assign(Error('denied'),{code:'storage/unauthorized'});
@@ -1113,7 +1115,7 @@ async function chatFileFixture(page, role) {
   await fixture(page, role, role==='admin');
   await page.route('https://firebasestorage.googleapis.com/v0/b/worklist-1e83a.firebasestorage.app/o/**', route=>route.fulfill({
     contentType:'image/png',
-    body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aJd0AAAAASUVORK5CYII=','base64')
+    body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGO48/orAAVjAr1UswRTAAAAAElFTkSuQmCC','base64')
   }));
   await page.addInitScript(role=>{
     if(role==='user'){localStorage.removeItem('userRole');sessionStorage.removeItem('userRole');}
@@ -1254,6 +1256,70 @@ test('supplier account settings publish only the chosen account',async({page})=>
   expect(settings['settings/companyInfo'].accountNum).toBe('333-444');
   expect(settings['settings/companyInfo'].accounts).toBeUndefined();
   expect(settings['settings/paymentGuide'].accountNumber).toBe('333-444');
-  await page.goto('/index.html',{waitUntil:'domcontentloaded'});
-  await expect(page.locator('#home-bank-account-text')).toHaveText('은행2 333-444 (예금주: 테스트)');
+  // An authenticated admin is intentionally redirected away from the public homepage.
+  const customer=await page.context().newPage();
+  await fixture(customer,'user');
+  await customer.addInitScript(()=>{window.__fixtureSettings={'settings/companyInfo':{bankName:'은행2',accountNum:'333-444',accountHolder:'테스트',accountsManaged:true}};});
+  await customer.goto('/index.html',{waitUntil:'domcontentloaded'});
+  await expect(customer.locator('#home-bank-account-text')).toHaveText('은행2 333-444 (예금주: 테스트)');
+  await customer.close();
+});
+
+test('studio admin saves measured paper, design visibility and public defaults',async({page})=>{
+  await fixture(page);
+  const pixel=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGO48/orAAVjAr1UswRTAAAAAElFTkSuQmCC','base64');
+  await page.route('https://firebasestorage.googleapis.com/v0/b/worklist-1e83a.firebasestorage.app/o/**',route=>route.fulfill({contentType:'image/png',body:pixel}));
+  await page.goto('/admin-print-studio.html',{waitUntil:'domcontentloaded'});
+  await expect(page.locator('#studio-save')).toBeEnabled();
+  await page.locator('[data-setting="cover.bleed"]').fill('4');
+  await page.locator('[data-setting="cover.adjust"]').fill('0.5');
+  await page.locator('#add-paper').click();
+  const paper=page.locator('#paper-rows .preset-row');
+  await paper.getByRole('textbox',{name:'이름'}).fill('실측 모조 80g');
+  await paper.getByRole('spinbutton',{name:'한 장 두께(mm)'}).fill('0.092');
+  await page.locator('#add-sheet').click();
+  const sheet=page.locator('#sheet-rows .preset-row');
+  await sheet.getByRole('textbox',{name:'이름'}).fill('매장 규격');
+  await sheet.getByRole('spinbutton',{name:'가로(mm)'}).fill('320');
+  await sheet.getByRole('spinbutton',{name:'세로(mm)'}).fill('450');
+  await page.locator('#add-design').click();
+  const design=page.locator('.admin-design-row');
+  await design.getByRole('textbox',{name:'디자인 이름'}).fill('테스트 배경');
+  await design.locator('input[type=file]').setInputFiles({name:'cover.png',mimeType:'image/png',buffer:pixel});
+  await expect(design.locator('.muted')).toContainText('저장 대기');
+  await page.locator('#studio-save').click();
+  await expect(page.locator('#admin-studio-status')).toContainText('설정이 저장되었습니다.');
+  const settings=await page.evaluate(()=>window.__fixtureSettings);
+  const pub=settings['settings/printStudio'];
+  expect(pub.cover.bleed).toBe(4);expect(pub.papers[0].caliper).toBe(.092);expect(pub.sheets[0].width).toBe(320);
+  expect(pub.templates).toHaveLength(1);expect(pub.templates[0].name).toBe('테스트 배경');
+  await design.getByRole('checkbox',{name:'고객 목록에 공개'}).uncheck();
+  await page.locator('#studio-save').click();
+  await expect.poll(()=>page.evaluate(()=>window.__fixtureSettings['settings/printStudio'].templates.length)).toBe(0);
+  expect(await page.evaluate(()=>window.__fixtureSettings['settings/printStudioAdmin'].templates.length)).toBe(1);
+  await design.getByRole('button',{name:'디자인 삭제'}).click();
+  await page.locator('#studio-save').click();
+  await expect.poll(()=>page.evaluate(()=>window.__fixtureChatDeletes||[])).toContain('storage:'+pub.templates[0].path);
+  await expect.poll(()=>page.evaluate(()=>window.__fixtureSettings['settings/printStudioAdmin'].templates.length)).toBe(0);
+});
+test('customer studio receives published paper and layout defaults, not hidden templates',async({page})=>{
+  await fixture(page,'user');
+  const id='01234567-1234-1234-1234-012345678901',path='public/print-studio/templates/'+id+'.png';
+  const url='https://firebasestorage.googleapis.com/v0/b/worklist-1e83a.firebasestorage.app/o/'+encodeURIComponent(path)+'?alt=media&token=fixture';
+  await page.route('https://firebasestorage.googleapis.com/v0/b/worklist-1e83a.firebasestorage.app/o/**',route=>route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGO48/orAAVjAr1UswRTAAAAAElFTkSuQmCC','base64')}));
+  await page.addInitScript(({id,path,url})=>{window.__fixtureSettings={'settings/printStudio':{cover:{bleed:4,adjust:.5},layout:{bleed:5,gapX:6},papers:[{name:'실측 용지',caliper:.092}],sheets:[{name:'매장 규격',width:320,height:450}],hiddenBuiltins:['classic'],templates:[{id:'custom-'+id,path,url,name:'등록 디자인',width:1,height:1}]}};},{id,path,url});
+  await page.goto('/cover-studio.html',{waitUntil:'domcontentloaded'});
+  await expect(page.locator('#paperPreset option')).toHaveCount(2);
+  await expect(page.locator('#bleed')).toHaveValue('4');
+  await page.locator('#paperPreset').selectOption('0');
+  await expect(page.locator('#spine-width')).toHaveText('9.7');
+  await page.locator('#frontTemplate').selectOption('custom-'+id);
+  await expect(page.locator('#cover-svg > image')).toHaveCount(1);
+  await expect(page.locator('#template-gallery [data-template="classic"]')).toHaveCount(0);
+  await page.goto('/layout-studio.html',{waitUntil:'domcontentloaded'});
+  await expect(page.locator('#sheetPreset option[value="320,450"]')).toHaveCount(1);
+  await expect(page.locator('#bleed')).toHaveValue('5');
+  await expect(page.locator('#gapX')).toHaveValue('6');
+  await page.locator('#sheetPreset').selectOption('320,450');
+  await expect(page.locator('#layout-dimensions')).toContainText('320 × 450');
 });

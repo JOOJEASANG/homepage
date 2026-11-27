@@ -108,7 +108,7 @@
         ]
       },
       {
-        "source": "/@(admin|admin-ai-chat|admin-faq|admin-payment-guide|admin-work-guides-seed|price-editor|print-price-editor|mypage|login|maintenance|404).html",
+        "source": "/@(admin|admin-ai-chat|admin-faq|admin-payment-guide|admin-work-guides-seed|admin-print-studio|price-editor|print-price-editor|mypage|login|maintenance|404).html",
         "headers": [
           {
             "key": "X-Robots-Tag",
