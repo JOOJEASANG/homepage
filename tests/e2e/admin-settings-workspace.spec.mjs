@@ -1317,9 +1317,8 @@ test('customer studio receives published paper and layout defaults, not hidden t
   await expect(page.locator('#cover-svg > image')).toHaveCount(1);
   await expect(page.locator('#template-gallery [data-template="classic"]')).toHaveCount(0);
   await page.goto('/layout-studio.html',{waitUntil:'domcontentloaded'});
-  await expect(page.locator('#sheetPreset option[value="320,450"]')).toHaveCount(1);
   await expect(page.locator('#bleed')).toHaveValue('5');
-  await expect(page.locator('#gapX')).toHaveValue('6');
-  await page.locator('#sheetPreset').selectOption('320,450');
-  await expect(page.locator('#layout-dimensions')).toContainText('320 × 450');
+  await expect(page.locator('#margin')).toHaveValue('10');
+  await page.locator('#trimPreset').selectOption('210,297');
+  await expect(page.locator('#layout-dimensions')).toContainText('210 × 297');
 });
